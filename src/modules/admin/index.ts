@@ -1,0 +1,30 @@
+export { ProductForm } from './components/ProductForm'
+export { ProductAdminTable } from './components/ProductAdminTable'
+export { DeleteProductDialog } from './components/DeleteProductDialog'
+export { ImageUrlField } from './components/ImageUrlField'
+export { SpecsEditor } from './components/SpecsEditor'
+export { VariantsEditor } from './components/VariantsEditor'
+export { StatCard } from './components/StatCard'
+export { RevenueChart } from './components/RevenueChart'
+export { CategoryRevenue } from './components/CategoryRevenue'
+export { RecentOrdersTable } from './components/RecentOrdersTable'
+export { LowStockList } from './components/LowStockList'
+export { ChatInbox } from './components/ChatInbox'
+export { ListPagination } from './components/ListPagination'
+export { useAdminProducts } from './hooks/useAdminProducts'
+export { useProductForm, valuesFromProduct } from './hooks/useProductForm'
+export { useOrders } from './hooks/useOrders'
+export { useAdminDashboard } from './hooks/useAdminDashboard'
+export { adminProductService } from './services/admin-product.service'
+export { orderService } from './services/order.service'
+export { productFormSchema, CATEGORY_OPTIONS } from './schemas/product-form.schema'
+export { PRESET_IMAGES, MAX_SPECS, ADMIN_NAV_ITEMS, adminPageTitle } from './constants/admin.constants'
+export { orderStatus } from './utils/order-status'
+export type { ProductFormValues, SpecRowValues, AdminProductFilters } from './types/admin.type'
+export type {
+  DashboardPeriod,
+  DashboardStats,
+  RevenuePoint,
+  CategorySlice,
+} from './types/dashboard.type'
+export type { OrderStatus } from './utils/order-status'

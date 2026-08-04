@@ -1,0 +1,6 @@
+export { ChatWidget } from './components/ChatWidget'
+export { useChat } from './hooks/useChat'
+export { chatService } from './services/chat.service'
+export { chatRepository } from './services/chat.repository'
+export { BOT_REPLIES, BOT_REPLY_DELAY_MS, GUEST_ID_KEY } from './constants/chat.constants'
+export type { ChatConversation, ChatMessage, ChatIdentity, ChatRole } from './types/chat.type'
