@@ -18,7 +18,13 @@ export function StepContact() {
         autoComplete="name"
         placeholder="Ada Lovelace"
       />
-      <CheckoutField name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" />
+      <CheckoutField
+        name="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        readOnly
+      />
       <CheckoutField name="phone" label="Phone" type="tel" autoComplete="tel" placeholder="+1 555 010 2030" />
       <CheckoutField
         name="address"
@@ -28,6 +34,9 @@ export function StepContact() {
         placeholder="123 Main Street"
       />
       <CheckoutField name="city" label="City" autoComplete="address-level2" placeholder="Portland" />
+      <p className="text-xs text-muted-foreground sm:col-span-2">
+        Your order will be linked to your account email and appear in your profile.
+      </p>
     </fieldset>
   )
 }

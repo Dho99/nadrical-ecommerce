@@ -21,6 +21,7 @@ import type { Product, ProductVariant } from '../types/product.type'
 interface SpecSheetProps {
   product: Product
   onAdd: (product: Product, qty: number, variant?: ProductVariant) => void
+  onBuyNow?: (product: Product, qty: number, variant?: ProductVariant) => void
 }
 
 function StockBadge({ stock }: { stock: number }) {
@@ -29,7 +30,7 @@ function StockBadge({ stock }: { stock: number }) {
   return <Badge variant="outline">In stock</Badge>
 }
 
-export function SpecSheet({ product, onAdd }: SpecSheetProps) {
+export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const variants = product.variants ?? []
   const [selected, setSelected] = useState<ProductVariant | null>(
     () => variants.find((v) => v.stock > 0) ?? null,
@@ -133,6 +134,16 @@ export function SpecSheet({ product, onAdd }: SpecSheetProps) {
             </>
           )}
         </Button>
+        {onBuyNow && (
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={soldOut}
+            onClick={() => onBuyNow(product, qty, selected ?? undefined)}
+          >
+            Buy now
+          </Button>
+        )}
       </div>
 
       {soldOut && (

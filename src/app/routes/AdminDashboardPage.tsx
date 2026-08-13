@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Banknote, DollarSign, Receipt, TriangleAlert } from 'lucide-react'
 import {
+  AnnouncementComposer,
   CategoryRevenue,
   LowStockList,
   RecentOrdersTable,
@@ -88,6 +89,10 @@ export function AdminDashboardPage() {
           <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
             <RecentOrdersTable orders={recentOrders} />
             <LowStockList products={lowStock} />
+          </div>
+
+          <div className="mt-4">
+            <AnnouncementComposer />
           </div>
         </>
       )}

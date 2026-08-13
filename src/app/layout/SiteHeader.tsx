@@ -4,6 +4,7 @@ import { LogOut, Menu, Moon, Search, ShoppingCart, Sun, UserRound } from 'lucide
 import { useTheme } from 'next-themes'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
+import { NotificationBell } from '../../modules/notifications'
 import { CATEGORIES } from '../../modules/products/constants/product.constants'
 import { Badge, Button, Input, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../../shared/components/ui'
 
@@ -87,9 +88,16 @@ export function SiteHeader() {
               {resolvedTheme === 'dark' ? <Sun /> : <Moon />}
             </Button>
 
+            {isAuthed && <NotificationBell />}
+
             {isAuthed ? (
               <div className="hidden items-center gap-2 md:flex">
-                <span className="max-w-28 truncate text-sm text-muted-foreground">{user?.name}</span>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/profile" className="max-w-36">
+                    <UserRound />
+                    <span className="truncate">{user?.name}</span>
+                  </Link>
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -139,21 +147,28 @@ export function SiteHeader() {
                 <nav className="mt-6 flex flex-col gap-1" aria-label="Catalog mobile">
                   {catalogLinks}
                 </nav>
-                <div className="mt-6 flex items-center justify-between border-t pt-4">
+                <div className="mt-6 flex flex-col gap-2 border-t pt-4">
                   {isAuthed ? (
                     <>
-                      <span className="truncate text-sm text-muted-foreground">{user?.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          logout()
-                          setMenuOpen(false)
-                          navigate('/')
-                        }}
-                      >
-                        <LogOut /> OUT
+                      <Button variant="ghost" size="sm" className="justify-start" asChild>
+                        <Link to="/profile" onClick={() => setMenuOpen(false)}>
+                          <UserRound /> PROFILE
+                        </Link>
                       </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm text-muted-foreground">{user?.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            logout()
+                            setMenuOpen(false)
+                            navigate('/')
+                          }}
+                        >
+                          <LogOut /> OUT
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <Button asChild>

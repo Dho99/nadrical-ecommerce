@@ -7,6 +7,7 @@ interface AuthStore {
   session: AuthSession | null
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  googleLogin: (name: string, email: string) => Promise<void>
   logout: () => void
 }
 
@@ -25,6 +26,11 @@ export const useAuthStore = create<AuthStore>()(
         set({ session })
       },
 
+      googleLogin: async (name, email) => {
+        const session = await authService.googleLogin(name, email)
+        set({ session })
+      },
+
       logout: () => set({ session: null }),
     }),
     { name: 'store-auth' },
@@ -38,6 +44,7 @@ export function useAuth() {
     isAuthed: session !== null,
     login: useAuthStore((s) => s.login),
     register: useAuthStore((s) => s.register),
+    googleLogin: useAuthStore((s) => s.googleLogin),
     logout: useAuthStore((s) => s.logout),
   }
 }

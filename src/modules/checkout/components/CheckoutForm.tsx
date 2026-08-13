@@ -5,6 +5,7 @@ import { Button, Separator } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { CHECKOUT_STEPS, useCheckout, type CheckoutStepIndex } from '../hooks/useCheckout'
 import type { OrderPayload } from '../types/checkout.type'
+import type { CheckoutInput } from '../schemas/checkout.schema'
 import { StepContact } from './StepContact'
 import { StepShipping } from './StepShipping'
 import { StepPayment } from './StepPayment'
@@ -12,12 +13,13 @@ import { OrderConfirmationCard } from './OrderConfirmationCard'
 
 interface CheckoutFormProps {
   payloadBase: Pick<OrderPayload, 'items' | 'totals'>
+  initialValues?: Partial<Pick<CheckoutInput, 'fullName' | 'email'>>
   onOrderPlaced: () => void
 }
 
-export function CheckoutForm({ payloadBase, onOrderPlaced }: CheckoutFormProps) {
+export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: CheckoutFormProps) {
   const { step, isFirstStep, isLastStep, isSubmitting, error, confirmation, form, next, back, goTo, submit } =
-    useCheckout(payloadBase)
+    useCheckout(payloadBase, initialValues)
 
   useEffect(() => {
     if (confirmation) onOrderPlaced()

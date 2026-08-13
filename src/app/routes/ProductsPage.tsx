@@ -3,13 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { LoaderCircle } from 'lucide-react'
 import { ProductFilter, ProductGrid, useInfiniteProducts } from '../../modules/products'
 import { parseProductFilters, toProductParams } from '../../modules/products/utils/filters'
-import { useCart } from '../../modules/cart/hooks/useCart'
 import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll'
 import { Separator } from '../../shared/components/ui'
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { add, qtyOf } = useCart()
 
   const filters = useMemo(() => parseProductFilters(searchParams), [searchParams])
   const { items, total, status, error, loadingMore, hasMore, loadMore, refetch } =
@@ -42,8 +40,6 @@ export function ProductsPage() {
         status={status}
         error={error}
         onRetry={refetch}
-        onAdd={add}
-        inCartQtyOf={qtyOf}
         footer={
           <div ref={sentinelRef} aria-hidden="true">
             {loadingMore && (

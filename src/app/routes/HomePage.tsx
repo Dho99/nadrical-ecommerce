@@ -6,13 +6,11 @@ import {
     useProducts,
     useCategories,
 } from "../../modules/products";
-import { useCart } from "../../modules/cart/hooks/useCart";
 import { SectionHead } from "../../shared/components/ui";
 
 export function HomePage() {
     const { products, status, error, refetch } = useProducts({});
     const categories = useCategories();
-    const { add, qtyOf } = useCart();
 
     const featured = products.filter((p) => p.featured).slice(0, 4);
     const heroProducts = products.length > 0 ? products : null;
@@ -41,8 +39,6 @@ export function HomePage() {
                         status={heroProducts ? status : "loading"}
                         error={error}
                         onRetry={refetch}
-                        onAdd={add}
-                        inCartQtyOf={qtyOf}
                         className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
                     />
                 </div>

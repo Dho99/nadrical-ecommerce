@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import type { OrderRecord } from '../../../shared/types/order.type'
 import { formatPrice } from '../../../shared/utils/format'
 import { Badge, Card, CardContent, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../shared/components/ui'
-import { orderStatus } from '../utils/order-status'
+import { orderStatus } from '../../../shared/utils/order-status'
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
   Processing: 'default',

@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
 import { ProductGallery, SpecSheet, ProductGrid, useProduct, useProducts } from '../../modules/products'
 import { CATEGORY_LABEL } from '../../modules/products/constants/product.constants'
-import { useCart } from '../../modules/cart/hooks/useCart'
+import { useGuardedAdd, useBuyNow } from '../../modules/cart'
 import {
   Badge,
   Breadcrumb,
@@ -26,13 +26,25 @@ const BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive'> = {
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { product, status, error } = useProduct(id)
-  const { add, qtyOf } = useCart()
+  const { add } = useGuardedAdd()
+  const { buyNow } = useBuyNow()
 
   const relatedQuery = useProducts(product ? { category: product.category } : {})
   const related = relatedQuery.products.filter((p) => p.id !== product?.id).slice(0, 3)
 
   const handleAdd = (p: Product, qty: number, variant?: ProductVariant) =>
     add(
+      {
+        ...p,
+        variantId: variant?.id,
+        variantName: variant?.name,
+        variantStock: variant?.stock,
+      },
+      qty,
+    )
+
+  const handleBuyNow = (p: Product, qty: number, variant?: ProductVariant) =>
+    buyNow(
       {
         ...p,
         variantId: variant?.id,
@@ -116,7 +128,7 @@ export function ProductDetailPage() {
           </p>
 
           <div className="mt-6">
-            <SpecSheet product={product} onAdd={handleAdd} />
+            <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} />
           </div>
         </div>
       </div>
@@ -135,8 +147,6 @@ export function ProductDetailPage() {
             products={related}
             status={relatedQuery.status}
             error={relatedQuery.error}
-            onAdd={add}
-            inCartQtyOf={qtyOf}
           />
         </section>
       )}

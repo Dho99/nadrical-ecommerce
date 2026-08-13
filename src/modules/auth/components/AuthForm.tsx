@@ -13,6 +13,7 @@ import {
     FormLabel,
     FormMessage,
     Input,
+    Separator,
 } from "../../../shared/components/ui";
 import {
     loginSchema,
@@ -20,8 +21,11 @@ import {
     type RegisterInput,
 } from "../schemas/auth.schema";
 import { useAuth } from "../hooks/useAuth";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 type AuthMode = "login" | "register";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 interface AuthFormProps {
     mode: AuthMode;
@@ -210,15 +214,20 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </form>
             </Form>
 
-            <Button
-                type="button"
-                size="lg"
-                variant={"outline"}
-                // disabled={submitting}
-                className=""
-            >
-                Sign in with Google
-            </Button>
+            {GOOGLE_CLIENT_ID && (
+                <>
+                    <div className="my-5 flex items-center gap-3" aria-hidden="true">
+                        <Separator className="grow" />
+                        <span className="text-xs text-muted-foreground">or</span>
+                        <Separator className="grow" />
+                    </div>
+                    <GoogleSignInButton
+                        isLogin={isLogin}
+                        onError={setFormError}
+                        onSignedIn={() => navigate(redirectTo, { replace: true })}
+                    />
+                </>
+            )}
         </Card>
     );
 }

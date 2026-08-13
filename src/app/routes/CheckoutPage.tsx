@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
 import { CheckoutForm, OrderSummary } from '../../modules/checkout'
 import { useCart } from '../../modules/cart/hooks/useCart'
+import { useAuth } from '../../modules/auth'
 import { Button, EmptyState } from '../../shared/components/ui'
 
 export function CheckoutPage() {
   const { items, totals, clear } = useCart()
+  const { user } = useAuth()
 
   if (items.length === 0) {
     return (
@@ -35,7 +37,11 @@ export function CheckoutPage() {
 
       <div className="grid items-start gap-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <CheckoutForm payloadBase={{ items, totals }} onOrderPlaced={clear} />
+          <CheckoutForm
+            payloadBase={{ items, totals }}
+            initialValues={{ fullName: user?.name, email: user?.email }}
+            onOrderPlaced={clear}
+          />
         </div>
         <div className="lg:col-span-5">
           <OrderSummary items={items} totals={totals} shippingMethod="standard" />

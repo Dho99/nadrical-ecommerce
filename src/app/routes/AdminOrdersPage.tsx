@@ -1,5 +1,5 @@
 import { ListPagination, useOrders } from '../../modules/admin'
-import { orderStatus } from '../../modules/admin/utils/order-status'
+import { orderStatus } from '../../shared/utils/order-status'
 import { formatPrice } from '../../shared/utils/format'
 import {
   Badge,

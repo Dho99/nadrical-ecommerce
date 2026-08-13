@@ -78,6 +78,32 @@ export const authService = {
     }
   },
 
+  async googleLogin(name: string, email: string): Promise<AuthSession> {
+    await mockDelay(500)
+    mockFail(0.03)
+    const users = loadUsers()
+    const normalizedEmail = email.trim().toLowerCase()
+    const existing = users.find((u) => u.email.toLowerCase() === normalizedEmail)
+    if (existing) {
+      return {
+        user: toSessionUser(existing),
+        token: makeToken(existing.id),
+      }
+    }
+    const user: StoredUser = {
+      id: `usr-${Math.random().toString(36).slice(2, 10)}`,
+      name: name.trim() || normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      password: `google-${Math.random().toString(36).slice(2, 14)}`,
+      role: 'user',
+    }
+    saveUsers([...users, user])
+    return {
+      user: toSessionUser(user),
+      token: makeToken(user.id),
+    }
+  },
+
   async hasAccount(email: string): Promise<boolean> {
     await mockDelay(150)
     return loadUsers().some((u) => u.email.toLowerCase() === email.toLowerCase())

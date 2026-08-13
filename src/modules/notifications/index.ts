@@ -1,0 +1,5 @@
+export { NotificationBell } from './components/NotificationBell'
+export { useNotifications } from './hooks/useNotifications'
+export { notificationService } from './services/notification.service'
+export { notificationRepository } from './services/notification.repository'
+export type { AppNotification, NotificationType } from './types/notification.type'

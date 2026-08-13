@@ -11,6 +11,7 @@ export { RecentOrdersTable } from './components/RecentOrdersTable'
 export { LowStockList } from './components/LowStockList'
 export { ChatInbox } from './components/ChatInbox'
 export { ListPagination } from './components/ListPagination'
+export { AnnouncementComposer } from './components/AnnouncementComposer'
 export { useAdminProducts } from './hooks/useAdminProducts'
 export { useProductForm, valuesFromProduct } from './hooks/useProductForm'
 export { useOrders } from './hooks/useOrders'
@@ -19,7 +20,7 @@ export { adminProductService } from './services/admin-product.service'
 export { orderService } from './services/order.service'
 export { productFormSchema, CATEGORY_OPTIONS } from './schemas/product-form.schema'
 export { PRESET_IMAGES, MAX_SPECS, ADMIN_NAV_ITEMS, adminPageTitle } from './constants/admin.constants'
-export { orderStatus } from './utils/order-status'
+export { orderStatus } from '../../shared/utils/order-status'
 export type { ProductFormValues, SpecRowValues, AdminProductFilters } from './types/admin.type'
 export type {
   DashboardPeriod,
@@ -27,4 +28,4 @@ export type {
   RevenuePoint,
   CategorySlice,
 } from './types/dashboard.type'
-export type { OrderStatus } from './utils/order-status'
+export type { OrderStatus } from '../../shared/utils/order-status'

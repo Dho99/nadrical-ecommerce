@@ -1,0 +1,6 @@
+export { ProfileOverview } from './components/ProfileOverview'
+export { OrderHistoryList } from './components/OrderHistoryList'
+export { useProfileStats } from './hooks/useProfileStats'
+export { useOrderHistory } from './hooks/useOrderHistory'
+export { profileService } from './services/profile.service'
+export type { ProfileStats } from './types/profile.type'

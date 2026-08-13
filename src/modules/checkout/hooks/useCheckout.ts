@@ -35,12 +35,14 @@ interface UseCheckoutResult {
 
 export function useCheckout(
   payloadBase: Pick<OrderPayload, 'items' | 'totals'>,
+  initialValues: Partial<Pick<CheckoutInput, 'fullName' | 'email'>> = {},
 ): UseCheckoutResult {
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
     mode: 'onTouched',
     defaultValues: {
       shippingMethod: 'standard',
+      ...initialValues,
     },
   })
   const [step, setStep] = useState<CheckoutStepIndex>(0)

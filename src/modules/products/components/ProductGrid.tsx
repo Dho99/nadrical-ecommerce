@@ -10,8 +10,6 @@ interface ProductGridProps {
   status: AsyncStatus
   error: string | null
   onRetry?: () => void
-  onAdd?: (product: Product) => void
-  inCartQtyOf?: (productId: string) => number
   className?: string
   footer?: ReactNode
 }
@@ -21,8 +19,6 @@ export function ProductGrid({
   status,
   error,
   onRetry,
-  onAdd,
-  inCartQtyOf,
   className,
   footer,
 }: ProductGridProps) {
@@ -73,13 +69,7 @@ export function ProductGrid({
     <div>
       <div className={gridClass}>
         {products.map((product, i) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            index={i}
-            onAdd={onAdd}
-            inCartQty={inCartQtyOf?.(product.id)}
-          />
+          <ProductCard key={product.id} product={product} index={i} />
         ))}
       </div>
       {footer}

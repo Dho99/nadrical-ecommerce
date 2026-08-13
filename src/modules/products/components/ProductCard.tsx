@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
-import { toast } from 'sonner'
-import { Badge, Button, Card, CardContent } from '../../../shared/components/ui'
+import { Badge, Card, CardContent } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { cn } from '../../../shared/utils/cn'
 import { CATEGORY_LABEL } from '../constants/product.constants'
@@ -16,11 +14,9 @@ const BADGE_VARIANT: Record<ProductBadge, 'default' | 'secondary' | 'destructive
 interface ProductCardProps {
   product: Product
   index?: number
-  onAdd?: (product: Product) => void
-  inCartQty?: number
 }
 
-export function ProductCard({ product, index = 0, onAdd, inCartQty = 0 }: ProductCardProps) {
+export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const soldOut = product.stock === 0
 
   return (
@@ -66,20 +62,6 @@ export function ProductCard({ product, index = 0, onAdd, inCartQty = 0 }: Produc
             {soldOut ? 'Sold out' : `${product.stock} in stock`}
           </p>
         </div>
-
-        <Button
-          type="button"
-          variant={soldOut ? 'outline' : 'default'}
-          className="mt-3 w-full"
-          disabled={soldOut}
-          onClick={() => {
-            onAdd?.(product)
-            if (!soldOut) toast.success(`${product.name} added to cart`)
-          }}
-        >
-          <Plus />
-          {soldOut ? 'Sold out' : inCartQty > 0 ? `In cart · ${inCartQty}` : 'Add to cart'}
-        </Button>
       </CardContent>
     </Card>
   )
