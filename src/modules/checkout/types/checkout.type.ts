@@ -18,8 +18,11 @@ export interface OrderPayload {
     email: string
     phone: string
     address: string
+    addressLine2?: string
     city: string
+    province?: string
     postalCode: string
+    countryCode?: string
   }
   shippingMethod: ShippingMethod
   payment: {

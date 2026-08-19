@@ -1,0 +1,7 @@
+export { AddressFormDialog } from './components/AddressFormDialog'
+export { AddressCard } from './components/AddressCard'
+export { useAddressBook } from './hooks/useAddressBook'
+export { addressService } from './services/address.service'
+export { addressSchema } from './schemas/address.schema'
+export type { AddressRecord, AddressInput } from './types/address.type'
+export type { AddressSchema } from './schemas/address.schema'

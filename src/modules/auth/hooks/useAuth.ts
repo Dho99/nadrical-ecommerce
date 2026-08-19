@@ -1,19 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { authService } from '../services/auth.service'
-import type { AuthSession } from '../types/auth.type'
+import { authService, type UpdateProfileInput } from '../services/auth.service'
+import type { AuthSession, AuthUser } from '../types/auth.type'
 
 interface AuthStore {
   session: AuthSession | null
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   googleLogin: (name: string, email: string) => Promise<void>
+  updateProfile: (input: UpdateProfileInput) => Promise<void>
   logout: () => void
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       session: null,
 
       login: async (email, password) => {
@@ -31,6 +32,13 @@ export const useAuthStore = create<AuthStore>()(
         set({ session })
       },
 
+      updateProfile: async (input) => {
+        const session = get().session
+        if (!session) return
+        const user: AuthUser = await authService.updateProfile(session.user.id, input)
+        set({ session: { ...session, user } })
+      },
+
       logout: () => set({ session: null }),
     }),
     { name: 'store-auth' },
@@ -45,6 +53,7 @@ export function useAuth() {
     login: useAuthStore((s) => s.login),
     register: useAuthStore((s) => s.register),
     googleLogin: useAuthStore((s) => s.googleLogin),
+    updateProfile: useAuthStore((s) => s.updateProfile),
     logout: useAuthStore((s) => s.logout),
   }
 }

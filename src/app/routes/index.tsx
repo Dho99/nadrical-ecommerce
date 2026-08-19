@@ -13,6 +13,7 @@ import { NotFoundPage } from './NotFoundPage'
 import { RequireAuth } from './RequireAuth'
 import { ProfilePage } from './ProfilePage'
 import { OrdersHistoryPage } from './OrdersHistoryPage'
+import { AddressBookPage } from './AddressBookPage'
 import { AdminDashboardPage } from './AdminDashboardPage'
 import { AdminProductsPage } from './AdminProductsPage'
 import { AdminProductFormPage } from './AdminProductFormPage'
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <ProfilePage /> },
           { path: 'orders', element: <OrdersHistoryPage /> },
+          { path: 'addresses', element: <AddressBookPage /> },
         ],
       },
       { path: '/login', element: <LoginPage /> },

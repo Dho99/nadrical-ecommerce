@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-export const customerSchema = z.object({
+export const addressSchema = z.object({
+  label: z.string().trim().min(1, 'Add a label').max(30, 'Label is too long'),
   fullName: z
     .string()
     .trim()
-    .min(3, 'Enter your full name')
+    .min(3, 'Enter a full name')
     .max(60, 'Name is too long'),
-  email: z.string().trim().email('Enter a valid email address'),
   phone: z
     .string()
     .trim()
@@ -24,6 +24,13 @@ export const customerSchema = z.object({
     .max(120, 'Address is too long')
     .optional()
     .or(z.literal('')),
+  district: z
+    .string()
+    .trim()
+    .min(2, 'Enter the district')
+    .max(60, 'District name is too long')
+    .optional()
+    .or(z.literal('')),
   city: z.string().trim().min(2, 'Enter your city').max(60, 'City name is too long'),
   province: z
     .string()
@@ -38,30 +45,7 @@ export const customerSchema = z.object({
     .min(3, 'Enter a valid postal code')
     .max(12, 'Postal code is too long'),
   countryCode: z.enum(['ID', 'US', 'MY', 'SG']).optional(),
+  isPrimary: z.boolean().optional(),
 })
 
-export const shippingSchema = z.object({
-  shippingMethod: z.enum(['standard', 'express']),
-})
-
-export const paymentSchema = z.object({
-  cardName: z.string().trim().min(3, 'Enter the name on the card'),
-  cardNumber: z
-    .string()
-    .trim()
-    .regex(/^\d{16}$/, 'Card number must be 16 digits'),
-  expiry: z
-    .string()
-    .trim()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use MM/YY format'),
-  cvc: z.string().trim().regex(/^\d{3,4}$/, 'CVC is 3 or 4 digits'),
-})
-
-export const checkoutSchema = customerSchema
-  .merge(shippingSchema)
-  .merge(paymentSchema)
-
-export type CustomerInput = z.infer<typeof customerSchema>
-export type ShippingInput = z.infer<typeof shippingSchema>
-export type PaymentInput = z.infer<typeof paymentSchema>
-export type CheckoutInput = z.infer<typeof checkoutSchema>
+export type AddressSchema = z.infer<typeof addressSchema>

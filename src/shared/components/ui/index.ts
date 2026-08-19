@@ -10,6 +10,17 @@ export {
   CardContent,
 } from './card'
 export { Input } from './input'
+export { Popover, PopoverAnchor, PopoverTrigger, PopoverContent } from './popover'
+export {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandLoading,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from './command'
 export { Textarea } from './textarea'
 export { Switch } from './switch'
 export {

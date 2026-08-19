@@ -7,10 +7,14 @@ import { cartService } from '../services/cart.service'
 interface CartStore {
   items: CartItem[]
   add: (product: ProductBrief, qty?: number) => void
-  remove: (productId: string) => void
-  setQty: (productId: string, qty: number) => void
+  remove: (productId: string, variantId?: string) => void
+  setQty: (productId: string, variantId: string | undefined, qty: number) => void
   clear: () => void
-  qtyOf: (productId: string) => number
+  qtyOf: (productId: string, variantId?: string) => number
+}
+
+function matches(item: CartItem, productId: string, variantId?: string) {
+  return item.productId === productId && (item.variantId ?? undefined) === variantId
 }
 
 export const useCartStore = create<CartStore>()(
@@ -54,13 +58,15 @@ export const useCartStore = create<CartStore>()(
         })
       },
 
-      remove: (productId) =>
-        set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
-      setQty: (productId, qty) =>
+      remove: (productId, variantId) =>
+        set((state) => ({
+          items: state.items.filter((i) => !matches(i, productId, variantId)),
+        })),
+      setQty: (productId, variantId, qty) =>
         set((state) => ({
           items: state.items
             .map((i) =>
-              i.productId === productId
+              matches(i, productId, variantId)
                 ? { ...i, qty: Math.min(Math.max(qty, 1), i.stock) }
                 : i,
             )
@@ -69,7 +75,8 @@ export const useCartStore = create<CartStore>()(
 
       clear: () => set({ items: [] }),
 
-      qtyOf: (productId) => get().items.find((i) => i.productId === productId)?.qty ?? 0,
+      qtyOf: (productId, variantId) =>
+        get().items.find((i) => matches(i, productId, variantId))?.qty ?? 0,
     }),
     { name: 'store-cart-v2' },
   ),

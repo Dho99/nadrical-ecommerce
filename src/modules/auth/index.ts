@@ -1,6 +1,6 @@
 export { AuthForm } from './components/AuthForm'
 export { GoogleSignInButton } from './components/GoogleSignInButton'
 export { useAuth, useAuthStore } from './hooks/useAuth'
-export { authService } from './services/auth.service'
+export { authService, type UpdateProfileInput } from './services/auth.service'
 export { loginSchema, registerSchema } from './schemas/auth.schema'
 export type { AuthUser, AuthSession } from './types/auth.type'

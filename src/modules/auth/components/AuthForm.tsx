@@ -3,6 +3,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
 import {
     Button,
     Card,
@@ -57,6 +58,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             } else {
                 await registerUser(values.name, values.email, values.password);
             }
+            toast.success("Successfully logged in");
             navigate(redirectTo, { replace: true });
         } catch (err) {
             setFormError(

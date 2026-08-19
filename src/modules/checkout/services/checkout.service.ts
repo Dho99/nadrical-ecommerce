@@ -16,6 +16,14 @@ export const checkoutService = {
       customerName: payload.customer.fullName,
       shippingMethod: payload.shippingMethod,
       etaDays,
+      shippingAddress: {
+        address: payload.customer.address,
+        addressLine2: payload.customer.addressLine2,
+        city: payload.customer.city,
+        province: payload.customer.province,
+        postalCode: payload.customer.postalCode,
+        countryCode: payload.customer.countryCode,
+      },
       lines: payload.items.map((item) => ({
         partNumber: item.partNumber,
         name: item.name,

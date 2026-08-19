@@ -31,11 +31,11 @@ export function CartPage() {
           <div className="lg:col-span-7">
             <ul aria-label="Cart items">
               {items.map((item, i) => (
-                <li key={item.productId}>
+                <li key={`${item.productId}-${item.variantId ?? 'base'}`}>
                   <CartLineItem
                     item={item}
-                    onSetQty={(qty) => setQty(item.productId, qty)}
-                    onRemove={() => remove(item.productId)}
+                    onSetQty={(qty) => setQty(item.productId, item.variantId, qty)}
+                    onRemove={() => remove(item.productId, item.variantId)}
                   />
                   {i < items.length - 1 && <Separator />}
                 </li>

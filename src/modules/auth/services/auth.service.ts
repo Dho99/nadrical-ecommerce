@@ -40,7 +40,14 @@ function makeToken(userId: string): string {
 }
 
 function toSessionUser(user: StoredUser): AuthUser {
-  return { id: user.id, name: user.name, email: user.email, role: user.role }
+  return { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone }
+}
+
+export interface UpdateProfileInput {
+  name: string
+  phone?: string
+  currentPassword?: string
+  newPassword?: string
 }
 
 export const authService = {
@@ -107,5 +114,36 @@ export const authService = {
   async hasAccount(email: string): Promise<boolean> {
     await mockDelay(150)
     return loadUsers().some((u) => u.email.toLowerCase() === email.toLowerCase())
+  },
+
+  async updateProfile(
+    userId: string,
+    input: UpdateProfileInput,
+  ): Promise<AuthUser> {
+    await mockDelay(600)
+    mockFail(0.03)
+    const users = loadUsers()
+    const idx = users.findIndex((u) => u.id === userId)
+    if (idx === -1) throw new Error('Account not found.')
+    const user = users[idx]
+
+    if (input.newPassword) {
+      if (!input.currentPassword) {
+        throw new Error('Enter your current password to set a new one.')
+      }
+      if (user.password !== input.currentPassword) {
+        throw new Error('Current password is incorrect.')
+      }
+    }
+
+    const updated: StoredUser = {
+      ...user,
+      name: input.name.trim(),
+      phone: input.phone?.trim() || undefined,
+      ...(input.newPassword ? { password: input.newPassword } : {}),
+    }
+    users[idx] = updated
+    saveUsers(users)
+    return toSessionUser(updated)
   },
 }

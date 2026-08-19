@@ -28,6 +28,9 @@ export function ProfileLayout() {
         <NavLink to="/profile/orders" className={navLinkClass}>
           Order history
         </NavLink>
+        <NavLink to="/profile/addresses" className={navLinkClass}>
+          Addresses
+        </NavLink>
       </nav>
 
       <Outlet />

@@ -66,7 +66,7 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
         </ol>
 
         <div className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
-          {step === 0 && <StepContact />}
+          {step === 0 && <StepContact email={initialValues?.email} />}
           {step === 1 && <StepShipping subtotal={payloadBase.totals.subtotal} />}
           {step === 2 && <StepPayment />}
 

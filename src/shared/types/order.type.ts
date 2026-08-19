@@ -11,6 +11,15 @@ export interface OrderLine {
   variantName?: string
 }
 
+export interface OrderShippingAddress {
+  address: string
+  addressLine2?: string
+  city: string
+  province?: string
+  postalCode: string
+  countryCode?: string
+}
+
 export interface OrderRecord {
   orderNumber: string
   placedAt: string
@@ -22,4 +31,5 @@ export interface OrderRecord {
   subtotal: number
   shipping: number
   total: number
+  shippingAddress?: OrderShippingAddress
 }

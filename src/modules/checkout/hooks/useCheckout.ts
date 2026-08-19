@@ -81,8 +81,11 @@ export function useCheckout(
           email: values.email,
           phone: values.phone,
           address: values.address,
+          addressLine2: values.addressLine2,
           city: values.city,
+          province: values.province,
           postalCode: values.postalCode,
+          countryCode: values.countryCode,
         },
         shippingMethod: values.shippingMethod,
         payment: {
