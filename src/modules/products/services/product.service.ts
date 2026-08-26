@@ -9,7 +9,7 @@ function matchesQuery(product: Product, query?: string): boolean {
   const q = query.toLowerCase()
   return (
     product.name.toLowerCase().includes(q) ||
-    product.partNumber.toLowerCase().includes(q) ||
+    product.sku.toLowerCase().includes(q) ||
     product.summary.toLowerCase().includes(q)
   )
 }
@@ -19,31 +19,33 @@ function filterAndSort(products: Product[], filters: ProductFilters): Product[] 
   let result = products.filter(
     (p) =>
       matchesQuery(p, query) &&
-      (filters.category === undefined ||
-        filters.category === 'all' ||
-        p.category === filters.category) &&
-      (!filters.inStockOnly || p.stock > 0),
+      (filters.category_id === undefined ||
+        filters.category_id === 'all' ||
+        p.category_id === filters.category_id) &&
+      (!filters.in_stock_only || p.stock > 0),
   )
 
   switch (filters.sort) {
     case 'price-asc':
-      result = [...result].sort((a, b) => a.price - b.price)
+      result = [...result].sort((a, b) => a.base_price - b.base_price)
       break
     case 'price-desc':
-      result = [...result].sort((a, b) => b.price - a.price)
+      result = [...result].sort((a, b) => b.base_price - a.base_price)
       break
     case 'stock':
       result = [...result].sort((a, b) => b.stock - a.stock)
       break
     default:
       result = [...result].sort(
-        (a, b) => Number(b.featured ?? false) - Number(a.featured ?? false) || a.partNumber.localeCompare(b.partNumber),
+        (a, b) =>
+          Number(b.is_featured ?? false) - Number(a.is_featured ?? false) ||
+          a.sku.localeCompare(b.sku),
       )
   }
   return result
 }
 
-export type ProductDraft = Omit<Product, 'id' | 'partNumber'>
+export type ProductDraft = Omit<Product, 'id' | 'sku'>
 
 function paginate<T>(
   items: T[],
@@ -86,16 +88,16 @@ export const productService = {
   async getFeatured(limit = 4): Promise<Product[]> {
     await mockDelay(240)
     const products = productRepository.list()
-    const featured = products.filter((p) => p.featured)
-    const rest = products.filter((p) => !p.featured)
+    const featured = products.filter((p) => p.is_featured)
+    const rest = products.filter((p) => !p.is_featured)
     return [...featured, ...rest].slice(0, limit)
   },
 
   async getRelated(product: Product, limit = 3): Promise<Product[]> {
     await mockDelay(180)
     const products = productRepository.list()
-    const same = products.filter((p) => p.id !== product.id && p.category === product.category)
-    const rest = products.filter((p) => p.id !== product.id && p.category !== product.category)
+    const same = products.filter((p) => p.id !== product.id && p.category_id === product.category_id)
+    const rest = products.filter((p) => p.id !== product.id && p.category_id !== product.category_id)
     return [...same, ...rest].slice(0, limit)
   },
 
@@ -109,11 +111,11 @@ export const productService = {
     mockFail(0.02)
     const products = productRepository.list()
     const maxSeq = products.reduce((max, p) => {
-      const match = /^SKU-(\d+)$/.exec(p.partNumber)
+      const match = /^SKU-(\d+)$/.exec(p.sku)
       return match ? Math.max(max, Number(match[1])) : max
     }, 1000)
-    const partNumber = `SKU-${maxSeq + 1}`
-    const product: Product = { ...draft, id: partNumber, partNumber }
+    const sku = `SKU-${maxSeq + 1}`
+    const product: Product = { ...draft, id: sku, sku }
     productRepository.insert(product)
     return product
   },

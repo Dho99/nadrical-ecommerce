@@ -7,23 +7,23 @@ import { adminProductService } from '../services/admin-product.service'
 import { productFormSchema } from '../schemas/product-form.schema'
 import type { ProductFormValues, SpecRowValues } from '../types/admin.type'
 
-const emptySpec = (): SpecRowValues => ({ label: '', value: '' })
+const emptySpec = (): SpecRowValues => ({ spec_name: '', spec_value: '' })
 
 export function valuesFromProduct(product: Product): ProductFormValues {
   return {
     name: product.name,
-    category: product.category,
-    price: String(product.price),
+    category_id: product.category_id,
+    base_price: String(product.base_price),
     stock: String(product.stock),
-    imageUrl: product.imageUrl,
+    cover_image_url: product.cover_image_url,
     badge: product.badge ?? '',
-    featured: product.featured ?? false,
+    is_featured: product.is_featured ?? false,
     summary: product.summary,
     specs: product.specs.length > 0 ? product.specs.map((s) => ({ ...s })) : [emptySpec()],
     variants: product.variants?.map((v) => ({
       id: v.id,
-      name: v.name,
-      priceDelta: String(v.priceDelta),
+      variant_name: v.variant_name,
+      price_delta: String(v.price_delta),
       stock: String(v.stock),
     })) ?? [],
   }
@@ -31,12 +31,12 @@ export function valuesFromProduct(product: Product): ProductFormValues {
 
 const createDefaults = (): ProductFormValues => ({
   name: '',
-  category: 'electronics',
-  price: '',
+  category_id: 'electronics',
+  base_price: '',
   stock: '',
-  imageUrl: '',
+  cover_image_url: '',
   badge: '',
-  featured: false,
+  is_featured: false,
   summary: '',
   specs: [emptySpec()],
   variants: [],

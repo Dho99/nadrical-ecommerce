@@ -28,7 +28,7 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
         </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Shipping</dt>
-          <dd className="font-medium">{totals.shipping === 0 ? 'FREE' : formatPrice(totals.shipping)}</dd>
+          <dd className="font-medium">{totals.shipping_total === 0 ? 'FREE' : formatPrice(totals.shipping_total)}</dd>
         </div>
         {toFreeShip > 0 && (
           <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -39,7 +39,7 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
         <div className="flex items-center justify-between border-t pt-3">
           <dt className="font-semibold">Total</dt>
           <dd className="font-display text-xl font-bold tracking-tight">
-            {formatPrice(totals.total)}
+            {formatPrice(totals.grand_total)}
           </dd>
         </div>
       </dl>

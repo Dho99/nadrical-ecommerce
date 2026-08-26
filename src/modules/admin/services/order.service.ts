@@ -1,12 +1,12 @@
 import { mockDelay } from '../../../shared/lib/mock'
 import type { CursorPage } from '../../../shared/types/common.type'
-import type { OrderRecord } from '../../../shared/types/order.type'
+import type { OrderWithItems } from '../../../shared/types/order.type'
 import { orderRepository } from '../../checkout/services/order.repository'
 import { productService } from '../../products/services/product.service'
 import { generateSeedOrders } from './order.seed'
 
 export const orderService = {
-  async listOrders(): Promise<OrderRecord[]> {
+  async listOrders(): Promise<OrderWithItems[]> {
     await mockDelay(240)
     return orderRepository.list()
   },
@@ -14,10 +14,10 @@ export const orderService = {
   async listOrdersPage(
     cursor: number | null = null,
     limit = 10,
-  ): Promise<CursorPage<OrderRecord>> {
+  ): Promise<CursorPage<OrderWithItems>> {
     await mockDelay(220)
     const all = [...orderRepository.list()].sort(
-      (a, b) => Date.parse(b.placedAt) - Date.parse(a.placedAt),
+      (a, b) => Date.parse(b.placed_at ?? '') - Date.parse(a.placed_at ?? ''),
     )
     const offset = Math.max(0, cursor ?? 0)
     const total = all.length
@@ -30,14 +30,17 @@ export const orderService = {
     }
   },
 
-  async ensureSeeded(): Promise<OrderRecord[]> {
+  async ensureSeeded(): Promise<OrderWithItems[]> {
     const existing = orderRepository.list()
     if (existing.length > 0) return existing
     const products = await productService.getProducts()
-    const seeded = generateSeedOrders(products)
-    for (const order of seeded) {
-      orderRepository.insert(order)
-    }
+    const { orders, items } = generateSeedOrders(products)
+    orders.forEach((order) => {
+      orderRepository.insert(
+        order,
+        items.filter((item) => item.order_id === order.id),
+      )
+    })
     return orderRepository.list()
   },
 

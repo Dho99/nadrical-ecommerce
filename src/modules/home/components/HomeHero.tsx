@@ -59,12 +59,12 @@ export function HomeHero({ products }: HomeHeroProps) {
               className="group relative aspect-square overflow-hidden rounded-lg border bg-card"
             >
               <ProductImage
-                src={product.imageUrl}
+                src={product.cover_image_url}
                 alt={product.name}
                 className="h-full w-full transition-transform duration-300 group-hover:scale-105"
               />
               <span className="absolute right-2.5 bottom-2.5 rounded-md bg-background/90 px-2 py-1 text-xs font-semibold shadow-sm">
-                ${product.price.toFixed(2)}
+                ${product.base_price.toFixed(2)}
               </span>
               <span className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pt-10 pb-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <span className="line-clamp-1 text-sm font-medium text-white">

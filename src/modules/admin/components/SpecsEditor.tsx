@@ -33,7 +33,7 @@ export function SpecsEditor({ control, fields, append, remove }: SpecsEditorProp
           <div key={field.id} className="flex items-start gap-2">
             <FormField
               control={control}
-              name={`specs.${index}.label`}
+              name={`specs.${index}.spec_name`}
               render={({ field: specField }) => (
                 <FormItem className="flex-1">
                   <FormControl>
@@ -45,7 +45,7 @@ export function SpecsEditor({ control, fields, append, remove }: SpecsEditorProp
             />
             <FormField
               control={control}
-              name={`specs.${index}.value`}
+              name={`specs.${index}.spec_value`}
               render={({ field: specField }) => (
                 <FormItem className="flex-[1.4]">
                   <FormControl>
@@ -74,7 +74,7 @@ export function SpecsEditor({ control, fields, append, remove }: SpecsEditorProp
         variant="outline"
         size="sm"
         disabled={fields.length >= MAX_SPECS}
-        onClick={() => append({ label: '', value: '' })}
+          onClick={() => append({ spec_name: '', spec_value: '' })}
       >
         <Plus /> Add specification
       </Button>

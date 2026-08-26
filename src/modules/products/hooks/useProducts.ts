@@ -9,12 +9,12 @@ interface ProductsState {
   loadedFor: string
 }
 
-function filtersKey(category: ProductFilters['category'], query: string, sort: ProductFilters['sort'], inStockOnly: boolean): string {
-  return [category ?? 'all', query ?? '', sort ?? 'featured', String(inStockOnly)].join('|')
+function filtersKey(category_id: ProductFilters['category_id'], query: string, sort: ProductFilters['sort'], in_stock_only: boolean): string {
+  return [category_id ?? 'all', query ?? '', sort ?? 'featured', String(in_stock_only)].join('|')
 }
 
 export function useProducts(filters: ProductFilters = {}) {
-  const { category, query, sort, inStockOnly } = filters
+  const { category_id, query, sort, in_stock_only } = filters
   const [state, setState] = useState<ProductsState>({
     products: [],
     error: null,
@@ -22,12 +22,12 @@ export function useProducts(filters: ProductFilters = {}) {
   })
   const [attempt, setAttempt] = useState(0)
 
-  const key = filtersKey(category, query ?? '', sort, Boolean(inStockOnly))
+  const key = filtersKey(category_id, query ?? '', sort, Boolean(in_stock_only))
   const status: AsyncStatus = state.error ? 'error' : state.loadedFor === key ? 'success' : 'loading'
 
   useEffect(() => {
     let cancelled = false
-    const currentFilters: ProductFilters = { category, query, sort, inStockOnly }
+    const currentFilters: ProductFilters = { category_id, query, sort, in_stock_only }
 
     productService
       .getProducts(currentFilters)
@@ -47,7 +47,7 @@ export function useProducts(filters: ProductFilters = {}) {
     return () => {
       cancelled = true
     }
-  }, [category, query, sort, inStockOnly, key, attempt])
+  }, [category_id, query, sort, in_stock_only, key, attempt])
 
   return {
     products: state.products,

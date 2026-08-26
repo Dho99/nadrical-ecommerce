@@ -18,7 +18,7 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  if (user?.role !== 'admin') {
+  if (user?.role_name !== 'admin') {
     return (
       <div className="mx-auto max-w-xl px-5 py-16 sm:px-8">
         <Card className="p-8 text-center">

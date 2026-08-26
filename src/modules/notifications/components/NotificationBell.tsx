@@ -24,7 +24,7 @@ function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () =
       onClick={onOpen}
       className={cn(
         'flex w-full items-start gap-3 rounded-lg border-l-2 px-3 py-3 text-left transition-colors',
-        item.read
+        item.is_read
           ? 'border-transparent opacity-60'
           : 'border-primary bg-primary/5 hover:bg-primary/10',
       )}
@@ -40,13 +40,13 @@ function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () =
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{item.title}</span>
         <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-          {item.message}
+          {item.content}
         </span>
         <span className="mt-1 block font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-          {timeAgo(item.createdAt)}
+          {timeAgo(item.created_at)}
         </span>
       </span>
-      {!item.read && <span className="mt-1.5 ml-auto size-2 shrink-0 rounded-full bg-primary" />}
+      {!item.is_read && <span className="mt-1.5 ml-auto size-2 shrink-0 rounded-full bg-primary" />}
     </button>
   )
 }

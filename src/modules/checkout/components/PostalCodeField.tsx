@@ -35,7 +35,7 @@ interface PostalCodeFieldProps {
 
 export function PostalCodeField({
   className = 'sm:col-span-2',
-  postalCodeName = 'postalCode',
+  postalCodeName = 'postal_code',
   cityName = 'city',
   addressName = 'address',
   districtName = 'district',
@@ -47,10 +47,10 @@ export function PostalCodeField({
   const [open, setOpen] = useState(false)
 
   const handleSelect = (place: PostalPlace) => {
-    form.setValue(postalCodeName, place.postalCode)
+    form.setValue(postalCodeName, place.postal_code)
     form.setValue(cityName, place.city)
     form.setValue(districtName, place.district)
-    form.setValue(provinceName, place.state)
+    form.setValue(provinceName, place.province)
     form.setValue(countryName, 'ID')
     const currentAddress = (form.getValues(addressName) || '') as string
     const prefix = `Kel. ${place.village}, `
@@ -96,19 +96,19 @@ export function PostalCodeField({
                     <CommandGroup heading="Places">
                       {results.map((place) => (
                         <CommandItem
-                          key={`${place.postalCode}-${place.village}`}
-                          value={`${place.postalCode} ${place.village}`}
+                          key={`${place.postal_code}-${place.village}`}
+                          value={`${place.postal_code} ${place.village}`}
                           onSelect={() => handleSelect(place)}
                         >
                           <MapPin />
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium">Kel. {place.village}, Kec. {place.district}</span>
                             <span className="text-xs text-muted-foreground">
-                              {place.city}, {place.state}
+                              {place.city}, {place.province}
                             </span>
                           </div>
                           <span className="ml-auto font-mono text-xs text-muted-foreground">
-                            {place.postalCode}
+                            {place.postal_code}
                           </span>
                         </CommandItem>
                       ))}

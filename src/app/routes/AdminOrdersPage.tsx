@@ -1,8 +1,7 @@
 import { ListPagination, useOrders } from '../../modules/admin'
-import { orderStatus } from '../../shared/utils/order-status'
 import { formatPrice } from '../../shared/utils/format'
+import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
 import {
-  Badge,
   EmptyState,
   Skeleton,
   Table,
@@ -12,12 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from '../../shared/components/ui'
-
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  Processing: 'default',
-  Shipped: 'secondary',
-  Delivered: 'outline',
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -77,28 +70,27 @@ export function AdminOrdersPage() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => {
-                const statusLabel = orderStatus(order.placedAt)
-                const itemCount = order.lines.reduce((sum, line) => sum + line.qty, 0)
+                const itemCount = order.order_items.reduce((sum, line) => sum + line.quantity, 0)
                 return (
-                  <TableRow key={order.orderNumber}>
-                    <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+                  <TableRow key={order.order_number}>
+                    <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(order.placedAt)}
+                      {formatDate(order.placed_at ?? '')}
                     </TableCell>
                     <TableCell className="max-w-52">
-                      <p className="truncate font-medium">{order.customerName}</p>
+                      <p className="truncate font-medium">{order.recipient_name}</p>
                       <p className="truncate font-mono text-xs text-muted-foreground">
-                        {order.email}
+                        {order.user_id}
                       </p>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       ×{itemCount}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_VARIANT[statusLabel]}>{statusLabel}</Badge>
+                      <OrderStatusBadge status={order.status} />
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm font-semibold">
-                      {formatPrice(order.total)}
+                      {formatPrice(order.grand_total)}
                     </TableCell>
                   </TableRow>
                 )

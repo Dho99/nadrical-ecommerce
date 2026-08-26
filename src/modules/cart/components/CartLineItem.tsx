@@ -15,26 +15,26 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
   return (
     <li className="grid grid-cols-12 items-center gap-4 py-5">
       <Link
-        to={`/products/${item.productId}`}
+        to={`/products/${item.product_id}`}
         className="col-span-3 overflow-hidden rounded-md border bg-muted sm:col-span-2"
       >
         <ProductImage
-          src={item.imageUrl}
-          alt={item.name}
+          src={item.cover_image_url}
+          alt={item.product_name}
           className="aspect-square h-full w-full"
         />
       </Link>
 
       <div className="col-span-9 sm:col-span-5">
-        <p className="font-mono text-xs text-muted-foreground">{item.partNumber}</p>
+        <p className="font-mono text-xs text-muted-foreground">{item.sku}</p>
         <Link
-          to={`/products/${item.productId}`}
+          to={`/products/${item.product_id}`}
           className="font-display text-lg font-semibold leading-tight tracking-tight transition-colors hover:text-primary"
         >
-          {item.name}
+          {item.product_name}
         </Link>
-        {item.variantName && (
-          <p className="mt-0.5 text-sm text-muted-foreground">Variant: {item.variantName}</p>
+        {item.variant_name && (
+          <p className="mt-0.5 text-sm text-muted-foreground">Variant: {item.variant_name}</p>
         )}
         <div className="mt-1.5">
           {item.stock === 0 ? (
@@ -44,24 +44,24 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
           )}
         </div>
         <p className="mt-1 font-mono text-xs text-muted-foreground">
-          {formatPrice(item.price)} / unit
+          {formatPrice(item.unit_price)} / unit
         </p>
       </div>
 
       <div className="col-span-6 col-start-4 sm:col-span-2 sm:col-start-auto">
-        <QtyStepper value={item.qty} max={Math.max(item.stock, 1)} onChange={onSetQty} label={`quantity of ${item.name}`} />
+        <QtyStepper value={item.quantity} max={Math.max(item.stock, 1)} onChange={onSetQty} label={`quantity of ${item.product_name}`} />
       </div>
 
       <div className="col-span-6 flex items-center justify-end gap-3 sm:col-span-3">
         <span className="font-mono text-base font-semibold">
-          {formatPrice(item.price * item.qty)}
+          {formatPrice(item.unit_price * item.quantity)}
         </span>
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onRemove}
-          aria-label={`Remove ${item.name} from cart`}
+          aria-label={`Remove ${item.product_name} from cart`}
           className="text-muted-foreground hover:text-destructive"
         >
           <Trash2 className="size-4" />

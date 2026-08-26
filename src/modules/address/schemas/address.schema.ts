@@ -2,23 +2,23 @@ import { z } from 'zod'
 
 export const addressSchema = z.object({
   label: z.string().trim().min(1, 'Add a label').max(30, 'Label is too long'),
-  fullName: z
+  recipient_name: z
     .string()
     .trim()
     .min(3, 'Enter a full name')
     .max(60, 'Name is too long'),
-  phone: z
+  recipient_phone: z
     .string()
     .trim()
     .min(8, 'Enter a valid phone number')
     .max(20, 'Phone number is too long')
     .regex(/^[+\d\s()-]+$/, 'Phone can only contain digits and + - ( )'),
-  address: z
+  address_line_1: z
     .string()
     .trim()
     .min(8, 'Enter a complete street address')
     .max(120, 'Address is too long'),
-  addressLine2: z
+  address_line_2: z
     .string()
     .trim()
     .max(120, 'Address is too long')
@@ -39,13 +39,13 @@ export const addressSchema = z.object({
     .max(60, 'Province name is too long')
     .optional()
     .or(z.literal('')),
-  postalCode: z
+  postal_code: z
     .string()
     .trim()
     .min(3, 'Enter a valid postal code')
     .max(12, 'Postal code is too long'),
-  countryCode: z.enum(['ID', 'US', 'MY', 'SG']).optional(),
-  isPrimary: z.boolean().optional(),
+  country_code: z.enum(['ID', 'US', 'MY', 'SG']).optional(),
+  is_primary: z.boolean().optional(),
 })
 
 export type AddressSchema = z.infer<typeof addressSchema>

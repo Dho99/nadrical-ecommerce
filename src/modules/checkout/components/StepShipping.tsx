@@ -14,7 +14,7 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
     watch,
     formState: { errors },
   } = useFormContext<CheckoutInput>()
-  const selected = watch('shippingMethod')
+  const selected = watch('shipping_method')
 
   return (
     <fieldset className="grid gap-3">
@@ -22,7 +22,7 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
       <RadioGroup
         value={selected}
         onValueChange={(v: string) =>
-          register('shippingMethod').onChange({ target: { name: 'shippingMethod', value: v } })
+          register('shipping_method').onChange({ target: { name: 'shipping_method', value: v } })
         }
         className="gap-3"
       >
@@ -40,7 +40,7 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
               >
                 <RadioGroupItem
                   value={method.id}
-                  {...register('shippingMethod')}
+                  {...register('shipping_method')}
                   className="peer"
                 />
                 <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -58,8 +58,8 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
           )
         })}
       </RadioGroup>
-      {errors.shippingMethod && (
-        <p className="text-xs font-medium text-destructive">{errors.shippingMethod.message}</p>
+      {errors.shipping_method && (
+        <p className="text-xs font-medium text-destructive">{errors.shipping_method.message}</p>
       )}
     </fieldset>
   )

@@ -68,7 +68,7 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
               </p>
             )}
             {messages.map((message) => {
-              const isCustomer = message.role === 'customer'
+              const isCustomer = message.sender_role === 'customer'
               return (
                 <div
                   key={message.id}
@@ -82,15 +82,15 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
                         : 'rounded-bl-sm border bg-card text-card-foreground',
                     )}
                   >
-                    <p className="leading-relaxed">{message.text}</p>
+                    <p className="leading-relaxed">{message.message}</p>
                     <p
                       className={cn(
                         'mt-1 font-mono text-[10px]',
                         isCustomer ? 'text-primary-foreground/70' : 'text-muted-foreground',
                       )}
                     >
-                      {formatTime(message.at)}
-                      {message.role === 'bot' && ' · bot'}
+                      {formatTime(message.created_at || '')}
+                      {message.sender_role === 'bot' && ' · bot'}
                     </p>
                   </div>
                 </div>

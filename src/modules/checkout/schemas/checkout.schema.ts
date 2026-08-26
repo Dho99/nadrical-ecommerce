@@ -1,52 +1,52 @@
 import { z } from 'zod'
 
 export const customerSchema = z.object({
-  fullName: z
+  recipient_name: z
     .string()
     .trim()
     .min(3, 'Enter your full name')
     .max(60, 'Name is too long'),
   email: z.string().trim().email('Enter a valid email address'),
-  phone: z
+  recipient_phone: z
     .string()
     .trim()
     .min(8, 'Enter a valid phone number')
     .max(20, 'Phone number is too long')
     .regex(/^[+\d\s()-]+$/, 'Phone can only contain digits and + - ( )'),
-  address: z
+  shipping_address_line_1: z
     .string()
     .trim()
     .min(8, 'Enter a complete street address')
     .max(120, 'Address is too long'),
-  addressLine2: z
+  shipping_address_line_2: z
     .string()
     .trim()
     .max(120, 'Address is too long')
     .optional()
     .or(z.literal('')),
-  city: z.string().trim().min(2, 'Enter your city').max(60, 'City name is too long'),
-  province: z
+  shipping_city: z.string().trim().min(2, 'Enter your city').max(60, 'City name is too long'),
+  shipping_province: z
     .string()
     .trim()
     .min(2, 'Enter the province')
     .max(60, 'Province name is too long')
     .optional()
     .or(z.literal('')),
-  postalCode: z
+  shipping_postal_code: z
     .string()
     .trim()
     .min(3, 'Enter a valid postal code')
     .max(12, 'Postal code is too long'),
-  countryCode: z.enum(['ID', 'US', 'MY', 'SG']).optional(),
+  shipping_country_code: z.enum(['ID', 'US', 'MY', 'SG']).optional(),
 })
 
 export const shippingSchema = z.object({
-  shippingMethod: z.enum(['standard', 'express']),
+  shipping_method: z.enum(['standard', 'express']),
 })
 
 export const paymentSchema = z.object({
-  cardName: z.string().trim().min(3, 'Enter the name on the card'),
-  cardNumber: z
+  card_name: z.string().trim().min(3, 'Enter the name on the card'),
+  card_number: z
     .string()
     .trim()
     .regex(/^\d{16}$/, 'Card number must be 16 digits'),

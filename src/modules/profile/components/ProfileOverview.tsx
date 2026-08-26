@@ -16,15 +16,15 @@ export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary font-display text-lg font-bold text-primary-foreground">
-            {initialsOf(user.name)}
+            {initialsOf(user.full_name ?? '')}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate font-display text-2xl font-bold tracking-tight">
-                {user.name}
+                {user.full_name}
               </h2>
-              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                {user.role === 'admin' ? 'Admin' : 'Customer'}
+              <Badge variant={user.role_name === 'admin' ? 'default' : 'secondary'}>
+                {user.role_name === 'admin' ? 'Admin' : 'Customer'}
               </Badge>
             </div>
             <p className="truncate text-sm text-muted-foreground">{user.email}</p>

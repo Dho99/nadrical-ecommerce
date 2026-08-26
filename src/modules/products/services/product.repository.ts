@@ -1,30 +1,180 @@
 import type { Product } from '../types/product.type'
 import { PRODUCT_CATALOG } from './mock-data'
+import type {
+  DbProduct,
+  DbProductVariant,
+  DbProductSpec,
+  DbProductImage,
+} from '../../../shared/types/database.type'
 
-const STORAGE_KEY = 'store-products-v1'
+const PRODUCTS_KEY = 'db-products-v2'
+const VARIANTS_KEY = 'db-product-variants-v2'
+const SPECS_KEY = 'db-product-specs-v2'
+const IMAGES_KEY = 'db-product-images-v2'
 
-function seed(): Product[] {
-  return PRODUCT_CATALOG.map((p) => ({ ...p, specs: [...p.specs] }))
+interface ProductDb {
+  products: DbProduct[]
+  variants: DbProductVariant[]
+  specs: DbProductSpec[]
+  images: DbProductImage[]
+}
+
+function seed(): ProductDb {
+  const products: DbProduct[] = []
+  const variants: DbProductVariant[] = []
+  const specs: DbProductSpec[] = []
+  const images: DbProductImage[] = []
+
+  PRODUCT_CATALOG.forEach((p) => {
+    products.push({
+      id: p.id,
+      category_id: p.category_id,
+      sku: p.sku,
+      name: p.name,
+      base_price: p.base_price,
+      stock: p.stock,
+      cover_image_url: p.cover_image_url,
+      summary: p.summary,
+      is_featured: p.is_featured || false,
+      status: 'published',
+      created_at: new Date().toISOString(),
+    })
+
+    p.specs.forEach((s, idx) => {
+      specs.push({
+        id: `spec-${p.id}-${idx}`,
+        product_id: p.id,
+        spec_name: s.spec_name,
+        spec_value: s.spec_value,
+        created_at: new Date().toISOString(),
+      })
+    })
+
+    if (p.variants) {
+      p.variants.forEach((v) => {
+        variants.push({
+          id: v.id,
+          product_id: p.id,
+          variant_sku: v.id,
+          variant_name: v.variant_name,
+          price_delta: v.price_delta,
+          stock: v.stock,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        })
+      })
+    }
+  })
+
+  return { products, variants, specs, images }
+}
+
+function loadDb(): ProductDb {
+  try {
+    const rawP = localStorage.getItem(PRODUCTS_KEY)
+    if (rawP !== null) {
+      const products = JSON.parse(rawP) as DbProduct[]
+      const variants = JSON.parse(localStorage.getItem(VARIANTS_KEY) || '[]') as DbProductVariant[]
+      const specs = JSON.parse(localStorage.getItem(SPECS_KEY) || '[]') as DbProductSpec[]
+      const images = JSON.parse(localStorage.getItem(IMAGES_KEY) || '[]') as DbProductImage[]
+      return { products, variants, specs, images }
+    }
+  } catch {
+    // fall through
+  }
+  const fresh = seed()
+  saveDb(fresh.products, fresh.variants, fresh.specs, fresh.images)
+  return fresh
+}
+
+function saveDb(
+  products: DbProduct[],
+  variants: DbProductVariant[],
+  specs: DbProductSpec[],
+  images: DbProductImage[],
+): void {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
+  localStorage.setItem(VARIANTS_KEY, JSON.stringify(variants))
+  localStorage.setItem(SPECS_KEY, JSON.stringify(specs))
+  localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
 }
 
 export const productRepository = {
   list(): Product[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw !== null) {
-        const parsed = JSON.parse(raw) as Product[]
-        if (Array.isArray(parsed)) return parsed
+    const db = loadDb()
+    return db.products.map((p) => {
+      const pSpecs = db.specs
+        .filter((s) => s.product_id === p.id)
+        .map((s) => ({ spec_name: s.spec_name, spec_value: s.spec_value }))
+      const pVariants = db.variants
+        .filter((v) => v.product_id === p.id)
+        .map((v) => ({
+          id: v.id,
+          variant_name: v.variant_name,
+          price_delta: v.price_delta || 0,
+          stock: v.stock || 0,
+        }))
+      return {
+        id: p.id,
+        sku: p.sku || p.id,
+        name: p.name,
+        category_id: p.category_id as Product['category_id'],
+        base_price: p.base_price,
+        stock: p.stock || 0,
+        cover_image_url: p.cover_image_url || '',
+        is_featured: p.is_featured,
+        summary: p.summary || '',
+        specs: pSpecs,
+        variants: pVariants.length > 0 ? pVariants : undefined,
       }
-    } catch {
-      // fall through to reseed
-    }
-    const fresh = seed()
-    this.save(fresh)
-    return fresh
+    })
   },
 
   save(products: Product[]): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(products))
+    const dbProducts: DbProduct[] = []
+    const dbVariants: DbProductVariant[] = []
+    const dbSpecs: DbProductSpec[] = []
+    const dbImages: DbProductImage[] = []
+
+    products.forEach((p) => {
+      dbProducts.push({
+        id: p.id,
+        category_id: p.category_id,
+        sku: p.sku,
+        name: p.name,
+        base_price: p.base_price,
+        stock: p.stock,
+        cover_image_url: p.cover_image_url,
+        summary: p.summary,
+        is_featured: p.is_featured || false,
+        status: 'published',
+      })
+
+      p.specs.forEach((s, idx) => {
+        dbSpecs.push({
+          id: `spec-${p.id}-${idx}`,
+          product_id: p.id,
+          spec_name: s.spec_name,
+          spec_value: s.spec_value,
+        })
+      })
+
+      if (p.variants) {
+        p.variants.forEach((v) => {
+          dbVariants.push({
+            id: v.id,
+            product_id: p.id,
+            variant_sku: v.id,
+            variant_name: v.variant_name,
+            price_delta: v.price_delta,
+            stock: v.stock,
+            is_active: true,
+          })
+        })
+      }
+    })
+
+    saveDb(dbProducts, dbVariants, dbSpecs, dbImages)
   },
 
   insert(product: Product): Product[] {
@@ -50,7 +200,7 @@ export const productRepository = {
 
   reset(): Product[] {
     const fresh = seed()
-    this.save(fresh)
-    return fresh
+    saveDb(fresh.products, fresh.variants, fresh.specs, fresh.images)
+    return this.list()
   },
 }

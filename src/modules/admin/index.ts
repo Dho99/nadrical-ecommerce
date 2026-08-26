@@ -20,7 +20,6 @@ export { adminProductService } from './services/admin-product.service'
 export { orderService } from './services/order.service'
 export { productFormSchema, CATEGORY_OPTIONS } from './schemas/product-form.schema'
 export { PRESET_IMAGES, MAX_SPECS, ADMIN_NAV_ITEMS, adminPageTitle } from './constants/admin.constants'
-export { orderStatus } from '../../shared/utils/order-status'
 export type { ProductFormValues, SpecRowValues, AdminProductFilters } from './types/admin.type'
 export type {
   DashboardPeriod,
@@ -28,4 +27,3 @@ export type {
   RevenuePoint,
   CategorySlice,
 } from './types/dashboard.type'
-export type { OrderStatus } from '../../shared/utils/order-status'

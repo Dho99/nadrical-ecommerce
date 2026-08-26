@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const productFiltersSchema = z.object({
-  category: z
+  category_id: z
     .enum(['all', 'electronics', 'apparel', 'home', 'accessories', 'outdoors'])
     .optional(),
   query: z
@@ -11,7 +11,7 @@ export const productFiltersSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   sort: z.enum(['featured', 'price-asc', 'price-desc', 'stock']).optional(),
-  inStockOnly: z
+  in_stock_only: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),

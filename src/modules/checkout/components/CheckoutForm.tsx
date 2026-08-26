@@ -13,7 +13,7 @@ import { OrderConfirmationCard } from './OrderConfirmationCard'
 
 interface CheckoutFormProps {
   payloadBase: Pick<OrderPayload, 'items' | 'totals'>
-  initialValues?: Partial<Pick<CheckoutInput, 'fullName' | 'email'>>
+  initialValues?: Partial<Pick<CheckoutInput, 'recipient_name' | 'email'>>
   onOrderPlaced: () => void
 }
 

@@ -1,35 +1,9 @@
-import type { ProductCategoryId } from './product.type'
+import type { DbOrder, DbOrderItem } from './database.type'
 
+export type OrderDb = DbOrder
+export type OrderItemDb = DbOrderItem
 export type ShippingMethod = 'standard' | 'express'
 
-export interface OrderLine {
-  partNumber: string
-  name: string
-  price: number
-  qty: number
-  category: ProductCategoryId
-  variantName?: string
-}
-
-export interface OrderShippingAddress {
-  address: string
-  addressLine2?: string
-  city: string
-  province?: string
-  postalCode: string
-  countryCode?: string
-}
-
-export interface OrderRecord {
-  orderNumber: string
-  placedAt: string
-  email: string
-  customerName: string
-  shippingMethod: ShippingMethod
-  etaDays: number
-  lines: OrderLine[]
-  subtotal: number
-  shipping: number
-  total: number
-  shippingAddress?: OrderShippingAddress
+export type OrderWithItems = DbOrder & {
+  order_items: DbOrderItem[]
 }

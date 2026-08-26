@@ -14,9 +14,16 @@ export const CHECKOUT_STEPS = [
 export type CheckoutStepIndex = 0 | 1 | 2
 
 const STEP_FIELDS: Array<Array<keyof CheckoutInput>> = [
-  ['fullName', 'email', 'phone', 'address', 'city', 'postalCode'],
-  ['shippingMethod'],
-  ['cardName', 'cardNumber', 'expiry', 'cvc'],
+  [
+    'recipient_name',
+    'email',
+    'recipient_phone',
+    'shipping_address_line_1',
+    'shipping_city',
+    'shipping_postal_code',
+  ],
+  ['shipping_method'],
+  ['card_name', 'card_number', 'expiry', 'cvc'],
 ]
 
 interface UseCheckoutResult {
@@ -35,13 +42,13 @@ interface UseCheckoutResult {
 
 export function useCheckout(
   payloadBase: Pick<OrderPayload, 'items' | 'totals'>,
-  initialValues: Partial<Pick<CheckoutInput, 'fullName' | 'email'>> = {},
+  initialValues: Partial<Pick<CheckoutInput, 'recipient_name' | 'email'>> = {},
 ): UseCheckoutResult {
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
     mode: 'onTouched',
     defaultValues: {
-      shippingMethod: 'standard',
+      shipping_method: 'standard',
       ...initialValues,
     },
   })
@@ -77,20 +84,20 @@ export function useCheckout(
     try {
       const payload: OrderPayload = {
         customer: {
-          fullName: values.fullName,
+          recipient_name: values.recipient_name,
           email: values.email,
-          phone: values.phone,
-          address: values.address,
-          addressLine2: values.addressLine2,
-          city: values.city,
-          province: values.province,
-          postalCode: values.postalCode,
-          countryCode: values.countryCode,
+          recipient_phone: values.recipient_phone,
+          shipping_address_line_1: values.shipping_address_line_1,
+          shipping_address_line_2: values.shipping_address_line_2,
+          shipping_city: values.shipping_city,
+          shipping_province: values.shipping_province,
+          shipping_postal_code: values.shipping_postal_code,
+          shipping_country_code: values.shipping_country_code,
         },
-        shippingMethod: values.shippingMethod,
+        shipping_method: values.shipping_method,
         payment: {
-          cardName: values.cardName,
-          cardNumber: values.cardNumber,
+          card_name: values.card_name,
+          card_number: values.card_number,
           expiry: values.expiry,
           cvc: values.cvc,
         },

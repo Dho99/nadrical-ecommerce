@@ -51,7 +51,7 @@ export function ImageUrlField() {
 
   return (
     <FormField
-      name="imageUrl"
+      name="cover_image_url"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Image URL</FormLabel>

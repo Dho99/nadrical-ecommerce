@@ -7,14 +7,14 @@ import { cartService } from '../services/cart.service'
 interface CartStore {
   items: CartItem[]
   add: (product: ProductBrief, qty?: number) => void
-  remove: (productId: string, variantId?: string) => void
-  setQty: (productId: string, variantId: string | undefined, qty: number) => void
+  remove: (product_id: string, variant_id?: string) => void
+  setQty: (product_id: string, variant_id: string | undefined, quantity: number) => void
   clear: () => void
-  qtyOf: (productId: string, variantId?: string) => number
+  qtyOf: (product_id: string, variant_id?: string) => number
 }
 
-function matches(item: CartItem, productId: string, variantId?: string) {
-  return item.productId === productId && (item.variantId ?? undefined) === variantId
+function matches(item: CartItem, product_id: string, variant_id?: string) {
+  return item.product_id === product_id && (item.variant_id ?? undefined) === variant_id
 }
 
 export const useCartStore = create<CartStore>()(
@@ -23,17 +23,17 @@ export const useCartStore = create<CartStore>()(
       items: [],
 
       add: (product, qty = 1) => {
-        const clamped = Math.min(qty, product.variantStock ?? product.stock)
+        const clamped = Math.min(qty, product.variant_stock ?? product.stock)
         if (clamped <= 0) return
         set((state) => {
           const existing = state.items.find(
-            (i) => i.productId === product.id && i.variantId === product.variantId,
+            (i) => i.product_id === product.id && i.variant_id === product.variant_id,
           )
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === product.id && i.variantId === product.variantId
-                  ? { ...i, qty: Math.min(i.qty + clamped, i.stock) }
+                i.product_id === product.id && i.variant_id === product.variant_id
+                  ? { ...i, quantity: Math.min(i.quantity + clamped, i.stock) }
                   : i,
               ),
             }
@@ -42,43 +42,43 @@ export const useCartStore = create<CartStore>()(
             items: [
               ...state.items,
               {
-                productId: product.id,
-                partNumber: product.partNumber,
-                name: product.name,
-                price: product.price,
-                qty: clamped,
-                stock: product.variantStock ?? product.stock,
-                imageUrl: product.imageUrl,
-                category: product.category,
-                variantId: product.variantId,
-                variantName: product.variantName,
+                product_id: product.id,
+                sku: product.sku,
+                product_name: product.name,
+                unit_price: product.base_price,
+                quantity: clamped,
+                stock: product.variant_stock ?? product.stock,
+                cover_image_url: product.cover_image_url,
+                category_id: product.category_id,
+                variant_id: product.variant_id,
+                variant_name: product.variant_name,
               },
             ],
           }
         })
       },
 
-      remove: (productId, variantId) =>
+      remove: (product_id, variant_id) =>
         set((state) => ({
-          items: state.items.filter((i) => !matches(i, productId, variantId)),
+          items: state.items.filter((i) => !matches(i, product_id, variant_id)),
         })),
-      setQty: (productId, variantId, qty) =>
+      setQty: (product_id, variant_id, quantity) =>
         set((state) => ({
           items: state.items
             .map((i) =>
-              matches(i, productId, variantId)
-                ? { ...i, qty: Math.min(Math.max(qty, 1), i.stock) }
+              matches(i, product_id, variant_id)
+                ? { ...i, quantity: Math.min(Math.max(quantity, 1), i.stock) }
                 : i,
             )
-            .filter((i) => i.qty > 0),
+            .filter((i) => i.quantity > 0),
         })),
 
       clear: () => set({ items: [] }),
 
-      qtyOf: (productId, variantId) =>
-        get().items.find((i) => matches(i, productId, variantId))?.qty ?? 0,
+      qtyOf: (product_id, variant_id) =>
+        get().items.find((i) => matches(i, product_id, variant_id))?.quantity ?? 0,
     }),
-    { name: 'store-cart-v2' },
+    { name: 'store-cart-v3' },
   ),
 )
 

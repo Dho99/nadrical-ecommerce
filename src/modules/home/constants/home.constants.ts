@@ -4,7 +4,7 @@ import { Armchair, Shirt, Smartphone, Tent, Watch } from 'lucide-react'
 export interface HeroCalloutConfig {
   num: string
   role: string
-  partNumber: string
+  sku: string
 }
 
 export const HERO_STATS: Array<{ value: string; label: string }> = [

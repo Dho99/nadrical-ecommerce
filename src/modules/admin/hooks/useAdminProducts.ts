@@ -13,7 +13,7 @@ interface AdminProductsState {
 }
 
 function filtersKey(filters: AdminProductFilters): string {
-  return [filters.query ?? '', filters.category ?? 'all', String(Boolean(filters.inStockOnly))].join('|')
+  return [filters.query ?? '', filters.category_id ?? 'all', String(Boolean(filters.in_stock_only))].join('|')
 }
 
 export function useAdminProducts(filters: AdminProductFilters = {}, limit = 10) {
@@ -26,14 +26,14 @@ export function useAdminProducts(filters: AdminProductFilters = {}, limit = 10) 
   })
   const [cursor, setCursor] = useState<number | null>(0)
   const [attempt, setAttempt] = useState(0)
-  const { query, category, inStockOnly } = filters
+  const { query, category_id, in_stock_only } = filters
 
   const key = filtersKey(filters)
   const status: AsyncStatus = state.error ? 'error' : state.loadedFor === key ? 'success' : 'loading'
 
   useEffect(() => {
     let cancelled = false
-    const currentFilters: AdminProductFilters = { query, category, inStockOnly }
+    const currentFilters: AdminProductFilters = { query, category_id, in_stock_only }
 
     adminProductService
       .listProducts(currentFilters, cursor, limit)
@@ -63,7 +63,7 @@ export function useAdminProducts(filters: AdminProductFilters = {}, limit = 10) 
     return () => {
       cancelled = true
     }
-  }, [key, query, category, inStockOnly, cursor, limit, attempt])
+  }, [key, query, category_id, in_stock_only, cursor, limit, attempt])
 
   const pageStart = (cursor ?? 0) + 1
 

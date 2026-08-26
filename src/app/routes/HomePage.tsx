@@ -12,7 +12,7 @@ export function HomePage() {
     const { products, status, error, refetch } = useProducts({});
     const categories = useCategories();
 
-    const featured = products.filter((p) => p.featured).slice(0, 4);
+    const featured = products.filter((p) => p.is_featured).slice(0, 4);
     const heroProducts = products.length > 0 ? products : null;
 
     return (

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { CATEGORIES } from '../../../shared/constants/product.constants'
 import type { Product, ProductCategoryId } from '../../../shared/types/product.type'
-import type { OrderRecord } from '../../../shared/types/order.type'
+import type { OrderWithItems } from '../../../shared/types/order.type'
 import { useProducts } from '../../products/hooks/useProducts'
 import { useOrders } from './useOrders'
 import type { CategorySlice, DashboardPeriod, DashboardStats, RevenuePoint } from '../types/dashboard.type'
@@ -18,8 +18,8 @@ function dayLabel(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function latestOrderTime(orders: OrderRecord[]): number {
-  return orders.reduce((max, order) => Math.max(max, Date.parse(order.placedAt)), 0)
+function latestOrderTime(orders: OrderWithItems[]): number {
+  return orders.reduce((max, order) => Math.max(max, Date.parse(order.placed_at ?? '')), 0)
 }
 
 function percentChange(current: number, previous: number): number | null {
@@ -35,35 +35,41 @@ export function useAdminDashboard(period: DashboardPeriod) {
   const ready = ordersQuery.status === 'success' && productsQuery.status === 'success'
   const error = ordersQuery.error ?? productsQuery.error
 
+  const categoryByProductId = useMemo(() => {
+    const map = new Map<string, ProductCategoryId>()
+    for (const p of productsQuery.products) map.set(p.id, p.category_id)
+    return map
+  }, [productsQuery.products])
+
   const stats: DashboardStats | null = useMemo(() => {
     if (!ready) return null
     const now = latestOrderTime(ordersQuery.orders)
     const windowMs = period * DAY_MS
     let revenue = 0
-    let orderCount = 0
+    let order_count = 0
     let prevRevenue = 0
     let prevCount = 0
 
     for (const order of ordersQuery.orders) {
-      const age = now - Date.parse(order.placedAt)
+      const age = now - Date.parse(order.placed_at ?? '')
       if (age <= windowMs) {
-        revenue += order.total
-        orderCount += 1
+        revenue += order.grand_total
+        order_count += 1
       } else if (age <= windowMs * 2) {
-        prevRevenue += order.total
+        prevRevenue += order.grand_total
         prevCount += 1
       }
     }
 
-    const lowStockCount = productsQuery.products.filter((p) => p.stock < 10).length
+    const low_stock_count = productsQuery.products.filter((p) => p.stock < 10).length
 
     return {
       revenue,
-      orderCount,
-      aov: orderCount > 0 ? revenue / orderCount : 0,
-      lowStockCount,
-      revenueDelta: percentChange(revenue, prevRevenue),
-      orderDelta: percentChange(orderCount, prevCount),
+      order_count,
+      aov: order_count > 0 ? revenue / order_count : 0,
+      low_stock_count,
+      revenue_delta: percentChange(revenue, prevRevenue),
+      order_delta: percentChange(order_count, prevCount),
     }
   }, [ready, period, ordersQuery.orders, productsQuery.products])
 
@@ -76,9 +82,9 @@ export function useAdminDashboard(period: DashboardPeriod) {
       let revenue = 0
       let orders = 0
       for (const order of ordersQuery.orders) {
-        const ts = Date.parse(order.placedAt)
+        const ts = Date.parse(order.placed_at ?? '')
         if (ts >= start && ts < start + DAY_MS) {
-          revenue += order.total
+          revenue += order.grand_total
           orders += 1
         }
       }
@@ -93,20 +99,22 @@ export function useAdminDashboard(period: DashboardPeriod) {
     const windowMs = period * DAY_MS
     const totals = new Map<ProductCategoryId, number>()
     for (const order of ordersQuery.orders) {
-      if (now - Date.parse(order.placedAt) > windowMs) continue
-      for (const line of order.lines) {
-        totals.set(line.category, (totals.get(line.category) ?? 0) + line.price * line.qty)
+      if (now - Date.parse(order.placed_at ?? '') > windowMs) continue
+      for (const line of order.order_items) {
+        const category_id = categoryByProductId.get(line.product_id)
+        if (!category_id) continue
+        totals.set(category_id, (totals.get(category_id) ?? 0) + line.unit_price * line.quantity)
       }
     }
-    return CATEGORIES.map((cat) => ({ category: cat.id, label: cat.label, value: totals.get(cat.id) ?? 0 }))
+    return CATEGORIES.map((cat) => ({ category_id: cat.id, label: cat.label, value: totals.get(cat.id) ?? 0 }))
       .filter((slice) => slice.value > 0)
       .sort((a, b) => b.value - a.value)
-  }, [ready, period, ordersQuery.orders])
+  }, [ready, period, ordersQuery.orders, categoryByProductId])
 
-  const recentOrders: OrderRecord[] = useMemo(() => {
+  const recentOrders: OrderWithItems[] = useMemo(() => {
     if (!ready) return []
     return [...ordersQuery.orders]
-      .sort((a, b) => Date.parse(b.placedAt) - Date.parse(a.placedAt))
+      .sort((a, b) => Date.parse(b.placed_at ?? '') - Date.parse(a.placed_at ?? ''))
       .slice(0, 8)
   }, [ready, ordersQuery.orders])
 

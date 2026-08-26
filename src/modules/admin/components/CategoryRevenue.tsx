@@ -66,14 +66,14 @@ export function CategoryRevenue({ data }: CategoryRevenueProps) {
               strokeWidth={0}
             >
               {data.map((slice, index) => (
-                <Cell key={slice.category} fill={COLORS[index % COLORS.length]} />
+                <Cell key={slice.category_id} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
           </PieChart>
         </ChartContainer>
         <ul className="mt-4 space-y-2">
           {data.map((slice, index) => (
-            <li key={slice.category} className="flex items-center gap-2 text-sm">
+            <li key={slice.category_id} className="flex items-center gap-2 text-sm">
               <span
                 className="size-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}

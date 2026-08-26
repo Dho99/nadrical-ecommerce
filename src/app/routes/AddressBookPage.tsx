@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MapPinPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { AddressCard, AddressFormDialog, useAddressBook } from '../../modules/address'
-import type { AddressRecord, AddressSchema } from '../../modules/address'
+import type { UserAddress, AddressSchema } from '../../modules/address'
 import { useAuth } from '../../modules/auth'
 import {
   Button,
@@ -18,9 +18,9 @@ import {
 export function AddressBookPage() {
   const { user } = useAuth()
   const { addresses, addAddress, updateAddress, removeAddress } = useAddressBook(user?.email)
-  const [editing, setEditing] = useState<AddressRecord | null>(null)
+  const [editing, setEditing] = useState<UserAddress | null>(null)
   const [creating, setCreating] = useState(false)
-  const [deleting, setDeleting] = useState<AddressRecord | null>(null)
+  const [deleting, setDeleting] = useState<UserAddress | null>(null)
 
   const handleCreate = (values: AddressSchema) => {
     addAddress(values)
@@ -33,9 +33,9 @@ export function AddressBookPage() {
     toast.success('Address updated')
   }
 
-  const handleSetPrimary = (address: AddressRecord) => {
+  const handleSetPrimary = (address: UserAddress) => {
     const { id, ...rest } = address
-    updateAddress(id, { ...rest, isPrimary: true })
+    updateAddress(id, { ...rest, is_primary: true })
     toast.success(`${address.label} is now the primary address`)
   }
 
@@ -87,16 +87,16 @@ export function AddressBookPage() {
           editing
             ? {
                 label: editing.label,
-                fullName: editing.fullName,
-                phone: editing.phone,
-                address: editing.address,
-                addressLine2: editing.addressLine2,
+                recipient_name: editing.recipient_name,
+                recipient_phone: editing.recipient_phone,
+                address_line_1: editing.address_line_1,
+                address_line_2: editing.address_line_2,
                 district: editing.district,
                 city: editing.city,
                 province: editing.province,
-                postalCode: editing.postalCode,
-                countryCode: editing.countryCode ?? 'ID',
-                isPrimary: editing.isPrimary ?? false,
+                postal_code: editing.postal_code,
+                country_code: (editing.country_code ?? 'ID') as AddressSchema['country_code'],
+                is_primary: editing.is_primary ?? false,
               }
             : undefined
         }
@@ -110,7 +110,7 @@ export function AddressBookPage() {
           <DialogHeader>
             <DialogTitle>Delete address?</DialogTitle>
             <DialogDescription>
-              {deleting?.label} — {deleting?.address}, {deleting?.city}. This cannot be undone.
+              {deleting?.label} — {deleting?.address_line_1}, {deleting?.city}. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -51,16 +51,16 @@ export function AddressFormDialog({
     mode: 'onTouched',
     defaultValues: {
       label: 'Home',
-      fullName: '',
-      phone: '',
-      address: '',
-      addressLine2: '',
+      recipient_name: '',
+      recipient_phone: '',
+      address_line_1: '',
+      address_line_2: '',
       district: '',
       city: '',
       province: '',
-      postalCode: '',
-      countryCode: DEFAULT_COUNTRY,
-      isPrimary: false,
+      postal_code: '',
+      country_code: DEFAULT_COUNTRY,
+      is_primary: false,
       ...defaultValues,
     },
   })
@@ -69,16 +69,16 @@ export function AddressFormDialog({
     if (open)
       form.reset({
         label: 'Home',
-        fullName: '',
-        phone: '',
-        address: '',
-        addressLine2: '',
+        recipient_name: '',
+        recipient_phone: '',
+        address_line_1: '',
+        address_line_2: '',
         district: '',
         city: '',
         province: '',
-        postalCode: '',
-        countryCode: DEFAULT_COUNTRY,
-        isPrimary: false,
+        postal_code: '',
+        country_code: DEFAULT_COUNTRY,
+        is_primary: false,
         ...defaultValues,
       })
   }, [open, defaultValues, form])
@@ -127,7 +127,7 @@ export function AddressFormDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
-                name="fullName"
+                name="recipient_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full name</FormLabel>
@@ -139,7 +139,7 @@ export function AddressFormDialog({
                 )}
               />
               <FormField
-                name="phone"
+                name="recipient_phone"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
@@ -152,10 +152,17 @@ export function AddressFormDialog({
               />
             </div>
 
-            <PostalCodeField />
+            <PostalCodeField
+              postalCodeName="postal_code"
+              cityName="city"
+              addressName="address_line_1"
+              districtName="district"
+              provinceName="province"
+              countryName="country_code"
+            />
 
             <FormField
-              name="address"
+              name="address_line_1"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Street address</FormLabel>
@@ -172,7 +179,7 @@ export function AddressFormDialog({
               )}
             />
             <FormField
-              name="addressLine2"
+              name="address_line_2"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Address line 2 (optional)</FormLabel>
@@ -225,7 +232,7 @@ export function AddressFormDialog({
                 )}
               />
               <FormField
-                name="countryCode"
+                name="country_code"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Country</FormLabel>
@@ -250,19 +257,19 @@ export function AddressFormDialog({
             </div>
 
             <FormField
-              name="isPrimary"
+              name="is_primary"
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-2">
                     <FormControl>
                       <Switch
-                        id="isPrimary"
+                        id="is_primary"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                         aria-label="Set as primary address"
                       />
                     </FormControl>
-                    <Label htmlFor="isPrimary" className="text-sm text-muted-foreground">
+                    <Label htmlFor="is_primary" className="text-sm text-muted-foreground">
                       Set as primary address
                     </Label>
                   </div>

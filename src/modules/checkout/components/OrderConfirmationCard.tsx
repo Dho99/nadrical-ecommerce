@@ -19,18 +19,18 @@ export function OrderConfirmationCard({ confirmation }: OrderConfirmationCardPro
       <Separator className="my-5" />
 
       <p className="font-mono text-xs tracking-[0.14em] text-muted-foreground uppercase">Order number</p>
-      <p className="mt-1 font-display text-4xl font-bold tracking-tight">{confirmation.orderNumber}</p>
+      <p className="mt-1 font-display text-4xl font-bold tracking-tight">{confirmation.order_number}</p>
 
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
         A confirmation is on its way to <span className="font-semibold text-foreground">{confirmation.email}</span>.
         Your order will ship in{' '}
         <span className="font-semibold text-foreground">
-          {confirmation.etaDays} day{confirmation.etaDays === 1 ? '' : 's'}
+          {confirmation.eta_days} day{confirmation.eta_days === 1 ? '' : 's'}
         </span>
         .
       </p>
       <p className="mt-2 font-mono text-sm">
-        Total charged (demo): <span className="font-semibold">{formatPrice(confirmation.total)}</span>
+        Total charged (demo): <span className="font-semibold">{formatPrice(confirmation.grand_total)}</span>
       </p>
 
       <div className="mt-6">

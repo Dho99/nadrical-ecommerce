@@ -32,7 +32,7 @@ function Thumb({ product }: { product: Product }) {
   }
   return (
     <img
-      src={product.imageUrl}
+      src={product.cover_image_url}
       alt={product.name}
       loading="lazy"
       onError={() => setFailed(true)}
@@ -128,15 +128,15 @@ export function ProductAdminTable({
                       <Thumb product={product} />
                       <div className="min-w-0">
                         <p className="max-w-56 truncate font-medium">{product.name}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{product.partNumber}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{product.sku}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{CATEGORY_LABEL[product.category]}</Badge>
+                    <Badge variant="outline">{CATEGORY_LABEL[product.category_id]}</Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    ${product.price.toLocaleString('en-US')}
+                    ${product.base_price.toLocaleString('en-US')}
                   </TableCell>
                   <TableCell className="text-right">
                     {product.stock === 0 ? (
@@ -149,7 +149,7 @@ export function ProductAdminTable({
                     {product.badge ? <Badge variant="secondary">{product.badge}</Badge> : <Minus className="h-4 w-4 text-muted-foreground" />}
                   </TableCell>
                   <TableCell>
-                    {product.featured ? (
+                    {product.is_featured ? (
                       <Check className="h-4 w-4 text-primary" />
                     ) : (
                       <Minus className="h-4 w-4 text-muted-foreground" />

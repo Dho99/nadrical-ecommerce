@@ -1,50 +1,50 @@
-import type { ProductCategoryId } from '../../../shared/types/product.type'
 import type { ShippingMethod } from '../../../shared/types/order.type'
 
 export type { ShippingMethod } from '../../../shared/types/order.type'
 
 export interface CheckoutLine {
-  partNumber: string
-  name: string
-  price: number
-  qty: number
-  category: ProductCategoryId
-  variantName?: string
+  product_id: string
+  sku: string
+  product_name: string
+  unit_price: number
+  quantity: number
+  category_id: string
+  variant_name?: string
 }
 
 export interface OrderPayload {
   customer: {
-    fullName: string
+    recipient_name: string
     email: string
-    phone: string
-    address: string
-    addressLine2?: string
-    city: string
-    province?: string
-    postalCode: string
-    countryCode?: string
+    recipient_phone: string
+    shipping_address_line_1: string
+    shipping_address_line_2?: string
+    shipping_city: string
+    shipping_province?: string
+    shipping_postal_code: string
+    shipping_country_code?: string
   }
-  shippingMethod: ShippingMethod
+  shipping_method: ShippingMethod
   payment: {
-    cardName: string
-    cardNumber: string
+    card_name: string
+    card_number: string
     expiry: string
     cvc: string
   }
   items: CheckoutLine[]
   totals: {
     subtotal: number
-    shipping: number
-    total: number
+    shipping_total: number
+    grand_total: number
   }
 }
 
 export interface OrderConfirmation {
-  orderNumber: string
-  placedAt: Date
+  order_number: string
+  placed_at: Date
   email: string
-  etaDays: number
-  total: number
+  eta_days: number
+  grand_total: number
 }
 
 export const SHIPPING_METHODS: Array<{

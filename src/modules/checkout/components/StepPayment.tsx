@@ -8,14 +8,14 @@ export function StepPayment() {
         Demo checkout — no card is charged. Use any 16-digit number, e.g. 4242 4242 4242 4242.
       </p>
       <CheckoutField
-        name="cardName"
+        name="card_name"
         label="Name on card"
         className="sm:col-span-2"
         autoComplete="cc-name"
         placeholder="A. Lovelace"
       />
       <CheckoutField
-        name="cardNumber"
+        name="card_number"
         label="Card number"
         className="sm:col-span-2"
         inputMode="numeric"

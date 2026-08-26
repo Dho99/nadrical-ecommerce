@@ -1,25 +1,25 @@
-import type { ProductBadge, ProductCategoryId, ProductSpec } from '../../../shared/types/product.type'
+import type { ProductBadge, ProductCategoryId } from '../../../shared/types/product.type'
 
 export interface SpecRowValues {
-  label: string
-  value: string
+  spec_name: string
+  spec_value: string
 }
 
 export interface VariantRowValues {
   id?: string
-  name: string
-  priceDelta: string
+  variant_name: string
+  price_delta: string
   stock: string
 }
 
 export interface ProductFormValues {
   name: string
-  category: ProductCategoryId
-  price: string
+  category_id: ProductCategoryId
+  base_price: string
   stock: string
-  imageUrl: string
+  cover_image_url: string
   badge: ProductBadge | ''
-  featured: boolean
+  is_featured: boolean
   summary: string
   specs: SpecRowValues[]
   variants: VariantRowValues[]
@@ -27,8 +27,6 @@ export interface ProductFormValues {
 
 export interface AdminProductFilters {
   query?: string
-  category?: ProductCategoryId | 'all'
-  inStockOnly?: boolean
+  category_id?: ProductCategoryId | 'all'
+  in_stock_only?: boolean
 }
-
-export type { ProductSpec }

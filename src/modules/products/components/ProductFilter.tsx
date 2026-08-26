@@ -38,7 +38,7 @@ export function ProductFilter({ filters, onChange, total }: ProductFilterProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deferredQuery])
 
-  const activeCategory = filters.category ?? 'all'
+  const activeCategory = filters.category_id ?? 'all'
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,8 +85,8 @@ export function ProductFilter({ filters, onChange, total }: ProductFilterProps) 
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium select-none">
             <input
               type="checkbox"
-              checked={filters.inStockOnly ?? false}
-              onChange={(e) => onChange({ inStockOnly: e.target.checked || undefined })}
+              checked={filters.in_stock_only ?? false}
+              onChange={(e) => onChange({ in_stock_only: e.target.checked || undefined })}
               className="size-4 accent-primary"
             />
             In stock only
@@ -100,7 +100,7 @@ export function ProductFilter({ filters, onChange, total }: ProductFilterProps) 
 
       <Tabs
         value={activeCategory}
-        onValueChange={(v) => onChange({ category: v === 'all' ? undefined : (v as ProductFilters['category']) })}
+        onValueChange={(v) => onChange({ category_id: v === 'all' ? undefined : (v as ProductFilters['category_id']) })}
       >
         <TabsList className="flex w-fit max-w-full flex-wrap justify-start">
           <TabsTrigger value="all">All</TabsTrigger>

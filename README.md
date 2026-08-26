@@ -7,7 +7,7 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 | Build           | Vite 8 · React 19 · TypeScript 6 · React Compiler                                |
 | UI              | Tailwind CSS v4 · shadcn/ui · radix-ui · next-themes                             |
 | State & Data    | zustand 5 · react-router-dom 7 · react-hook-form 7 · zod 4 · recharts 3 · sonner |
-| Auth & Realtime | @react-oauth/google · laravel-echo 2 + pusher-js (Laravel Reverb-ready)          |
+| Auth & Realtime | @react-oauth/google · Native WebSocket (Go Server backend)                       |
 
 ---
 
@@ -63,7 +63,7 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 | Teknologi                                  | Peran                                                                       |
 | ------------------------------------------ | --------------------------------------------------------------------------- |
 | `@react-oauth/google` ^0.13.5              | Google OAuth (Google Identity Services)                                     |
-| `laravel-echo` ^2.4.0 + `pusher-js` ^8.6.0 | WebSocket client, kompatibel dengan **Laravel Reverb** (Pusher protocol v7) |
+| Native WebSocket | WebSocket client bawaan browser, terhubung ke Go WebSocket server untuk chat real-time |
 
 ---
 
@@ -192,12 +192,19 @@ Tidak ada backend — semua data tersimpan di `localStorage` browser dengan pref
 
 ## Setup & Menjalankan
 
+### 1. Menjalankan Frontend
 ```bash
 npm install        # install dependencies
 npm run dev        # dev server (HMR) — http://localhost:5173
 npm run build      # production build (tsc -b && vite build)
 npm run preview    # preview hasil build
 npm run lint       # eslint
+```
+
+### 2. Menjalankan Go WebSocket Server (Opsional, untuk Realtime Chat Multi-Browser)
+```bash
+cd server
+go run main.go      # berjalan di http://localhost:8080/ws
 ```
 
 Build menghasilkan bundle di `dist/` (catatan: ada warning chunk > 500 kB yang non-blocking).
@@ -209,11 +216,8 @@ Build menghasilkan bundle di `dist/` (catatan: ada warning chunk > 500 kB yang n
 Salin `.env.example` menjadi `.env` lalu isi sesuai kebutuhan:
 
 ```env
-# Laravel Reverb (WebSocket) — opsional, scaffold saja
-VITE_REVERB_APP_KEY=your-reverb-app-key
-VITE_REVERB_HOST=127.0.0.1
-VITE_REVERB_PORT=8080
-VITE_REVERB_SCHEME=http
+# Go WebSocket Server (Realtime Chat)
+VITE_WEBSOCKET_URL=ws://127.0.0.1:8080/ws
 
 # Google OAuth (Google Cloud Console > Credentials > OAuth client ID)
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -222,7 +226,7 @@ VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 Catatan:
 
 - Tanpa `VITE_GOOGLE_CLIENT_ID`, tombol Google tidak dirender.
-- Client Echo (Reverb) di `shared/lib/echo.ts` bersifat **null-safe**: tanpa env lengkap, `getEcho()` mengembalikan `null` dan aplikasi tetap berjalan normal.
+- Client WebSocket di `shared/lib/websocket.ts` bersifat **null-safe**: tanpa server WS berjalan, client akan mencoba reconnect otomatis secara berkala tanpa memblokir/crash aplikasi.
 
 ---
 
@@ -255,7 +259,7 @@ Catatan:
 - **Mock-only**: data hilang saat `localStorage` dibersihkan; tidak ada persistensi server
 - **Satu browser**: akun & keranjang dibagi antar tab browser yang sama
 - **Google OAuth**: butuh client ID valid; token di-decode client-side tanpa verifikasi server
-- **Reverb**: hanya scaffold client (`laravel-echo` + `pusher-js`); perlu backend Laravel + Reverb server untuk benar-benar konek
+- **WebSocket Reconnect**: client mencoba terhubung otomatis; jika Go server mati, chat beralih ke sync local tab.
 - **Status order berbasis waktu**: status tidak dari event server, melainkan dihitung dari umur order
 - **Password disimpan plain** di localStorage (murni demo, jangan untuk produksi)
 

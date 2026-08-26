@@ -32,24 +32,93 @@ function StockBadge({ stock }: { stock: number }) {
 
 export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const variants = product.variants ?? []
-  const [selected, setSelected] = useState<ProductVariant | null>(
-    () => variants.find((v) => v.stock > 0) ?? null,
+  const isMultiVariant = variants.length > 0 && variants[0].variant_name.includes(' / ')
+
+  // Single variant states
+  const [selectedSingle, setSelectedSingle] = useState<ProductVariant | null>(
+    () => (isMultiVariant ? null : variants.find((v) => v.stock > 0) ?? variants[0] ?? null),
   )
+
+  // Multi variant helper parsing
+  const dim1Values = isMultiVariant
+    ? Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[0])))
+    : []
+  const dim2Values = isMultiVariant
+    ? Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[1])))
+    : []
+
+  function getLabel(value: string, index: number): string {
+    const lower = value.toLowerCase()
+    if (
+      ['xs', 's', 'm', 'l', 'xl', 'xxl', 'eu', 'size', '36', '38', '40', '42', '44', '46'].some((k) =>
+        lower.includes(k),
+      )
+    ) {
+      return 'Size'
+    }
+    if (
+      [
+        'merah',
+        'hijau',
+        'hitam',
+        'putih',
+        'blue',
+        'black',
+        'red',
+        'green',
+        'white',
+        'grey',
+        'yellow',
+        'color',
+      ].some((k) => lower.includes(k))
+    ) {
+      return 'Color'
+    }
+    return index === 0 ? 'Size' : 'Color'
+  }
+
+  const dim1Label = dim1Values[0] ? getLabel(dim1Values[0], 0) : 'Size'
+  const dim2Label = dim2Values[0] ? getLabel(dim2Values[0], 1) : 'Color'
+
+  const defaultVariant = isMultiVariant
+    ? variants.find((v) => v.stock > 0) ?? variants[0] ?? null
+    : null
+  const defaultDim1 = defaultVariant ? defaultVariant.variant_name.split(' / ')[0] : dim1Values[0] || ''
+  const defaultDim2 = defaultVariant ? defaultVariant.variant_name.split(' / ')[1] : dim2Values[0] || ''
+
+  const [selectedDim1, setSelectedDim1] = useState(defaultDim1)
+  const [selectedDim2, setSelectedDim2] = useState(defaultDim2)
+
+  // Active selected variant
+  const selected = isMultiVariant
+    ? variants.find((v) => v.variant_name === `${selectedDim1} / ${selectedDim2}`) ?? null
+    : selectedSingle
+
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
 
-  const price = product.price + (selected?.priceDelta ?? 0)
-  const stock = selected?.stock ?? product.stock
+  const price = product.base_price + (selected?.price_delta ?? 0)
+  const stock = selected ? selected.stock : (variants.length > 0 ? 0 : product.stock)
   const soldOut = stock === 0
 
-  const handleSelect = (variant: ProductVariant) => {
-    setSelected(variant)
+  const handleSelectSingle = (variant: ProductVariant) => {
+    setSelectedSingle(variant)
     setQty(1)
+  }
+
+  const isDim1Disabled = (val: string) => {
+    const match = variants.find((v) => v.variant_name === `${val} / ${selectedDim2}`)
+    return !match || match.stock === 0
+  }
+
+  const isDim2Disabled = (val: string) => {
+    const match = variants.find((v) => v.variant_name === `${selectedDim1} / ${val}`)
+    return !match || match.stock === 0
   }
 
   const handleAdd = () => {
     onAdd(product, qty, selected ?? undefined)
-    toast.success(`${product.name}${selected ? ` — ${selected.name}` : ''} added to cart`)
+    toast.success(`${product.name}${selected ? ` — ${selected.variant_name}` : ''} added to cart`)
     setAdded(true)
     setTimeout(() => setAdded(false), 1600)
   }
@@ -59,11 +128,11 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       <Table>
         <TableBody>
           {product.specs.map((spec) => (
-            <TableRow key={spec.label}>
+            <TableRow key={spec.spec_name}>
               <TableCell className="w-1/3 font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                {spec.label}
+                {spec.spec_name}
               </TableCell>
-              <TableCell className="font-medium">{spec.value}</TableCell>
+              <TableCell className="font-medium">{spec.spec_value}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -73,34 +142,107 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
       {variants.length > 0 && (
         <div className="mb-5">
-          <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            Variants
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Product variants">
-            {variants.map((variant) => {
-              const isSelected = selected?.id === variant.id
-              const variantSoldOut = variant.stock === 0
-              return (
-                <button
-                  key={variant.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  disabled={variantSoldOut}
-                  onClick={() => handleSelect(variant)}
-                  className={cn(
-                    'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                    isSelected
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background hover:border-foreground/50',
-                    variantSoldOut && 'cursor-not-allowed opacity-50 line-through',
-                  )}
-                >
-                  {variant.name}
-                </button>
-              )
-            })}
-          </div>
+          {isMultiVariant ? (
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                  {dim1Label}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={`Product ${dim1Label}`}>
+                  {dim1Values.map((val) => {
+                    const isSelected = selectedDim1 === val
+                    const disabled = isDim1Disabled(val)
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        disabled={disabled}
+                        onClick={() => {
+                          setSelectedDim1(val)
+                          setQty(1)
+                        }}
+                        className={cn(
+                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                          isSelected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background hover:border-foreground/50',
+                          disabled && 'cursor-not-allowed opacity-50 line-through',
+                        )}
+                      >
+                        {val}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                  {dim2Label}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={`Product ${dim2Label}`}>
+                  {dim2Values.map((val) => {
+                    const isSelected = selectedDim2 === val
+                    const disabled = isDim2Disabled(val)
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        disabled={disabled}
+                        onClick={() => {
+                          setSelectedDim2(val)
+                          setQty(1)
+                        }}
+                        className={cn(
+                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                          isSelected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background hover:border-foreground/50',
+                          disabled && 'cursor-not-allowed opacity-50 line-through',
+                        )}
+                      >
+                        {val}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                Variants
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Product variants">
+                {variants.map((variant) => {
+                  const isSelected = selected?.id === variant.id
+                  const variantSoldOut = variant.stock === 0
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      disabled={variantSoldOut}
+                      onClick={() => handleSelectSingle(variant)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-background hover:border-foreground/50',
+                        variantSoldOut && 'cursor-not-allowed opacity-50 line-through',
+                      )}
+                    >
+                      {variant.variant_name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -108,9 +250,9 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
         <StockBadge stock={stock} />
         <p className="font-display text-3xl font-bold tracking-tight">
           ${price.toFixed(2)}
-          {selected && selected.priceDelta > 0 && (
+          {selected && selected.price_delta > 0 && (
             <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
-              +${selected.priceDelta.toFixed(2)}
+              +${selected.price_delta.toFixed(2)}
             </span>
           )}
         </p>

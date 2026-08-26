@@ -1,18 +1,18 @@
 import { MapPin, Pencil, Star, Trash2 } from 'lucide-react'
 import { Badge, Button } from '../../../shared/components/ui'
-import type { AddressRecord } from '../types/address.type'
+import type { UserAddress } from '../types/address.type'
 
 interface AddressCardProps {
-  address: AddressRecord
-  onEdit: (address: AddressRecord) => void
-  onDelete: (address: AddressRecord) => void
-  onSetPrimary: (address: AddressRecord) => void
+  address: UserAddress
+  onEdit: (address: UserAddress) => void
+  onDelete: (address: UserAddress) => void
+  onSetPrimary: (address: UserAddress) => void
 }
 
 export function AddressCard({ address, onEdit, onDelete, onSetPrimary }: AddressCardProps) {
   const addressText = [
-    address.address,
-    address.addressLine2,
+    address.address_line_1,
+    address.address_line_2,
     address.district,
     address.city,
     address.province,
@@ -27,21 +27,21 @@ export function AddressCard({ address, onEdit, onDelete, onSetPrimary }: Address
           <MapPin className="size-4 text-muted-foreground" />
           <h3 className="font-display text-base font-semibold tracking-tight">{address.label}</h3>
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
-            {address.postalCode}
+            {address.postal_code}
           </Badge>
-          {address.isPrimary && (
+          {address.is_primary && (
             <Badge className="font-mono text-[10px] uppercase tracking-wider">Primary</Badge>
           )}
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          {address.fullName} · {address.phone}
+          {address.recipient_name} · {address.recipient_phone}
         </p>
         <p className="text-sm text-muted-foreground">
-          {addressText} {address.postalCode} {address.countryCode}
+          {addressText} {address.postal_code} {address.country_code}
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
-        {!address.isPrimary && (
+        {!address.is_primary && (
           <Button variant="ghost" size="sm" onClick={() => onSetPrimary(address)}>
             <Star /> Set as primary
           </Button>

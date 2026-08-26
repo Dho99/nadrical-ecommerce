@@ -29,16 +29,16 @@ export function ProductDetailPage() {
   const { add } = useGuardedAdd()
   const { buyNow } = useBuyNow()
 
-  const relatedQuery = useProducts(product ? { category: product.category } : {})
+  const relatedQuery = useProducts(product ? { category_id: product.category_id } : {})
   const related = relatedQuery.products.filter((p) => p.id !== product?.id).slice(0, 3)
 
   const handleAdd = (p: Product, qty: number, variant?: ProductVariant) =>
     add(
       {
         ...p,
-        variantId: variant?.id,
-        variantName: variant?.name,
-        variantStock: variant?.stock,
+        variant_id: variant?.id,
+        variant_name: variant?.variant_name,
+        variant_stock: variant?.stock,
       },
       qty,
     )
@@ -47,9 +47,9 @@ export function ProductDetailPage() {
     buyNow(
       {
         ...p,
-        variantId: variant?.id,
-        variantName: variant?.name,
-        variantStock: variant?.stock,
+        variant_id: variant?.id,
+        variant_name: variant?.variant_name,
+        variant_stock: variant?.stock,
       },
       qty,
     )
@@ -98,14 +98,14 @@ export function ProductDetailPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/products?category=${product.category}`}>
-                {CATEGORY_LABEL[product.category]}
+              <Link to={`/products?category=${product.category_id}`}>
+                {CATEGORY_LABEL[product.category_id]}
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{product.partNumber}</BreadcrumbPage>
+            <BreadcrumbPage>{product.sku}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -117,7 +117,7 @@ export function ProductDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             {product.badge && <Badge variant={BADGE_VARIANT[product.badge]}>{product.badge}</Badge>}
             <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
-              {product.partNumber}
+              {product.sku}
             </p>
           </div>
           <h1 className="mt-2 font-display text-4xl leading-[0.95] font-bold tracking-tight sm:text-5xl">
@@ -140,7 +140,7 @@ export function ProductDetailPage() {
               You might also like
             </p>
             <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">
-              More in {CATEGORY_LABEL[product.category]}
+              More in {CATEGORY_LABEL[product.category_id]}
             </h2>
           </header>
           <ProductGrid

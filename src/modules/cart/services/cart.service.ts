@@ -5,7 +5,7 @@ export const SHIPPING_FLAT = 8
 
 export const cartService = {
   subtotal(items: CartItem[]): number {
-    return items.reduce((sum, item) => sum + item.price * item.qty, 0)
+    return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
   },
 
   shipping(subtotal: number): number {
@@ -15,11 +15,11 @@ export const cartService = {
 
   totals(items: CartItem[]): CartTotals {
     const subtotal = this.subtotal(items)
-    const shipping = this.shipping(subtotal)
-    return { subtotal, shipping, total: subtotal + shipping }
+    const shipping_total = this.shipping(subtotal)
+    return { subtotal, shipping_total, grand_total: subtotal + shipping_total }
   },
 
   totalQty(items: CartItem[]): number {
-    return items.reduce((sum, item) => sum + item.qty, 0)
+    return items.reduce((sum, item) => sum + item.quantity, 0)
   },
 }

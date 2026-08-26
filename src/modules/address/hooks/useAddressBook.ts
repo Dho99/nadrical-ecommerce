@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
 import { addressService } from '../services/address.service'
-import type { AddressInput, AddressRecord } from '../types/address.type'
+import type { AddressInput, UserAddress } from '../types/address.type'
 
 export function useAddressBook(email: string | null | undefined) {
-  const [addresses, setAddresses] = useState<AddressRecord[]>(() =>
+  const [addresses, setAddresses] = useState<UserAddress[]>(() =>
     email ? addressService.listByEmail(email) : [],
   )
 

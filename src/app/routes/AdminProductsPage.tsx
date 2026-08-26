@@ -22,10 +22,10 @@ import type { AdminProductFilters } from '../../modules/admin/types/admin.type'
 
 export function AdminProductsPage() {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<ProductCategoryId | 'all'>('all')
-  const [inStockOnly, setInStockOnly] = useState(false)
+  const [category_id, setCategory] = useState<ProductCategoryId | 'all'>('all')
+  const [in_stock_only, setInStockOnly] = useState(false)
 
-  const filters: AdminProductFilters = { query, category, inStockOnly }
+  const filters: AdminProductFilters = { query, category_id, in_stock_only }
   const { products, total, pageStart, status, error, refetch, goNext, goPrev } =
     useAdminProducts(filters)
 
@@ -76,7 +76,7 @@ export function AdminProductsPage() {
             className="h-9 pl-9"
           />
         </div>
-        <Select value={category} onValueChange={(v) => setCategory(v as ProductCategoryId | 'all')}>
+        <Select value={category_id} onValueChange={(v) => setCategory(v as ProductCategoryId | 'all')}>
           <SelectTrigger className="h-9 w-48">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
@@ -90,7 +90,7 @@ export function AdminProductsPage() {
           </SelectContent>
         </Select>
         <label className="flex h-9 items-center gap-2 text-sm text-muted-foreground">
-          <Switch checked={inStockOnly} onCheckedChange={setInStockOnly} />
+          <Switch checked={in_stock_only} onCheckedChange={setInStockOnly} />
           In stock only
         </label>
       </div>

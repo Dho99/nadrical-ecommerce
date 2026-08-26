@@ -1,9 +1,9 @@
 import { POSTAL_API_BASE } from '../constants/postal.constants'
 
 export interface PostalPlace {
-  postalCode: string
+  postal_code: string
   city: string
-  state: string
+  province: string
   district: string
   village: string
 }
@@ -30,9 +30,9 @@ export const postalService = {
       const data = (await res.json()) as KodeposResponse
       if (!Array.isArray(data.data)) return []
       return data.data.map((place) => ({
-        postalCode: String(place.code),
+        postal_code: String(place.code),
         city: place.regency,
-        state: place.province,
+        province: place.province,
         district: place.district,
         village: place.village,
       }))

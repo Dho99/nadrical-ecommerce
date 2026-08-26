@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { AsyncStatus, CursorPage } from '../../../shared/types/common.type'
-import type { OrderRecord } from '../../../shared/types/order.type'
+import type { OrderWithItems } from '../../../shared/types/order.type'
 import { orderService } from '../services/order.service'
 
 interface OrdersState {
-  orders: OrderRecord[]
+  orders: OrderWithItems[]
   total: number
   nextCursor: number | null
   error: string | null
@@ -30,7 +30,7 @@ export function useOrders(limit = 10) {
     orderService
       .ensureSeeded()
       .then(() => orderService.listOrdersPage(cursor, limit))
-      .then((page: CursorPage<OrderRecord>) => {
+      .then((page: CursorPage<OrderWithItems>) => {
         if (!cancelled) {
           setState({
             orders: page.items,
@@ -71,7 +71,7 @@ export function useOrders(limit = 10) {
     goPrev: () => cursor !== null && cursor > 0 && setCursor(Math.max(0, cursor - limit)),
     refetch: () => setAttempt((a) => a + 1),
   } satisfies {
-    orders: OrderRecord[]
+    orders: OrderWithItems[]
     total: number
     cursor: number | null
     pageStart: number

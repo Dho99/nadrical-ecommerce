@@ -24,14 +24,14 @@ export function LowStockList({ products }: LowStockListProps) {
             className="flex items-center gap-3 rounded-lg border p-2.5"
           >
             <img
-              src={product.imageUrl}
+              src={product.cover_image_url}
               alt={product.name}
               loading="lazy"
               className="size-10 shrink-0 rounded-md border object-cover"
             />
             <div className="min-w-0 grow">
               <p className="truncate text-sm font-medium">{product.name}</p>
-              <p className="font-mono text-xs text-muted-foreground">{product.partNumber}</p>
+              <p className="font-mono text-xs text-muted-foreground">{product.sku}</p>
             </div>
             <Badge variant="destructive">{product.stock} left</Badge>
             <Button asChild variant="ghost" size="sm">

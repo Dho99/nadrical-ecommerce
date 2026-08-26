@@ -10,37 +10,37 @@ export type ProductBadge = 'NEW' | 'SALE' | 'BEST SELLER'
 export type ProductSort = 'featured' | 'price-asc' | 'price-desc' | 'stock'
 
 export interface ProductSpec {
-  label: string
-  value: string
+  spec_name: string
+  spec_value: string
 }
 
 export interface ProductVariant {
   id: string
-  name: string
-  priceDelta: number
+  variant_name: string
+  price_delta: number
   stock: number
 }
 
 export interface Product {
   id: string
-  partNumber: string
+  sku: string
   name: string
-  category: ProductCategoryId
-  price: number
+  category_id: ProductCategoryId
+  base_price: number
   stock: number
-  imageUrl: string
+  cover_image_url: string
   badge?: ProductBadge
-  featured?: boolean
+  is_featured?: boolean
   summary: string
   specs: ProductSpec[]
   variants?: ProductVariant[]
 }
 
 export interface ProductFilters {
-  category?: ProductCategoryId | 'all'
+  category_id?: ProductCategoryId | 'all'
   query?: string
   sort?: ProductSort
-  inStockOnly?: boolean
+  in_stock_only?: boolean
 }
 
 export interface ProductCategory {
@@ -49,15 +49,8 @@ export interface ProductCategory {
   tagline: string
 }
 
-export interface ProductBrief {
-  id: string
-  partNumber: string
-  name: string
-  price: number
-  stock: number
-  imageUrl: string
-  category: ProductCategoryId
-  variantId?: string
-  variantName?: string
-  variantStock?: number
+export interface ProductBrief extends Product {
+  variant_id?: string
+  variant_name?: string
+  variant_stock?: number
 }

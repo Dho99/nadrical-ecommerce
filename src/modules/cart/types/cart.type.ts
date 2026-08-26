@@ -1,20 +1,20 @@
 import type { ProductCategoryId } from '../../../shared/types/product.type'
 
 export interface CartItem {
-  productId: string
-  partNumber: string
-  name: string
-  price: number
-  qty: number
+  product_id: string
+  sku: string
+  product_name: string
+  unit_price: number
+  quantity: number
   stock: number
-  imageUrl: string
-  category: ProductCategoryId
-  variantId?: string
-  variantName?: string
+  cover_image_url: string
+  category_id: ProductCategoryId
+  variant_id?: string
+  variant_name?: string
 }
 
 export interface CartTotals {
   subtotal: number
-  shipping: number
-  total: number
+  shipping_total: number
+  grand_total: number
 }

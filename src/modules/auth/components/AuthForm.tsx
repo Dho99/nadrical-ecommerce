@@ -56,7 +56,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             if (isLogin) {
                 await login(values.email, values.password);
             } else {
-                await registerUser(values.name, values.email, values.password);
+                await registerUser(values.full_name, values.email, values.password);
             }
             toast.success("Successfully logged in");
             navigate(redirectTo, { replace: true });
@@ -88,7 +88,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 >
                     {!isLogin && (
                         <FormField
-                            name="name"
+                            name="full_name"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Name</FormLabel>
@@ -144,7 +144,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     />
                     {!isLogin && (
                         <FormField
-                            name="confirmPassword"
+                            name="confirm_password"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Confirm password</FormLabel>

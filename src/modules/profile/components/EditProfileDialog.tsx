@@ -31,7 +31,7 @@ export function EditProfileDialog() {
   const form = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
     mode: 'onTouched',
-    defaultValues: { name: user?.name ?? '', phone: user?.phone ?? '' },
+    defaultValues: { full_name: user?.full_name ?? '', phone: user?.phone ?? '' },
   })
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -39,10 +39,10 @@ export function EditProfileDialog() {
     setFormError(null)
     try {
       await updateProfile({
-        name: values.name,
+        full_name: values.full_name,
         phone: values.phone || undefined,
-        currentPassword: values.currentPassword || undefined,
-        newPassword: values.newPassword || undefined,
+        current_password: values.current_password || undefined,
+        new_password: values.new_password || undefined,
       })
       toast.success('Profile updated')
       setOpen(false)
@@ -63,7 +63,7 @@ export function EditProfileDialog() {
         open={open}
         onOpenChange={(next) => {
           setOpen(next)
-          if (next) form.reset({ name: user?.name ?? '', phone: user?.phone ?? '' })
+          if (next) form.reset({ full_name: user?.full_name ?? '', phone: user?.phone ?? '' })
         }}
       >
       <DialogContent>
@@ -77,7 +77,7 @@ export function EditProfileDialog() {
         <Form {...form}>
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <FormField
-              name="name"
+              name="full_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Name</FormLabel>
@@ -106,7 +106,7 @@ export function EditProfileDialog() {
               )}
             />
             <FormField
-              name="currentPassword"
+              name="current_password"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Current password</FormLabel>
@@ -123,7 +123,7 @@ export function EditProfileDialog() {
               )}
             />
             <FormField
-              name="newPassword"
+              name="new_password"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>New password</FormLabel>

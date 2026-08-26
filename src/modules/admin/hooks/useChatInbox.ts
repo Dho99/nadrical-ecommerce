@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AsyncStatus } from '../../../shared/types/common.type'
-import type { ChatConversation } from '../../chat/types/chat.type'
+import type { ChatConversation, ChatMessage } from '../../chat/types/chat.type'
 import { chatRepository } from '../../chat/services/chat.repository'
 import { chatService } from '../../chat/services/chat.service'
+import { websocketService } from '../../../shared/lib/websocket'
+
+function isChatMessagePayload(
+  payload: unknown,
+): payload is { type: 'chat_message'; conversation_id: string; message: ChatMessage } {
+  return Boolean(
+    payload &&
+      typeof payload === 'object' &&
+      (payload as { type?: unknown }).type === 'chat_message' &&
+      typeof (payload as { conversation_id?: unknown }).conversation_id === 'string' &&
+      typeof (payload as { message?: unknown }).message === 'object' &&
+      (payload as { message?: unknown }).message !== null,
+  )
+}
 
 export function useChatInbox(limit = 15) {
   const [conversations, setConversations] = useState<ChatConversation[]>([])
@@ -16,7 +30,7 @@ export function useChatInbox(limit = 15) {
 
   const readPage = useCallback(() => {
     const sorted = [...chatRepository.list()].sort(
-      (a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt),
+      (a, b) => Date.parse(b.last_activity_at || '') - Date.parse(a.last_activity_at || ''),
     )
     setTotal(sorted.length)
     const offset = Math.max(0, cursor ?? 0)
@@ -34,11 +48,18 @@ export function useChatInbox(limit = 15) {
 
     load()
 
-    const onStorage = () => load()
-    window.addEventListener('storage', onStorage)
+    const unsubscribe = websocketService.subscribe((payload: unknown) => {
+      if (isChatMessagePayload(payload)) {
+        chatRepository.insertMessage(payload.conversation_id, payload.message)
+        load()
+      }
+    })
+
+    window.addEventListener('storage', load)
     return () => {
       cancelled = true
-      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('storage', load)
+      unsubscribe()
     }
   }, [cursor, limit, attempt, readPage])
 

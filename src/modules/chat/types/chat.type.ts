@@ -1,26 +1,13 @@
-export type ChatRole = 'customer' | 'agent' | 'bot'
+import type { DbChatConversation, DbChatMessage } from '../../../shared/types/database.type'
 
-export interface ChatMessage {
-  id: string
-  role: ChatRole
-  text: string
-  at: string
-}
+export type ChatMessage = DbChatMessage
 
-export interface ChatConversation {
-  id: string
-  customerId: string
-  customerName: string
-  email?: string
-  createdAt: string
-  lastActivityAt: string
+export type ChatConversation = DbChatConversation & {
   messages: ChatMessage[]
-  agentReadAt?: string
-  customerReadAt?: string
 }
 
 export interface ChatIdentity {
-  id: string
-  name: string
-  email?: string
+  customer_user_id: string
+  customer_name: string
+  customer_email?: string
 }

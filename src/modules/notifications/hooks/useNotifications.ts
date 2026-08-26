@@ -30,12 +30,12 @@ export function useNotifications() {
 
   const markRead = useCallback((id: string) => {
     notificationService.markRead(id)
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, read: true } : i)))
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, is_read: true } : i)))
   }, [])
 
   const markAllRead = useCallback(() => {
     notificationService.markAllRead()
-    setItems((prev) => prev.map((i) => ({ ...i, read: true })))
+    setItems((prev) => prev.map((i) => ({ ...i, is_read: true })))
   }, [])
 
   const clearAll = useCallback(() => {
@@ -48,7 +48,7 @@ export function useNotifications() {
 
   return {
     items: visible,
-    unreadCount: visible.filter((i) => !i.read).length,
+    unreadCount: visible.filter((i) => !i.is_read).length,
     loaded: isLoaded,
     sync,
     markRead,

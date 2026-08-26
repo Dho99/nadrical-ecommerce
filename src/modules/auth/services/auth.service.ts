@@ -1,53 +1,110 @@
 import { mockDelay, mockFail } from '../../../shared/lib/mock'
-import type { AuthRole, AuthSession, AuthUser } from '../types/auth.type'
+import type { AuthRoleName, AuthSession, AuthUser } from '../types/auth.type'
 import { SEED_ADMIN } from '../constants/auth.constants'
+import type { DbUser, DbRole, DbUserRole } from '../../../shared/types/database.type'
 
-interface StoredUser extends AuthUser {
-  password: string
-}
+const USERS_KEY = 'db-users'
+const ROLES_KEY = 'db-roles'
+const USER_ROLES_KEY = 'db-user-roles'
 
-const STORAGE_KEY = 'store-users'
-
-function loadUsers(): StoredUser[] {
+function loadUsers(): DbUser[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(USERS_KEY)
     if (raw !== null) {
-      const parsed = JSON.parse(raw) as StoredUser[]
+      const parsed = JSON.parse(raw) as DbUser[]
       if (Array.isArray(parsed)) return parsed
     }
   } catch {
-    // fall through to reseed
+    // fall through
   }
-  const seeded: StoredUser[] = [
+  const seededUsers: DbUser[] = [
     {
       id: SEED_ADMIN.id,
-      name: SEED_ADMIN.name,
       email: SEED_ADMIN.email,
-      password: SEED_ADMIN.password,
-      role: SEED_ADMIN.role,
+      password_hash: SEED_ADMIN.password,
+      full_name: SEED_ADMIN.name,
+      status: 'active',
+      created_at: new Date().toISOString(),
     },
   ]
-  saveUsers(seeded)
-  return seeded
+  localStorage.setItem(USERS_KEY, JSON.stringify(seededUsers))
+  return seededUsers
 }
 
-function saveUsers(users: StoredUser[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users))
+function saveUsers(users: DbUser[]): void {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+}
+
+function loadUserRoles(): DbUserRole[] {
+  try {
+    const raw = localStorage.getItem(USER_ROLES_KEY)
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as DbUserRole[]
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch {
+    // fall through
+  }
+  const seededUserRoles: DbUserRole[] = [
+    {
+      id: 'ur-admin',
+      user_id: SEED_ADMIN.id,
+      role_id: 'role-admin',
+      created_at: new Date().toISOString(),
+    },
+  ]
+  localStorage.setItem(USER_ROLES_KEY, JSON.stringify(seededUserRoles))
+  return seededUserRoles
+}
+
+function saveUserRoles(ur: DbUserRole[]): void {
+  localStorage.setItem(USER_ROLES_KEY, JSON.stringify(ur))
+}
+
+function loadRoles(): DbRole[] {
+  try {
+    const raw = localStorage.getItem(ROLES_KEY)
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as DbRole[]
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch {
+    // fall through
+  }
+  const seededRoles: DbRole[] = [
+    { id: 'role-admin', name: 'admin', is_active: true },
+    { id: 'role-user', name: 'user', is_active: true },
+  ]
+  localStorage.setItem(ROLES_KEY, JSON.stringify(seededRoles))
+  return seededRoles
 }
 
 function makeToken(userId: string): string {
   return `tok-${userId}-${Math.random().toString(36).slice(2, 12)}`
 }
 
-function toSessionUser(user: StoredUser): AuthUser {
-  return { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone }
+function getUserRoleName(userId: string): AuthRoleName {
+  const ur = loadUserRoles().find((r) => r.user_id === userId)
+  if (!ur) return 'user'
+  const role = loadRoles().find((r) => r.id === ur.role_id)
+  return role?.name === 'admin' ? 'admin' : 'user'
+}
+
+function toSessionUser(user: DbUser): AuthUser {
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.full_name || undefined,
+    phone: user.phone || undefined,
+    role_name: getUserRoleName(user.id),
+  }
 }
 
 export interface UpdateProfileInput {
-  name: string
+  full_name: string
   phone?: string
-  currentPassword?: string
-  newPassword?: string
+  current_password?: string
+  new_password?: string
 }
 
 export const authService = {
@@ -58,15 +115,26 @@ export const authService = {
     if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
       throw new Error('An account with this email already exists.')
     }
-    const role: AuthRole = 'user'
-    const user: StoredUser = {
-      id: `usr-${Math.random().toString(36).slice(2, 10)}`,
-      name: name.trim(),
+    const newUserId = `usr-${Math.random().toString(36).slice(2, 10)}`
+    const user: DbUser = {
+      id: newUserId,
       email: email.trim(),
-      password,
-      role,
+      password_hash: password,
+      full_name: name.trim(),
+      status: 'active',
+      created_at: new Date().toISOString(),
     }
     saveUsers([...users, user])
+
+    const userRoles = loadUserRoles()
+    const association: DbUserRole = {
+      id: `ur-${Math.random().toString(36).slice(2, 10)}`,
+      user_id: newUserId,
+      role_id: 'role-user',
+      created_at: new Date().toISOString(),
+    }
+    saveUserRoles([...userRoles, association])
+
     return {
       user: toSessionUser(user),
       token: makeToken(user.id),
@@ -78,7 +146,7 @@ export const authService = {
     mockFail(0.05)
     const user = loadUsers().find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
     if (!user) throw new Error('No account found with this email. Register first.')
-    if (user.password !== password) throw new Error('Incorrect password. Try again.')
+    if (user.password_hash !== password) throw new Error('Incorrect password. Try again.')
     return {
       user: toSessionUser(user),
       token: makeToken(user.id),
@@ -97,14 +165,26 @@ export const authService = {
         token: makeToken(existing.id),
       }
     }
-    const user: StoredUser = {
-      id: `usr-${Math.random().toString(36).slice(2, 10)}`,
-      name: name.trim() || normalizedEmail.split('@')[0],
+    const newUserId = `usr-${Math.random().toString(36).slice(2, 10)}`
+    const user: DbUser = {
+      id: newUserId,
       email: normalizedEmail,
-      password: `google-${Math.random().toString(36).slice(2, 14)}`,
-      role: 'user',
+      password_hash: `google-${Math.random().toString(36).slice(2, 14)}`,
+      full_name: name.trim() || normalizedEmail.split('@')[0],
+      status: 'active',
+      created_at: new Date().toISOString(),
     }
     saveUsers([...users, user])
+
+    const userRoles = loadUserRoles()
+    const association: DbUserRole = {
+      id: `ur-${Math.random().toString(36).slice(2, 10)}`,
+      user_id: newUserId,
+      role_id: 'role-user',
+      created_at: new Date().toISOString(),
+    }
+    saveUserRoles([...userRoles, association])
+
     return {
       user: toSessionUser(user),
       token: makeToken(user.id),
@@ -127,20 +207,21 @@ export const authService = {
     if (idx === -1) throw new Error('Account not found.')
     const user = users[idx]
 
-    if (input.newPassword) {
-      if (!input.currentPassword) {
+    if (input.new_password) {
+      if (!input.current_password) {
         throw new Error('Enter your current password to set a new one.')
       }
-      if (user.password !== input.currentPassword) {
+      if (user.password_hash !== input.current_password) {
         throw new Error('Current password is incorrect.')
       }
     }
 
-    const updated: StoredUser = {
+    const updated: DbUser = {
       ...user,
-      name: input.name.trim(),
+      full_name: input.full_name.trim(),
       phone: input.phone?.trim() || undefined,
-      ...(input.newPassword ? { password: input.newPassword } : {}),
+      ...(input.new_password ? { password_hash: input.new_password } : {}),
+      updated_at: new Date().toISOString(),
     }
     users[idx] = updated
     saveUsers(users)

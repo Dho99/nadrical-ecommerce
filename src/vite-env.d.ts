@@ -2,10 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_GOOGLE_CLIENT_ID?: string
-  readonly VITE_REVERB_APP_KEY?: string
-  readonly VITE_REVERB_HOST?: string
-  readonly VITE_REVERB_PORT?: string
-  readonly VITE_REVERB_SCHEME?: string
+  readonly VITE_WEBSOCKET_URL?: string
 }
 
 interface ImportMeta {

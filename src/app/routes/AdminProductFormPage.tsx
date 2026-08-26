@@ -19,7 +19,7 @@ export function AdminProductFormPage() {
           {editing ? 'Edit product' : 'New product'}
         </h1>
         {editing && product && (
-          <p className="mt-1 font-mono text-sm text-muted-foreground">{product.partNumber}</p>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">{product.sku}</p>
         )}
       </header>
 

@@ -65,18 +65,18 @@ export function AdminDashboardPage() {
               label="Revenue"
               value={formatPrice(stats.revenue)}
               icon={DollarSign}
-              delta={stats.revenueDelta}
+              delta={stats.revenue_delta}
             />
             <StatCard
               label="Orders"
-              value={String(stats.orderCount)}
+              value={String(stats.order_count)}
               icon={Receipt}
-              delta={stats.orderDelta}
+              delta={stats.order_delta}
             />
             <StatCard label="Avg order value" value={formatPrice(stats.aov)} icon={Banknote} />
             <StatCard
               label="Low stock"
-              value={String(stats.lowStockCount)}
+              value={String(stats.low_stock_count)}
               icon={TriangleAlert}
             />
           </div>

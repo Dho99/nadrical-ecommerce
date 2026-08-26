@@ -95,7 +95,7 @@ export function SiteHeader() {
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/profile" className="max-w-36">
                     <UserRound />
-                    <span className="truncate">{user?.name}</span>
+                    <span className="truncate">{user?.full_name}</span>
                   </Link>
                 </Button>
                 <Button
@@ -156,7 +156,7 @@ export function SiteHeader() {
                         </Link>
                       </Button>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm text-muted-foreground">{user?.name}</span>
+                        <span className="truncate text-sm text-muted-foreground">{user?.full_name}</span>
                         <Button
                           variant="ghost"
                           size="sm"

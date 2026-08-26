@@ -9,11 +9,11 @@ export const productFormSchema = z.object({
     .trim()
     .min(2, 'Name must be at least 2 characters')
     .max(120, 'Name is too long (max 120)'),
-  category: z.enum(
+  category_id: z.enum(
     ['electronics', 'apparel', 'home', 'accessories', 'outdoors'],
     { message: 'Choose a category' },
   ),
-  price: z
+  base_price: z
     .string()
     .trim()
     .min(1, 'Price is required')
@@ -26,12 +26,12 @@ export const productFormSchema = z.object({
     .min(1, 'Stock is required')
     .refine((v) => Number.isInteger(Number(v)), 'Stock must be a whole number')
     .refine((v) => Number(v) >= 0, 'Stock cannot be negative'),
-  imageUrl: z
+  cover_image_url: z
     .string()
     .trim()
     .url('Enter a valid image URL'),
   badge: z.enum(badgeOptions).or(z.literal('')),
-  featured: z.boolean(),
+  is_featured: z.boolean(),
   summary: z
     .string()
     .trim()
@@ -41,15 +41,15 @@ export const productFormSchema = z.object({
     .array(
       z
         .object({
-          label: z.string().trim().max(40, 'Label is too long'),
-          value: z.string().trim().max(200, 'Value is too long'),
+          spec_name: z.string().trim().max(40, 'Label is too long'),
+          spec_value: z.string().trim().max(200, 'Value is too long'),
         })
         .superRefine((spec, ctx) => {
-          const { label, value } = spec
-          if ((label || value) && (!label || !value)) {
+          const { spec_name, spec_value } = spec
+          if ((spec_name || spec_value) && (!spec_name || !spec_value)) {
             ctx.addIssue({
               code: 'custom',
-              path: ['value'],
+              path: ['spec_value'],
               message: 'Fill in both label and value',
             })
           }
@@ -61,8 +61,8 @@ export const productFormSchema = z.object({
       z
         .object({
           id: z.string().optional(),
-          name: z.string().trim().max(40, 'Variant name is too long'),
-          priceDelta: z
+          variant_name: z.string().trim().max(40, 'Variant name is too long'),
+          price_delta: z
             .string()
             .trim()
             .refine(
@@ -78,7 +78,7 @@ export const productFormSchema = z.object({
             ),
         })
         .superRefine((variant, ctx) => {
-          if (variant.name.trim() && !variant.stock.trim()) {
+          if (variant.variant_name.trim() && !variant.stock.trim()) {
             ctx.addIssue({
               code: 'custom',
               path: ['stock'],

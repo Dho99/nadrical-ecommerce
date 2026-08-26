@@ -22,7 +22,7 @@ export function useCatalog(initial: ProductFilters = {}): UseCatalogResult {
     setFiltersState((prev) => ({ ...prev, ...patch }))
   }
 
-  const initialKey = JSON.stringify([initial.category, initial.query, initial.sort])
+  const initialKey = JSON.stringify([initial.category_id, initial.query, initial.sort])
   const [prevKey, setPrevKey] = useState(initialKey)
   if (prevKey !== initialKey) {
     setPrevKey(initialKey)

@@ -11,8 +11,8 @@ function formatTime(iso: string): string {
 }
 
 function unreadForAgent(conversation: ChatConversation): number {
-  const readAt = conversation.agentReadAt ?? conversation.createdAt
-  return conversation.messages.filter((m) => m.role === 'customer' && Date.parse(m.at) > Date.parse(readAt)).length
+  const readAt = conversation.agent_read_at ?? conversation.created_at ?? ''
+  return conversation.messages.filter((m) => m.sender_role === 'customer' && Date.parse(m.created_at || '') > Date.parse(readAt)).length
 }
 
 export function ChatInbox() {
@@ -72,16 +72,16 @@ export function ChatInbox() {
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-medium">{conversation.customerName}</p>
+                  <p className="truncate text-sm font-medium">{conversation.customer_name}</p>
                   {unread > 0 && (
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                       {unread}
                     </span>
                   )}
                 </div>
-                {last && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{last.text}</p>}
+                {last && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{last.message}</p>}
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  {formatTime(conversation.lastActivityAt)}
+                  {formatTime(conversation.last_activity_at || '')}
                 </p>
               </button>
             )
@@ -100,14 +100,14 @@ export function ChatInbox() {
         {active ? (
           <>
             <div className="border-b px-4 py-3">
-              <p className="truncate text-sm font-medium">{active.customerName}</p>
+              <p className="truncate text-sm font-medium">{active.customer_name}</p>
               <p className="truncate font-mono text-xs text-muted-foreground">
-                {active.email ?? active.customerId}
+                {active.customer_email ?? active.customer_user_id}
               </p>
             </div>
             <div className="flex-1 space-y-3 overflow-y-auto bg-muted/40 p-4">
               {active.messages.map((message) => {
-                const isCustomer = message.role === 'customer'
+                const isCustomer = message.sender_role === 'customer'
                 return (
                   <div key={message.id} className={cn('flex', isCustomer && 'justify-end')}>
                     <div
@@ -118,16 +118,16 @@ export function ChatInbox() {
                           : 'rounded-bl-sm border bg-card text-card-foreground',
                       )}
                     >
-                      <p className="leading-relaxed">{message.text}</p>
+                      <p className="leading-relaxed">{message.message}</p>
                       <p
                         className={cn(
                           'mt-1 font-mono text-[10px]',
                           isCustomer ? 'text-primary-foreground/70' : 'text-muted-foreground',
                         )}
                       >
-                        {formatTime(message.at)}
-                        {message.role === 'bot' && ' · bot'}
-                        {message.role === 'agent' && ' · you'}
+                        {formatTime(message.created_at || '')}
+                        {message.sender_role === 'bot' && ' · bot'}
+                        {message.sender_role === 'agent' && ' · you'}
                       </p>
                     </div>
                   </div>

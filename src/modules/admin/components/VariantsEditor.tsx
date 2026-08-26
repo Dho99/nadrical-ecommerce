@@ -35,7 +35,7 @@ export function VariantsEditor({ control, fields, append, remove }: VariantsEdit
             <div key={field.id} className="grid gap-2 sm:grid-cols-[1fr_6rem_5rem_auto]">
               <FormField
                 control={control}
-                name={`variants.${index}.name`}
+                name={`variants.${index}.variant_name`}
                 render={({ field: variantField }) => (
                   <FormItem>
                     <FormControl>
@@ -47,7 +47,7 @@ export function VariantsEditor({ control, fields, append, remove }: VariantsEdit
               />
               <FormField
                 control={control}
-                name={`variants.${index}.priceDelta`}
+                name={`variants.${index}.price_delta`}
                 render={({ field: variantField }) => (
                   <FormItem>
                     <FormControl>
@@ -89,7 +89,7 @@ export function VariantsEditor({ control, fields, append, remove }: VariantsEdit
         variant="outline"
         size="sm"
         disabled={fields.length >= MAX_VARIANTS}
-        onClick={() => append({ name: '', priceDelta: '', stock: '' })}
+          onClick={() => append({ variant_name: '', price_delta: '', stock: '' })}
       >
         <Plus /> Add variant
       </Button>

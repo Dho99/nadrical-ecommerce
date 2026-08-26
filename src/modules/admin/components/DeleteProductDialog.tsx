@@ -36,7 +36,7 @@ export function DeleteProductDialog({ product, onOpenChange, onConfirm }: Delete
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>{product.name}</AlertTitle>
             <AlertDescription>
-              {product.partNumber} · {product.specs.length} specifications — gone forever.
+              {product.sku} · {product.specs.length} specifications — gone forever.
             </AlertDescription>
           </Alert>
         )}

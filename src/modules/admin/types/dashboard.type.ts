@@ -9,16 +9,16 @@ export interface RevenuePoint {
 }
 
 export interface CategorySlice {
-  category: ProductCategoryId
+  category_id: ProductCategoryId
   label: string
   value: number
 }
 
 export interface DashboardStats {
   revenue: number
-  orderCount: number
+  order_count: number
   aov: number
-  lowStockCount: number
-  revenueDelta: number | null
-  orderDelta: number | null
+  low_stock_count: number
+  revenue_delta: number | null
+  order_delta: number | null
 }

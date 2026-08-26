@@ -3,22 +3,23 @@ import type { ProductFilters } from '../types/product.type'
 
 export function parseProductFilters(params: URLSearchParams): ProductFilters {
   const raw: ProductFiltersRaw = {
-    category: (params.get('category') ?? undefined) as ProductFilters['category'],
+    category_id: (params.get('category') ?? undefined) as ProductFilters['category_id'],
     query: params.get('q') ?? undefined,
     sort: (params.get('sort') ?? undefined) as ProductFilters['sort'],
-    inStockOnly: (params.get('inStock') ?? undefined) as 'true' | 'false' | undefined,
+    in_stock_only: (params.get('inStock') ?? undefined) as 'true' | 'false' | undefined,
   }
   const parsed = productFiltersSchema.safeParse(raw)
   if (!parsed.success) return {}
-  const { inStockOnly, ...rest } = parsed.data
-  return { ...rest, inStockOnly }
+  const { in_stock_only, ...rest } = parsed.data
+  return { ...rest, in_stock_only }
 }
 
 export function toProductParams(filters: ProductFilters): URLSearchParams {
   const params = new URLSearchParams()
-  if (filters.category && filters.category !== 'all') params.set('category', filters.category)
+  if (filters.category_id && filters.category_id !== 'all')
+    params.set('category', filters.category_id)
   if (filters.query) params.set('q', filters.query)
   if (filters.sort) params.set('sort', filters.sort)
-  if (filters.inStockOnly) params.set('inStock', 'true')
+  if (filters.in_stock_only) params.set('inStock', 'true')
   return params
 }

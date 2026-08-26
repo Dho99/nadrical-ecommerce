@@ -29,7 +29,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         className="relative block aspect-square overflow-hidden bg-muted"
       >
         <ProductImage
-          src={product.imageUrl}
+          src={product.cover_image_url}
           alt={product.name}
           className="h-full w-full transition-transform duration-300 group-hover:scale-105"
         />
@@ -42,8 +42,8 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       <CardContent className="flex grow flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
-          <p className="font-mono text-xs text-muted-foreground">{CATEGORY_LABEL[product.category]}</p>
-          <p className="font-mono text-xs text-muted-foreground">{product.partNumber}</p>
+          <p className="font-mono text-xs text-muted-foreground">{CATEGORY_LABEL[product.category_id]}</p>
+          <p className="font-mono text-xs text-muted-foreground">{product.sku}</p>
         </div>
 
         <h3 className="font-display text-lg font-semibold tracking-tight leading-snug">
@@ -56,7 +56,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <p className="font-display text-xl font-bold tracking-tight">
-            ${product.price.toFixed(2)}
+            ${product.base_price.toFixed(2)}
           </p>
           <p className={cn('text-xs font-medium', soldOut ? 'text-destructive' : 'text-muted-foreground')}>
             {soldOut ? 'Sold out' : `${product.stock} in stock`}

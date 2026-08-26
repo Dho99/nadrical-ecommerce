@@ -29,7 +29,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
         aria-label={`Zoom ${product.name} image`}
       >
         <ProductImage
-          src={product.imageUrl}
+          src={product.cover_image_url}
           alt={product.name}
           className={cn('h-full w-full', crop.position)}
         />
@@ -52,7 +52,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
             )}
           >
             <ProductImage
-              src={product.imageUrl}
+              src={product.cover_image_url}
               alt=""
               className={cn('h-full w-full', thumb.position)}
             />
@@ -67,7 +67,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
         <DialogContent className="max-w-[min(92vw,48rem)] p-3">
           <DialogTitle className="sr-only">{product.name} — zoomed image</DialogTitle>
           <img
-            src={product.imageUrl}
+            src={product.cover_image_url}
             alt={product.name}
             className="max-h-[80vh] w-full rounded-md object-contain"
           />

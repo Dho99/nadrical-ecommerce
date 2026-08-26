@@ -23,28 +23,28 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
 
       <ul className="mt-4">
         {items.map((item) => (
-          <li key={item.productId} className="flex items-center gap-3 py-2.5">
+          <li key={`${item.product_id}-${item.variant_id ?? 'base'}`} className="flex items-center gap-3 py-2.5">
             <Link
-              to={`/products/${item.productId}`}
+              to={`/products/${item.product_id}`}
               className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted"
             >
               <ProductImage
-                src={item.imageUrl}
-                alt={item.name}
+                src={item.cover_image_url}
+                alt={item.product_name}
                 className="h-full w-full"
               />
             </Link>
             <div className="min-w-0 grow">
-              <p className="truncate text-sm font-medium">{item.name}</p>
-              {item.variantName && (
-                <p className="truncate text-xs text-muted-foreground">{item.variantName}</p>
+              <p className="truncate text-sm font-medium">{item.product_name}</p>
+              {item.variant_name && (
+                <p className="truncate text-xs text-muted-foreground">{item.variant_name}</p>
               )}
               <p className="font-mono text-xs text-muted-foreground">
-                {item.partNumber} · ×{item.qty}
+                {item.sku} · ×{item.quantity}
               </p>
             </div>
             <span className="font-mono text-sm font-semibold">
-              {formatPrice(item.price * item.qty)}
+              {formatPrice(item.unit_price * item.quantity)}
             </span>
           </li>
         ))}

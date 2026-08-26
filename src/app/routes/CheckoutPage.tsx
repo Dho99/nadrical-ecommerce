@@ -39,7 +39,7 @@ export function CheckoutPage() {
         <div className="lg:col-span-7">
           <CheckoutForm
             payloadBase={{ items, totals }}
-            initialValues={{ fullName: user?.name, email: user?.email }}
+            initialValues={{ recipient_name: user?.full_name, email: user?.email }}
             onOrderPlaced={clear}
           />
         </div>

@@ -6,24 +6,24 @@ import type { AdminProductFilters, ProductFormValues } from '../types/admin.type
 
 export function formToDraft(values: ProductFormValues): ProductDraft {
   const specs = values.specs
-    .filter((s) => s.label.trim() && s.value.trim())
-    .map((s) => ({ label: s.label.trim(), value: s.value.trim() }))
+    .filter((s) => s.spec_name.trim() && s.spec_value.trim())
+    .map((s) => ({ spec_name: s.spec_name.trim(), spec_value: s.spec_value.trim() }))
   const variants = values.variants
-    .filter((v) => v.name.trim())
+    .filter((v) => v.variant_name.trim())
     .map((v) => ({
       id: v.id?.trim() || `var-${Math.random().toString(36).slice(2, 10)}`,
-      name: v.name.trim(),
-      priceDelta: Number(v.priceDelta) || 0,
+      variant_name: v.variant_name.trim(),
+      price_delta: Number(v.price_delta) || 0,
       stock: Number(v.stock) || 0,
     }))
   return {
     name: values.name,
-    category: values.category,
-    price: Number(values.price),
+    category_id: values.category_id,
+    base_price: Number(values.base_price),
     stock: Number(values.stock),
-    imageUrl: values.imageUrl,
+    cover_image_url: values.cover_image_url,
     badge: values.badge || undefined,
-    featured: values.featured,
+    is_featured: values.is_featured,
     summary: values.summary,
     specs,
     ...(variants.length > 0 ? { variants } : {}),
@@ -37,9 +37,9 @@ export const adminProductService = {
     limit = 10,
   ): Promise<CursorPage<Product>> {
     const productFilters: ProductFilters = {
-      category: filters.category ?? 'all',
+      category_id: filters.category_id ?? 'all',
       query: filters.query ?? '',
-      inStockOnly: filters.inStockOnly,
+      in_stock_only: filters.in_stock_only,
       sort: 'featured',
     }
     return productService.getProductPage(productFilters, cursor, limit)

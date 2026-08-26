@@ -64,7 +64,7 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         </Link>
         <div className="mt-1 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user?.name}</p>
+            <p className="truncate text-sm font-medium">{user?.full_name}</p>
             <p className="truncate font-mono text-xs text-muted-foreground">{user?.email}</p>
           </div>
           <Button

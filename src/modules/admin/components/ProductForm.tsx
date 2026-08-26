@@ -64,7 +64,7 @@ export function ProductForm({ product }: { product?: Product }) {
               />
 
               <FormField
-                name="category"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
@@ -116,7 +116,7 @@ export function ProductForm({ product }: { product?: Product }) {
               />
 
               <FormField
-                name="price"
+                name="base_price"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Price (USD)</FormLabel>
@@ -142,7 +142,7 @@ export function ProductForm({ product }: { product?: Product }) {
               />
 
               <FormField
-                name="featured"
+                name="is_featured"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border p-3">
                     <div>
