@@ -39,7 +39,11 @@ export const useAuthStore = create<AuthStore>()(
         set({ session: { ...session, user } })
       },
 
-      logout: () => set({ session: null }),
+      logout: () => {
+        localStorage.removeItem('token')
+        sessionStorage.removeItem('token')
+        set({ session: null })
+      },
     }),
     { name: 'store-auth' },
   ),
