@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authService, type UpdateProfileInput } from '../services/auth.service'
+import { setAuthToken, getAuthToken } from '../../../shared/lib/api'
 import type { AuthSession, AuthUser } from '../types/auth.type'
 
 interface AuthStore {
@@ -19,29 +20,38 @@ export const useAuthStore = create<AuthStore>()(
 
       login: async (email, password) => {
         const session = await authService.login(email, password)
+        setAuthToken(session.token)
         set({ session })
       },
 
       register: async (name, email, password) => {
         const session = await authService.register(name, email, password)
+        setAuthToken(session.token)
         set({ session })
       },
 
-      googleLogin: async (name, email) => {
-        const session = await authService.googleLogin(name, email)
-        set({ session })
+      googleLogin: async (_name, _email) => {
+        throw new Error('Google login not supported')
       },
 
       updateProfile: async (input) => {
         const session = get().session
         if (!session) return
-        const user: AuthUser = await authService.updateProfile(session.user.id, input)
+        const user = await authService.updateProfile(session.user.id, input)
         set({ session: { ...session, user } })
       },
 
-      logout: () => set({ session: null }),
+      logout: () => {
+        authService.logout()
+        set({ session: null })
+      },
     }),
-    { name: 'store-auth' },
+    {
+      name: 'store-auth',
+      onRehydrateStorage: () => (state) => {
+        if (state?.session?.token) setAuthToken(state.session.token)
+      },
+    },
   ),
 )
 

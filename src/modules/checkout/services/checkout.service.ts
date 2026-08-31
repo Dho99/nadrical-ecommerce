@@ -1,73 +1,71 @@
-import { mockDelay, mockFail } from '../../../shared/lib/mock'
+import { api, getAuthToken } from '../../../shared/lib/api'
 import type { DbOrder, DbOrderItem } from '../../../shared/types/database.type'
-import { orderRepository } from './order.repository'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
 
 function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+function mapOrder(order: ApiOrder): DbOrder {
+  return {
+    id: order.uuid,
+    order_number: order.order_number,
+    user_id: order.account_uuid,
+    recipient_name: order.recipient_name,
+    recipient_phone: order.phone,
+    shipping_address_line_1: order.address,
+    shipping_city: order.city,
+    shipping_method: order.shipping_courier,
+    status: order.order_status as DbOrder['status'],
+    subtotal: order.subtotal,
+    shipping_total: order.shipping_cost,
+    grand_total: order.total,
+    placed_at: order.created_at,
+    created_at: order.created_at,
+  }
+}
+
+interface ApiOrder {
+  uuid: string
+  order_number: string
+  account_uuid: string
+  recipient_name: string
+  address: string
+  phone: string
+  city: string
+  shipping_courier: string
+  order_status: string
+  subtotal: number
+  shipping_cost: number
+  total: number
+  created_at: string
+}
+
+interface ApiCheckoutResponse {
+  order: ApiOrder
+}
+
 export const checkoutService = {
   async placeOrder(payload: OrderPayload): Promise<OrderConfirmation> {
-    await mockDelay(900)
-    mockFail(0.02)
-
-    const now = new Date()
-    const orderId = makeId('ord')
-
-    const dbOrder: DbOrder = {
-      id: orderId,
-      order_number: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-      user_id: payload.customer.email,
+    const data = await api.post<ApiCheckoutResponse>('/ecommerce/orders', {
       recipient_name: payload.customer.recipient_name,
       recipient_phone: payload.customer.recipient_phone,
-      shipping_address_line_1: payload.customer.shipping_address_line_1,
-      shipping_address_line_2: payload.customer.shipping_address_line_2 || undefined,
-      shipping_city: payload.customer.shipping_city,
-      shipping_province: payload.customer.shipping_province || undefined,
-      shipping_postal_code: payload.customer.shipping_postal_code,
-      shipping_country_code: payload.customer.shipping_country_code || undefined,
-      shipping_method: payload.shipping_method,
-      status: 'pending_payment',
-      subtotal: payload.totals.subtotal,
-      shipping_total: payload.totals.shipping_total,
-      grand_total: payload.totals.grand_total,
-      placed_at: now.toISOString(),
-      created_at: now.toISOString(),
-    }
-
-    const dbItems: DbOrderItem[] = payload.items.map((line, idx) => ({
-      id: `${orderId}-item-${idx}`,
-      order_id: orderId,
-      product_id: line.product_id,
-      product_name_snapshot: line.product_name,
-      sku_snapshot: line.sku,
-      variant_name_snapshot: line.variant_name,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-      line_total: line.unit_price * line.quantity,
-      created_at: now.toISOString(),
-    }))
-
-    orderRepository.insert(dbOrder, dbItems)
-
-    // Mock payment gateway: auto-confirm shortly after placement.
-    setTimeout(() => {
-      orderRepository.updateStatus(orderId, {
-        status: 'paid',
-        paid_at: new Date().toISOString(),
-      })
-    }, 4000)
-    setTimeout(() => {
-      orderRepository.updateStatus(orderId, { status: 'processing' })
-    }, 9000)
-
+      address: `${payload.customer.shipping_address_line_1} ${payload.customer.shipping_address_line_2 ?? ''}`,
+      city: payload.customer.shipping_city,
+      postal_code: payload.customer.shipping_postal_code,
+      shipping_courier: payload.shipping_method,
+      items: payload.items.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      })),
+    })
     return {
-      order_number: dbOrder.order_number,
-      placed_at: now,
-      email: dbOrder.user_id ?? '',
+      order_number: data.order.order_number,
+      placed_at: new Date(data.order.created_at),
+      email: data.order.account_uuid,
       eta_days: payload.shipping_method === 'express' ? 1 : 4,
-      grand_total: dbOrder.grand_total,
+      grand_total: data.order.total,
     }
   },
 }

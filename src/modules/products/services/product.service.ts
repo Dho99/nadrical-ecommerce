@@ -1,73 +1,58 @@
-import { mockDelay, mockFail } from '../../../shared/lib/mock'
+import { api } from '../../../shared/lib/api'
 import type { CursorPage } from '../../../shared/types/common.type'
 import type { Product, ProductCategory, ProductFilters } from '../types/product.type'
-import { CATEGORIES } from '../constants/product.constants'
-import { productRepository } from './product.repository'
 
-function matchesQuery(product: Product, query?: string): boolean {
-  if (!query) return true
-  const q = query.toLowerCase()
-  return (
-    product.name.toLowerCase().includes(q) ||
-    product.sku.toLowerCase().includes(q) ||
-    product.summary.toLowerCase().includes(q)
-  )
-}
-
-function filterAndSort(products: Product[], filters: ProductFilters): Product[] {
-  const query = filters.query?.trim()
-  let result = products.filter(
-    (p) =>
-      matchesQuery(p, query) &&
-      (filters.category_id === undefined ||
-        filters.category_id === 'all' ||
-        p.category_id === filters.category_id) &&
-      (!filters.in_stock_only || p.stock > 0),
-  )
-
-  switch (filters.sort) {
-    case 'price-asc':
-      result = [...result].sort((a, b) => a.base_price - b.base_price)
-      break
-    case 'price-desc':
-      result = [...result].sort((a, b) => b.base_price - a.base_price)
-      break
-    case 'stock':
-      result = [...result].sort((a, b) => b.stock - a.stock)
-      break
-    default:
-      result = [...result].sort(
-        (a, b) =>
-          Number(b.is_featured ?? false) - Number(a.is_featured ?? false) ||
-          a.sku.localeCompare(b.sku),
-      )
-  }
-  return result
-}
-
-export type ProductDraft = Omit<Product, 'id' | 'sku'>
-
-function paginate<T>(
-  items: T[],
-  cursor: number | null,
-  limit: number,
-): CursorPage<T> {
-  const offset = Math.max(0, cursor ?? 0)
-  const total = items.length
-  const nextOffset = offset + limit
+function mapProduct(p: ApiProduct): Product {
   return {
-    items: items.slice(offset, nextOffset),
-    total,
-    nextCursor: nextOffset < total ? nextOffset : null,
-    prevCursor: offset > 0 ? Math.max(0, offset - limit) : null,
+    id: p.uuid,
+    sku: p.sku,
+    name: p.name,
+    category_id: p.category_uuid,
+    base_price: Number(p.price),
+    stock: p.stock,
+    cover_image_url: p.image,
+    badge: p.badge as Product['badge'] | undefined,
+    is_featured: p.is_featured,
+    summary: p.description,
+    specs: [],
+    variants: [],
   }
+}
+
+interface ApiProduct {
+  uuid: string
+  name: string
+  description: string
+  price: string
+  original_price?: string
+  discount_percent?: number
+  stock: number
+  average_rating?: number
+  category_uuid: string
+  image: string
+  sku: string
+  is_featured?: boolean
+  badge?: string
+  created_at?: string
+  updated_at?: string
+}
+
+interface ApiProductCategory {
+  uuid: string
+  name: string
 }
 
 export const productService = {
   async getProducts(filters: ProductFilters = {}): Promise<Product[]> {
-    await mockDelay(280)
-    mockFail(0.03)
-    return filterAndSort(productRepository.list(), filters)
+    const params: Record<string, string> = {}
+    if (filters.query) params.search = filters.query
+    if (filters.category_id && filters.category_id !== 'all') params.category_uuid = filters.category_id
+    if (filters.sort) params.sort = filters.sort
+    const data = await api.get<{ items: ApiProduct[]; meta: { total: number } }>(
+      '/ecommerce/products',
+      params,
+    )
+    return data.items.map(mapProduct)
   },
 
   async getProductPage(
@@ -75,66 +60,72 @@ export const productService = {
     cursor: number | null = null,
     limit = 12,
   ): Promise<CursorPage<Product>> {
-    await mockDelay(260)
-    mockFail(0.03)
-    return paginate(filterAndSort(productRepository.list(), filters), cursor, limit)
+    const params: Record<string, string> = { limit: String(limit) }
+    if (cursor !== null) params.page = String(Math.floor(cursor / limit) + 1)
+    if (filters.query) params.search = filters.query
+    if (filters.category_id && filters.category_id !== 'all') params.category_uuid = filters.category_id
+    if (filters.sort) params.sort = filters.sort
+    const data = await api.get<{ items: ApiProduct[]; meta: { total: number; per_page: number; current_page: number } }>(
+      '/ecommerce/products',
+      params,
+    )
+    const total = data.meta.total
+    const currentPage = data.meta.current_page
+    const perPage = data.meta.per_page
+    const nextCursor = currentPage * perPage < total ? currentPage * perPage : null
+    const prevCursor = currentPage > 1 ? (currentPage - 2) * perPage : null
+    return {
+      items: data.items.map(mapProduct),
+      total,
+      nextCursor,
+      prevCursor,
+    }
   },
 
   async getProductById(id: string): Promise<Product | null> {
-    await mockDelay(200)
-    return productRepository.list().find((p) => p.id === id) ?? null
+    const data = await api.get<{ item: ApiProduct }>(`/ecommerce/products/${id}`)
+    if (!data.item) return null
+    return mapProduct(data.item)
   },
 
   async getFeatured(limit = 4): Promise<Product[]> {
-    await mockDelay(240)
-    const products = productRepository.list()
-    const featured = products.filter((p) => p.is_featured)
-    const rest = products.filter((p) => !p.is_featured)
-    return [...featured, ...rest].slice(0, limit)
+    const data = await api.get<{ items: ApiProduct[] }>('/ecommerce/products', {
+      limit: String(limit),
+    })
+    return data.items.map(mapProduct)
   },
 
-  async getRelated(product: Product, limit = 3): Promise<Product[]> {
-    await mockDelay(180)
-    const products = productRepository.list()
-    const same = products.filter((p) => p.id !== product.id && p.category_id === product.category_id)
-    const rest = products.filter((p) => p.id !== product.id && p.category_id !== product.category_id)
-    return [...same, ...rest].slice(0, limit)
+  async getRelated(_product: Product, limit = 3): Promise<Product[]> {
+    const data = await api.get<{ items: ApiProduct[] }>('/ecommerce/products', {
+      limit: String(limit),
+    })
+    return data.items.map(mapProduct)
   },
 
   async getCategories(): Promise<ProductCategory[]> {
-    await mockDelay(120)
-    return CATEGORIES
+    const data = await api.get<{ items: ApiProductCategory[] }>('/ecommerce/categories')
+    return data.items.map((c) => ({
+      id: c.uuid as ProductCategory['id'],
+      label: c.name,
+      tagline: '',
+    }))
   },
 
-  async createProduct(draft: ProductDraft): Promise<Product> {
-    await mockDelay(300)
-    mockFail(0.02)
-    const products = productRepository.list()
-    const maxSeq = products.reduce((max, p) => {
-      const match = /^SKU-(\d+)$/.exec(p.sku)
-      return match ? Math.max(max, Number(match[1])) : max
-    }, 1000)
-    const sku = `SKU-${maxSeq + 1}`
-    const product: Product = { ...draft, id: sku, sku }
-    productRepository.insert(product)
-    return product
+  async createProduct(draft: Omit<Product, 'id' | 'sku'>): Promise<Product> {
+    const data = await api.post<{ item: ApiProduct }>('/ecommerce/products', draft)
+    return mapProduct(data.item)
   },
 
-  async updateProduct(id: string, patch: Partial<ProductDraft>): Promise<Product | null> {
-    await mockDelay(300)
-    mockFail(0.02)
-    const products = productRepository.update(id, patch)
-    return products.find((p) => p.id === id) ?? null
+  async updateProduct(id: string, patch: Partial<Omit<Product, 'id' | 'sku'>>): Promise<Product | null> {
+    try {
+      const data = await api.put<{ item: ApiProduct }>(`/ecommerce/products/${id}`, patch)
+      return mapProduct(data.item)
+    } catch {
+      return null
+    }
   },
 
   async deleteProduct(id: string): Promise<void> {
-    await mockDelay(260)
-    mockFail(0.02)
-    productRepository.remove(id)
-  },
-
-  async resetCatalog(): Promise<void> {
-    await mockDelay(260)
-    productRepository.reset()
+    await api.delete(`/ecommerce/products/${id}`)
   },
 }

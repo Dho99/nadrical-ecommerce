@@ -3,6 +3,18 @@ type WSCallback = (payload: unknown) => void
 let socket: WebSocket | null = null
 const listeners = new Set<WSCallback>()
 
+let _url: string | null = null
+
+function getWsUrl(): string {
+  if (_url) return _url
+  _url = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8080/ws'
+  return _url
+}
+
+export function setWsUrl(url: string): void {
+  _url = url
+}
+
 function parseMessage(data: string): unknown {
   const parsed = JSON.parse(data) as unknown
   if (
@@ -22,7 +34,7 @@ export const websocketService = {
       return
     }
 
-    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://127.0.0.1:8080/ws'
+    const wsUrl = getWsUrl()
     console.log('Connecting to WebSocket:', wsUrl)
 
     try {
@@ -72,6 +84,13 @@ export const websocketService = {
     } else {
       console.warn('WebSocket is not open. Reconnecting...')
       this.connect()
+    }
+  },
+
+  disconnect() {
+    if (socket) {
+      socket.close()
+      socket = null
     }
   },
 }

@@ -3,6 +3,9 @@ export type ProductType = "physical" | "digital" | "service";
 export type ProductStatus = "draft" | "published" | "archived";
 export type DbOrderStatus =
     | "pending_payment"
+    | "WAITING_ONGKIR"
+    | "WAITING_CONFIRMATION"
+    | "DELIVERING"
     | "paid"
     | "processing"
     | "shipped"
@@ -14,7 +17,9 @@ export type PaymentStatus =
     | "success"
     | "failed"
     | "refunded"
-    | "expired";
+    | "expired"
+    | "SELLER_PAID"
+    | "CANCELED";
 export type DbNotificationType = "order" | "promo" | "announcement" | "system";
 export type ChatSenderRole = "customer" | "agent" | "admin" | "bot";
 
