@@ -25,6 +25,7 @@ export const useCartStore = create<CartStore>()(
       add: (product, qty = 1) => {
         const clamped = Math.min(qty, product.variant_stock ?? product.stock)
         if (clamped <= 0) return
+        cartService.apiAddToCart(product.id, clamped, product.variant_id)
         set((state) => {
           const existing = state.items.find(
             (i) => i.product_id === product.id && i.variant_id === product.variant_id,
@@ -58,11 +59,14 @@ export const useCartStore = create<CartStore>()(
         })
       },
 
-      remove: (product_id, variant_id) =>
+      remove: (product_id, variant_id) => {
+        cartService.apiRemoveItem(product_id)
         set((state) => ({
           items: state.items.filter((i) => !matches(i, product_id, variant_id)),
-        })),
-      setQty: (product_id, variant_id, quantity) =>
+        }))
+      },
+      setQty: (product_id, variant_id, quantity) => {
+        cartService.apiUpdateItem(product_id, quantity)
         set((state) => ({
           items: state.items
             .map((i) =>
@@ -71,9 +75,13 @@ export const useCartStore = create<CartStore>()(
                 : i,
             )
             .filter((i) => i.quantity > 0),
-        })),
+        }))
+      },
 
-      clear: () => set({ items: [] }),
+      clear: () => {
+        cartService.apiClearCart()
+        set({ items: [] })
+      },
 
       qtyOf: (product_id, variant_id) =>
         get().items.find((i) => matches(i, product_id, variant_id))?.quantity ?? 0,
