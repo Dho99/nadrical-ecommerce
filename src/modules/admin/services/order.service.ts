@@ -112,7 +112,8 @@ export const orderService = {
             // fallback
         }
 
-        const all = [...orderRepository.list()].sort(
+        const ordersList = await orderRepository.list();
+        const all = [...ordersList].sort(
             (a, b) =>
                 Date.parse(b.placed_at ?? "") - Date.parse(a.placed_at ?? ""),
         );

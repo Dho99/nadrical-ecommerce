@@ -1,63 +1,18 @@
-import api from '../../../shared/lib/api'
-import type { DbOrder, DbOrderItem } from '../../../shared/types/database.type'
+import { api } from '../../../shared/lib/api'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
-
-function makeId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-function mapOrder(order: ApiOrder): DbOrder {
-  return {
-    id: order.uuid,
-    order_number: order.order_number,
-    user_id: order.account_uuid,
-    recipient_name: order.recipient_name,
-    recipient_phone: order.phone,
-    shipping_address_line_1: order.address,
-    shipping_city: order.city,
-    shipping_method: order.shipping_courier,
-    status: order.order_status as DbOrder['status'],
-    subtotal: order.subtotal,
-    shipping_total: order.shipping_cost,
-    grand_total: order.total,
-    placed_at: order.created_at,
-    created_at: order.created_at,
-  }
-}
-
-interface ApiOrder {
-  uuid: string
-  order_number: string
-  account_uuid: string
-  recipient_name: string
-  address: string
-  phone: string
-  city: string
-  shipping_courier: string
-  order_status: string
-  subtotal: number
-  shipping_cost: number
-  total: number
-  created_at: string
-}
-
-interface ApiCheckoutResponse {
-  order: ApiOrder
-}
+import { orderRepository } from './order.repository'
 
 export const checkoutService = {
   async placeOrder(payload: OrderPayload): Promise<OrderConfirmation> {
     const now = new Date()
-    const orderId = makeId('ord')
 
-    // Try calling backend API
     try {
       const itemsInput = payload.items.map((i) => ({
         product_uuid: i.product_id,
         quantity: i.quantity,
       }))
 
-      const res = await api.post('/ecommerce/orders', {
+      const res = await api.post<{ order: { order_number: string; created_at: string; account_uuid: string; total: number } }>('/ecommerce/orders', {
         recipient_name: payload.customer.recipient_name,
         address: `${payload.customer.shipping_address_line_1}${payload.customer.shipping_address_line_2 ? ', ' + payload.customer.shipping_address_line_2 : ''}`,
         phone: payload.customer.recipient_phone,
@@ -70,42 +25,63 @@ export const checkoutService = {
         items: itemsInput,
       })
 
-      if (res.data?.data) {
-        const orderData = res.data.data
+      if (res.data?.order) {
         return {
-          order_number: orderData.invoice_number || orderData.order_number || `ORD-${orderData.uuid?.slice(0, 8) || '000'}`,
-          placed_at: new Date(orderData.created_at || now),
+          order_number: res.data.order.order_number,
+          placed_at: new Date(res.data.order.created_at || now),
           email: payload.customer.email,
           eta_days: payload.shipping_method === 'express' ? 1 : 4,
-          grand_total: Number(orderData.grand_total || payload.totals.grand_total),
+          grand_total: Number(res.data.order.total || payload.totals.grand_total),
         }
       }
     } catch {
-      // Graceful fallback to local repository
+      // Graceful fallback
     }
 
-    const dbOrder: DbOrder = {
-      id: orderId,
-      order_number: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-      user_id: payload.customer.email,
-      recipient_name: payload.customer.recipient_name,
-      recipient_phone: payload.customer.recipient_phone,
-      address: `${payload.customer.shipping_address_line_1} ${payload.customer.shipping_address_line_2 ?? ''}`,
-      city: payload.customer.shipping_city,
-      postal_code: payload.customer.shipping_postal_code,
-      shipping_courier: payload.shipping_method,
-      items: payload.items.map((item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-      })),
-    })
+    const orderNumber = `ORD-${Math.floor(100000 + Math.random() * 900000)}`
+    const orderId = `ord-${Date.now().toString(36)}`
+
+    try {
+      await orderRepository.insert(
+        {
+          id: orderId,
+          order_number: orderNumber,
+          user_id: payload.customer.email,
+          recipient_name: payload.customer.recipient_name,
+          recipient_phone: payload.customer.recipient_phone,
+          shipping_address_line_1: `${payload.customer.shipping_address_line_1} ${payload.customer.shipping_address_line_2 ?? ''}`.trim(),
+          shipping_city: payload.customer.shipping_city,
+          shipping_postal_code: payload.customer.shipping_postal_code,
+          shipping_method: payload.shipping_method,
+          subtotal: payload.totals.subtotal,
+          shipping_total: payload.totals.shipping_total,
+          grand_total: payload.totals.grand_total,
+          status: 'processing',
+          placed_at: now.toISOString(),
+          created_at: now.toISOString(),
+        },
+        payload.items.map((item, idx) => ({
+          id: `item-${orderId}-${idx}`,
+          order_id: orderId,
+          product_id: item.product_id,
+          product_name_snapshot: item.product_name,
+          sku_snapshot: item.sku,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          line_total: item.unit_price * item.quantity,
+          created_at: now.toISOString(),
+        })),
+      )
+    } catch {
+      // ignore
+    }
+
     return {
-      order_number: data.order.order_number,
-      placed_at: new Date(data.order.created_at),
-      email: data.order.account_uuid,
+      order_number: orderNumber,
+      placed_at: now,
+      email: payload.customer.email,
       eta_days: payload.shipping_method === 'express' ? 1 : 4,
-      grand_total: data.order.total,
+      grand_total: payload.totals.grand_total,
     }
   },
 }
