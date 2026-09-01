@@ -10,10 +10,23 @@ export const api = axios.create({
     timeout: 10000,
 });
 
+export function setAuthToken(token: string | null): void {
+    if (token) {
+        localStorage.setItem("token", token);
+        api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+        localStorage.removeItem("token");
+        delete api.defaults.headers.common.Authorization;
+    }
+}
+
+export function getAuthToken(): string | null {
+    return localStorage.getItem("token") || sessionStorage.getItem("token");
+}
+
 api.interceptors.request.use(
     (config) => {
-        let token =
-            localStorage.getItem("token") || sessionStorage.getItem("token");
+        let token = getAuthToken();
         if (!token) {
             try {
                 const rawAuth = localStorage.getItem("store-auth");

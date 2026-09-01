@@ -4,6 +4,9 @@ export type OrderStatus = DbOrderStatus
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending_payment: 'Pending payment',
+  WAITING_ONGKIR: 'Waiting for shipping fee',
+  WAITING_CONFIRMATION: 'Waiting for confirmation',
+  DELIVERING: 'Delivering',
   paid: 'Paid',
   processing: 'Processing',
   shipped: 'Shipped',
@@ -17,6 +20,9 @@ export const ORDER_STATUS_VARIANT: Record<
   'default' | 'secondary' | 'outline' | 'destructive'
 > = {
   pending_payment: 'outline',
+  WAITING_ONGKIR: 'outline',
+  WAITING_CONFIRMATION: 'secondary',
+  DELIVERING: 'secondary',
   paid: 'default',
   processing: 'default',
   shipped: 'secondary',
@@ -53,5 +59,5 @@ export function isTerminalBad(status?: OrderStatus): boolean {
 }
 
 export function isCancellable(status?: OrderStatus): boolean {
-  return status === 'pending_payment' || status === 'paid'
+  return status === 'pending_payment' || status === 'paid' || status === 'WAITING_ONGKIR'
 }
