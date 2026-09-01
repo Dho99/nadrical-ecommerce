@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService, type UpdateProfileInput } from "../services/auth.service";
-import { setAuthToken, getAuthToken } from "../../../shared/lib/api";
-import type { AuthSession, AuthUser } from "../types/auth.type";
+import { setAuthToken } from "../../../shared/lib/api";
+import type { AuthSession } from "../types/auth.type";
 
 interface AuthStore {
     session: AuthSession | null;
