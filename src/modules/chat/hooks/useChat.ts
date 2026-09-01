@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AsyncStatus } from '../../../shared/types/common.type'
 import type { ChatConversation, ChatIdentity, ChatMessage } from '../types/chat.type'
 import { chatService } from '../services/chat.service'
@@ -16,7 +16,7 @@ interface UseChatResult {
 
 function isChatMessagePayload(
   payload: unknown,
-): payload is { type: 'chat_message'; conversation_id: string; message: ChatMessage } {
+): payload is { type: 'chat_message'; conversation_id: string; message: ChatMessage; conversation?: Partial<ChatConversation> } {
   return Boolean(
     payload &&
       typeof payload === 'object' &&
@@ -33,47 +33,50 @@ export function useChat(identity: ChatIdentity): UseChatResult {
   const [sending, setSending] = useState(false)
   const { customer_user_id, customer_name, customer_email } = identity
 
-  useEffect(() => {
-    let cancelled = false
-    const currentIdentity: ChatIdentity = { customer_user_id, customer_name, customer_email }
+  const conversationRef = useRef<ChatConversation | null>(null)
+  conversationRef.current = conversation
 
-    const refresh = () => {
-      chatService
-        .getOrCreate(currentIdentity)
-        .then((conv) => {
-          if (!cancelled) setConversation(conv)
-        })
-        .catch(() => undefined)
-    }
-
-    chatService
-      .getOrCreate(currentIdentity)
+  const loadConversation = useCallback(() => {
+    return chatService
+      .getOrCreate({ customer_user_id, customer_name, customer_email })
       .then((conv) => {
-        if (!cancelled) {
-          setConversation(conv)
-          setStatus('success')
-        }
+        setConversation(conv)
+        setStatus('success')
+        return conv
       })
       .catch(() => {
-        if (!cancelled) setStatus('error')
+        setStatus('error')
+        return null
       })
+  }, [customer_user_id, customer_name, customer_email])
 
-    const unsubscribe = websocketService.subscribe((payload: unknown) => {
+  useEffect(() => {
+    void loadConversation()
+  }, [loadConversation])
+
+  useEffect(() => {
+    const handleStorage = () => {
+      void loadConversation()
+    }
+
+    const unsubscribe = websocketService.on('chat_message', (payload: unknown) => {
       if (isChatMessagePayload(payload)) {
-        const updated = chatRepository.insertMessage(payload.conversation_id, payload.message)
-        if (updated && conversation?.id === payload.conversation_id) {
-          refresh()
+        const currentConv = conversationRef.current
+        // If message is for this conversation or matching customer
+        if (currentConv && currentConv.id === payload.conversation_id) {
+          const fallback = 'conversation' in payload ? (payload.conversation as Partial<ChatConversation>) : undefined
+          chatRepository.insertMessage(payload.conversation_id, payload.message, fallback)
+          void loadConversation()
         }
       }
     })
 
-    window.addEventListener('storage', refresh)
+    window.addEventListener('storage', handleStorage)
     return () => {
-      cancelled = true
-      window.removeEventListener('storage', refresh)
+      window.removeEventListener('storage', handleStorage)
       unsubscribe()
     }
-  }, [customer_user_id, customer_name, customer_email, conversation?.id])
+  }, [loadConversation])
 
   const send = async (text: string) => {
     const trimmed = text.trim()

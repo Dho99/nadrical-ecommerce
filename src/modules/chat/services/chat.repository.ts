@@ -72,9 +72,27 @@ export const chatRepository = {
     return this.list().find((c) => c.customer_user_id === customer_user_id) ?? null
   },
 
-  insertMessage(conversation_id: string, message: ChatMessage): ChatConversation | null {
-    const conversation = this.get(conversation_id)
-    if (!conversation) return null
+  insertMessage(
+    conversation_id: string,
+    message: ChatMessage,
+    fallbackConversation?: Partial<ChatConversation>,
+  ): ChatConversation {
+    let conversation = this.get(conversation_id)
+    if (!conversation) {
+      const now = new Date().toISOString()
+      conversation = this.upsert({
+        id: conversation_id,
+        customer_user_id: fallbackConversation?.customer_user_id ?? 'unknown',
+        customer_name: fallbackConversation?.customer_name ?? 'Customer',
+        customer_email: fallbackConversation?.customer_email,
+        status: fallbackConversation?.status ?? 'active',
+        created_at: fallbackConversation?.created_at ?? now,
+        last_activity_at: message.created_at || now,
+        messages: [],
+        customer_read_at: fallbackConversation?.customer_read_at ?? now,
+        agent_read_at: fallbackConversation?.agent_read_at ?? now,
+      })
+    }
     if (conversation.messages.some((m) => m.id === message.id)) return conversation
     return this.upsert({
       ...conversation,
