@@ -6,11 +6,9 @@ import {
   Button,
   EmptyState,
   Separator,
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from '../../../shared/components/ui'
 import { useNotifications } from '../hooks/useNotifications'
 import { timeAgo } from '../utils/notification.utils'
@@ -61,25 +59,36 @@ export function NotificationBell() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetTriggerButton unreadCount={unreadCount} />
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={`Notifications, ${unreadCount} unread`}
+        >
+          {unreadCount > 0 ? <BellRing /> : <Bell />}
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center rounded-full px-0 text-[10px]">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
 
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
-        <SheetHeader className="border-b px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Bell className="size-5 text-primary" />
-            <SheetTitle className="font-display text-lg font-bold tracking-tight">
-              Notifications
-            </SheetTitle>
-            {unreadCount > 0 && (
-              <Badge variant="default" className="ml-1">
-                {unreadCount} new
-              </Badge>
-            )}
-          </div>
-        </SheetHeader>
+      <PopoverContent align="end" sideOffset={8} className="w-80 p-0 sm:w-96">
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <Bell className="size-5 text-primary" />
+          <h2 className="font-display text-base font-bold tracking-tight">Notifications</h2>
+          {unreadCount > 0 && (
+            <Badge variant="default" className="ml-1">
+              {unreadCount} new
+            </Badge>
+          )}
+        </div>
 
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="max-h-[60vh] overflow-y-auto p-3">
           {!loaded ? (
             <p className="p-6 text-center text-sm text-muted-foreground">Checking for updates…</p>
           ) : items.length === 0 ? (
@@ -102,7 +111,7 @@ export function NotificationBell() {
         {items.length > 0 && (
           <>
             <Separator />
-            <div className="flex items-center gap-2 p-4">
+            <div className="flex items-center gap-2 p-3">
               <Button
                 type="button"
                 variant="outline"
@@ -119,28 +128,7 @@ export function NotificationBell() {
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-function SheetTriggerButton({ unreadCount }: { unreadCount: number }) {
-  return (
-    <SheetTrigger asChild>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="relative"
-        aria-label={`Notifications, ${unreadCount} unread`}
-      >
-        {unreadCount > 0 ? <BellRing /> : <Bell />}
-        {unreadCount > 0 && (
-          <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center rounded-full px-0 text-[10px]">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </Badge>
-        )}
-      </Button>
-    </SheetTrigger>
+      </PopoverContent>
+    </Popover>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MapPinPlus } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { AddressCard, AddressFormDialog, useAddressBook } from '../../modules/address'
 import type { UserAddress, AddressSchema } from '../../modules/address'
 import { useAuth } from '../../modules/auth'

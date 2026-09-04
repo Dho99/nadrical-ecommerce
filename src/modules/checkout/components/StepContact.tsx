@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Home } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { RadioGroup, RadioGroupItem, Switch } from '../../../shared/components/ui'
 import { Label } from '../../../shared/components/ui'
 import { useAddressBook } from '../../address'

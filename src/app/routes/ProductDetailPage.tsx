@@ -1,8 +1,17 @@
 import { Link, useParams } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
-import { ProductGallery, SpecSheet, ProductGrid, useProduct, useProducts } from '../../modules/products'
+import {
+  ProductGallery,
+  SpecSheet,
+  ProductGrid,
+  ReviewSection,
+  StarRating,
+  useProduct,
+  useProducts,
+} from '../../modules/products'
 import { CATEGORY_LABEL } from '../../modules/products/constants/product.constants'
 import { useGuardedAdd, useBuyNow } from '../../modules/cart'
+import { WishlistButton } from '../../modules/wishlist'
 import {
   Badge,
   Breadcrumb,
@@ -110,28 +119,59 @@ export function ProductDetailPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <ProductGallery product={product} />
 
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.badge && <Badge variant={BADGE_VARIANT[product.badge]}>{product.badge}</Badge>}
             <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
-              {product.sku}
+              {CATEGORY_LABEL[product.category_id]}
             </p>
           </div>
-          <h1 className="mt-2 font-display text-4xl leading-[0.95] font-bold tracking-tight sm:text-5xl">
-            {product.name}
-          </h1>
-          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
+            <h1 className="font-display text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
+              {product.name}
+            </h1>
+            <WishlistButton
+              productId={product.id}
+              productName={product.name}
+              variant="outline"
+              className="mt-1"
+            />
+          </div>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Link
+              to={`/products/${product.id}/ratings`}
+              className="inline-flex items-center gap-1.5 text-sm transition-opacity hover:opacity-80"
+              aria-label={`${product.rating} out of 5 rating, ${product.review_count} reviews`}
+            >
+              <StarRating rating={product.rating} />
+              <span className="font-mono text-xs font-medium">{product.rating.toFixed(1)}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                ({product.review_count})
+              </span>
+            </Link>
+            <Link
+              to={`/products/${product.id}/ratings`}
+              className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Lihat ulasan
+            </Link>
+          </div>
+
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
             {product.summary}
           </p>
 
-          <div className="mt-6">
+          <div className="mt-5">
             <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} />
           </div>
         </div>
       </div>
+
+      <ReviewSection product={product} />
 
       {related.length > 0 && (
         <section className="mt-16">

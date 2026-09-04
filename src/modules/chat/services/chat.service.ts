@@ -1,4 +1,3 @@
-import { mockDelay } from '../../../shared/lib/mock'
 import type { ChatConversation, ChatIdentity, ChatMessage } from '../types/chat.type'
 import { BOT_REPLIES, BOT_REPLY_DELAY_MS, GUEST_ID_KEY } from '../constants/chat.constants'
 import { chatRepository } from './chat.repository'
@@ -33,20 +32,18 @@ export const chatService = {
   },
 
   async getOrCreate(identity: ChatIdentity): Promise<ChatConversation> {
-    await mockDelay(220)
     return chatRepository.ensureConversation(identity)
   },
 
   async sendCustomerMessage(identity: ChatIdentity, text: string): Promise<ChatConversation> {
-    await mockDelay(200)
     const conversation = chatRepository.ensureConversation(identity)
     const message = makeMessage(conversation.id, 'customer', text)
     const updated = chatRepository.insertMessage(conversation.id, message)
-    if (!updated) throw new Error('Conversation not found')
 
     websocketService.send({
       type: 'chat_message',
       conversation_id: conversation.id,
+      conversation: updated,
       message,
     })
 
@@ -58,6 +55,7 @@ export const chatService = {
         websocketService.send({
           type: 'chat_message',
           conversation_id: updated.id,
+          conversation: afterBot,
           message: botMsg,
         })
       }
@@ -67,14 +65,13 @@ export const chatService = {
   },
 
   async sendAgentMessage(conversation_id: string, text: string): Promise<ChatConversation> {
-    await mockDelay(180)
     const message = makeMessage(conversation_id, 'agent', text)
     const updated = chatRepository.insertMessage(conversation_id, message)
-    if (!updated) throw new Error('Conversation not found')
 
     websocketService.send({
       type: 'chat_message',
       conversation_id,
+      conversation: updated,
       message,
     })
 
@@ -82,7 +79,6 @@ export const chatService = {
   },
 
   async markRead(conversation_id: string, by: 'customer' | 'agent'): Promise<void> {
-    await mockDelay(60)
     chatRepository.markRead(conversation_id, by)
   },
 }

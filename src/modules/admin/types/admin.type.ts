@@ -20,6 +20,9 @@ export interface ProductFormValues {
   cover_image_url: string
   badge: ProductBadge | ''
   is_featured: boolean
+  is_preorder: boolean
+  preorder_eta: string
+  preorder_deposit: string
   summary: string
   specs: SpecRowValues[]
   variants: VariantRowValues[]

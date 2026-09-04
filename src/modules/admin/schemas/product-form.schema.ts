@@ -32,6 +32,14 @@ export const productFormSchema = z.object({
     .url('Enter a valid image URL'),
   badge: z.enum(badgeOptions).or(z.literal('')),
   is_featured: z.boolean(),
+  is_preorder: z.boolean(),
+  preorder_eta: z.string().trim().optional().or(z.literal('')),
+  preorder_deposit: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (Number.isFinite(Number(v)) && Number(v) >= 0), 'Deposit must be 0 or more'),
   summary: z
     .string()
     .trim()

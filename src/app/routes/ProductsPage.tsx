@@ -4,7 +4,6 @@ import { LoaderCircle } from 'lucide-react'
 import { ProductFilter, ProductGrid, useInfiniteProducts } from '../../modules/products'
 import { parseProductFilters, toProductParams } from '../../modules/products/utils/filters'
 import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll'
-import { Separator } from '../../shared/components/ui'
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,31 +14,31 @@ export function ProductsPage() {
 
   const sentinelRef = useInfiniteScroll({ onLoadMore: loadMore, hasMore, loading: loadingMore })
 
-  const handleChange = (patch: Parameters<typeof useInfiniteProducts>[0]) => {
+  const handleChange = (patch: Partial<ReturnType<typeof parseProductFilters>>) => {
     const next = { ...filters, ...patch }
     setSearchParams(toProductParams(next), { replace: true })
   }
 
   return (
-    <div className="container mx-auto px-5 py-10 sm:px-8">
-      <header className="mb-6">
+    <div className="container mx-auto px-5 pb-10 sm:px-8">
+      <header className="py-6">
         <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Store catalog · {total} products live
+          Nadrical catalog · {total} products live
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl">
           The catalog
         </h1>
       </header>
 
-      <ProductFilter filters={filters} onChange={handleChange} total={total} />
+      <ProductFilter filters={filters} onChange={handleChange} total={total} products={items} />
 
-      <Separator className="my-6" />
-
-      <ProductGrid
-        products={items}
-        status={status}
-        error={error}
-        onRetry={refetch}
+      <div className="mt-6">
+        <ProductGrid
+          products={items}
+          status={status}
+          error={error}
+          onRetry={refetch}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5"
         footer={
           <div ref={sentinelRef} aria-hidden="true">
             {loadingMore && (
@@ -54,7 +53,8 @@ export function ProductsPage() {
             )}
           </div>
         }
-      />
+        />
+      </div>
     </div>
   )
 }

@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Environment files
+.env
+.env.*
+!.env.example
 *.local
 
 AGENTS.md
@@ -24,3 +29,6 @@ AGENTS.md
 *.njsproj
 *.sln
 *.sw?
+
+
+.env

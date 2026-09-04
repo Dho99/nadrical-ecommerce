@@ -1,3 +1,4 @@
+import api from '../../../shared/lib/api'
 import type { CartItem, CartTotals } from '../types/cart.type'
 
 export const FREE_SHIPPING_THRESHOLD = 75
@@ -13,13 +14,55 @@ export const cartService = {
     return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT
   },
 
-  totals(items: CartItem[]): CartTotals {
+  totals(items: CartItem[], discount = 0): CartTotals {
     const subtotal = this.subtotal(items)
     const shipping_total = this.shipping(subtotal)
-    return { subtotal, shipping_total, grand_total: subtotal + shipping_total }
+    const safeDiscount = Math.min(discount, subtotal)
+    return {
+      subtotal,
+      shipping_total,
+      discount: safeDiscount,
+      grand_total: Math.max(0, subtotal - safeDiscount + shipping_total),
+    }
   },
 
   totalQty(items: CartItem[]): number {
     return items.reduce((sum, item) => sum + item.quantity, 0)
+  },
+
+  async apiAddToCart(productUUID: string, quantity: number, variantUUID?: string): Promise<void> {
+    try {
+      await api.post('/ecommerce/cart', {
+        product_uuid: productUUID,
+        quantity,
+        ...(variantUUID ? { variant_uuid: variantUUID } : {}),
+      })
+    } catch {
+      // Gracefully ignore if offline or guest
+    }
+  },
+
+  async apiUpdateItem(itemUUID: string, quantity: number): Promise<void> {
+    try {
+      await api.put(`/ecommerce/cart/items/${itemUUID}`, { quantity })
+    } catch {
+      // ignore
+    }
+  },
+
+  async apiRemoveItem(itemUUID: string): Promise<void> {
+    try {
+      await api.delete(`/ecommerce/cart/items/${itemUUID}`)
+    } catch {
+      // ignore
+    }
+  },
+
+  async apiClearCart(): Promise<void> {
+    try {
+      await api.delete('/ecommerce/cart')
+    } catch {
+      // ignore
+    }
   },
 }

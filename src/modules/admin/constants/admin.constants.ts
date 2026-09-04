@@ -1,9 +1,11 @@
-import { LayoutDashboard, MessageSquare, Package, Receipt, type LucideIcon } from 'lucide-react'
+import { BadgePercent, Clock, LayoutDashboard, MessageSquare, Package, Receipt, type LucideIcon } from 'lucide-react'
 import { unsplashUrl } from '../../../shared/utils/unsplash'
 
 export const ADMIN_NAV_ITEMS: Array<{ to: string; label: string; icon: LucideIcon }> = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/discounts', label: 'Discounts', icon: BadgePercent },
+  { to: '/admin/preorders', label: 'Pre-orders', icon: Clock },
   { to: '/admin/orders', label: 'Orders', icon: Receipt },
   { to: '/admin/chat', label: 'Chat', icon: MessageSquare },
 ]

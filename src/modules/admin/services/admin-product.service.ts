@@ -24,8 +24,13 @@ export function formToDraft(values: ProductFormValues): ProductDraft {
     cover_image_url: values.cover_image_url,
     badge: values.badge || undefined,
     is_featured: values.is_featured,
+    is_preorder: values.is_preorder,
+    preorder_eta: values.preorder_eta ? new Date(values.preorder_eta).toISOString() : undefined,
+    preorder_deposit: values.preorder_deposit ? Number(values.preorder_deposit) : undefined,
     summary: values.summary,
     specs,
+    rating: 4.5,
+    review_count: 0,
     ...(variants.length > 0 ? { variants } : {}),
   }
 }

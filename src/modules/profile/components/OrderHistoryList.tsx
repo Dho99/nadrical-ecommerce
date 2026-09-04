@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { PackageOpen, RefreshCw, Truck, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { PackageOpen, RefreshCw, Repeat2, Truck, X } from 'lucide-react'
+import { ProductImage } from '../../../shared/components/ProductImage'
+import { PRODUCT_CATALOG } from '../../products/services/mock-data'
+import { useCart } from '../../cart/hooks/useCart'
+import { toast } from '@/shared/lib/alert'
 import type { AsyncStatus } from '../../../shared/types/common.type'
 import type { OrderWithItems } from '../../../shared/types/order.type'
 import type { DbOrderStatus } from '../../../shared/types/database.type'
@@ -108,6 +112,10 @@ function TerminalBanner({ status }: { status: DbOrderStatus }) {
   )
 }
 
+function productImage(productId: string): string | undefined {
+  return PRODUCT_CATALOG.find((p) => p.id === productId)?.cover_image_url
+}
+
 export function OrderHistoryList({
   orders,
   status,
@@ -118,6 +126,8 @@ export function OrderHistoryList({
 }: OrderHistoryListProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [cancelTarget, setCancelTarget] = useState<OrderWithItems | null>(null)
+  const { add } = useCart()
+  const navigate = useNavigate()
 
   const counts = useMemo(() => {
     const c: Record<TabKey, number> = { all: orders.length, processing: 0, shipped: 0, completed: 0, cancelled: 0 }
@@ -263,28 +273,69 @@ export function OrderHistoryList({
                   <Separator className="my-4" />
 
                   <ul className="space-y-2">
-                    {order.order_items.map((line, i) => (
-                      <li
-                        key={`${line.sku_snapshot ?? line.product_id}-${i}`}
-                        className="flex items-baseline justify-between gap-3 text-sm"
-                      >
-                        <span className="text-muted-foreground">
-                          {line.product_name_snapshot}
-                          {line.variant_name_snapshot ? ` · ${line.variant_name_snapshot}` : ''} ×{' '}
-                          {line.quantity}
-                        </span>
-                        <span className="font-medium">
-                          {formatPrice(line.unit_price * line.quantity)}
-                        </span>
-                      </li>
-                    ))}
+                    {order.order_items.map((line, i) => {
+                      const img = productImage(line.product_id)
+                      return (
+                        <li
+                          key={`${line.sku_snapshot ?? line.product_id}-${i}`}
+                          className="flex items-center gap-3 text-sm"
+                        >
+                          <div className="size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                            {img ? (
+                              <ProductImage src={img} alt={line.product_name_snapshot} className="h-full w-full" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                <PackageOpen className="size-4" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{line.product_name_snapshot}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {line.variant_name_snapshot ? `${line.variant_name_snapshot} · ` : ''}×{line.quantity} · {line.sku_snapshot ?? line.product_id}
+                            </p>
+                          </div>
+                          <span className="font-medium">{formatPrice(line.unit_price * line.quantity)}</span>
+                        </li>
+                      )
+                    })}
                   </ul>
 
-                  <div className="mt-4 flex items-center justify-between border-t pt-3">
-                    <div className="flex items-center gap-3">
+                  {(order.shipping_address_line_1 || order.tracking_number) && (
+                    <div className="mt-3 rounded-md bg-muted/50 p-3 text-xs leading-relaxed">
+                      <p className="font-medium">Shipping information</p>
+                      {order.shipping_address_line_1 && (
+                        <p className="text-muted-foreground">
+                          {order.shipping_address_line_1} {order.shipping_city ? `, ${order.shipping_city}` : ''}{' '}
+                          {order.shipping_province ?? ''} {order.shipping_postal_code ?? ''}
+                        </p>
+                      )}
+                      {order.tracking_number && (
+                        <p className="mt-1 font-mono text-muted-foreground">Tracking: {order.tracking_number}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                    <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
                         {order.shipping_method === 'express' ? 'Express' : 'Standard'}
                       </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          for (const line of order.order_items) {
+                            const prod = PRODUCT_CATALOG.find((p) => p.id === line.product_id)
+                            if (prod) add({ ...prod, variant_name: line.variant_name_snapshot ?? undefined }, line.quantity)
+                          }
+                          toast.success('Items added to cart', { position: 'top-center', style: { marginTop: '72px' }, closeButton: true })
+                          navigate('/cart')
+                        }}
+                      >
+                        <Repeat2 className="size-3" /> Reorder
+                      </Button>
                       {cancellable && (
                         <Button
                           variant="ghost"
@@ -294,7 +345,7 @@ export function OrderHistoryList({
                           onClick={() => setCancelTarget(order)}
                         >
                           <X className="size-3" />
-                          {cancellingId === order.id ? 'Cancelling…' : 'Cancel order'}
+                          {cancellingId === order.id ? 'Cancelling…' : 'Cancel'}
                         </Button>
                       )}
                     </div>

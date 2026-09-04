@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { checkoutService } from '../services/checkout.service'
 import { checkoutSchema, type CheckoutInput } from '../schemas/checkout.schema'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
+import { useVoucher } from '../../voucher/hooks/useVoucher'
 
 export const CHECKOUT_STEPS = [
   { num: '01', label: 'Delivery' },
@@ -56,6 +57,7 @@ export function useCheckout(
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null)
+  const { applied, discount } = useVoucher()
 
   const isFirstStep = step === 0
   const isLastStep = step === CHECKOUT_STEPS.length - 1
@@ -82,6 +84,15 @@ export function useCheckout(
     setIsSubmitting(true)
     setError(null)
     try {
+      const shippingForTotals = values.shipping_method === 'express' ? 16 : payloadBase.totals.shipping_total
+      const voucherDiscount = applied ? discount(payloadBase.totals.subtotal, shippingForTotals) : 0
+      const discountedTotals = {
+        ...payloadBase.totals,
+        discount: voucherDiscount,
+        voucher_code: applied?.code,
+        grand_total: Math.max(0, payloadBase.totals.subtotal - voucherDiscount + shippingForTotals),
+        shipping_total: shippingForTotals,
+      }
       const payload: OrderPayload = {
         customer: {
           recipient_name: values.recipient_name,
@@ -102,7 +113,8 @@ export function useCheckout(
           cvc: values.cvc,
         },
         items: payloadBase.items,
-        totals: payloadBase.totals,
+        totals: discountedTotals,
+        voucher_code: applied?.code,
       }
       const result = await checkoutService.placeOrder(payload)
       setConfirmation(result)

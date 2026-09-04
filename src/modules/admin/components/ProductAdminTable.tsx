@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ImageIcon, Minus, Pencil, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { CATEGORY_LABEL } from '../../../shared/constants/product.constants'
 import type { AsyncStatus } from '../../../shared/types/common.type'
 import type { Product } from '../../../shared/types/product.type'

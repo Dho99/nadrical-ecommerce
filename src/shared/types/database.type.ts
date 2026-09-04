@@ -3,6 +3,9 @@ export type ProductType = "physical" | "digital" | "service";
 export type ProductStatus = "draft" | "published" | "archived";
 export type DbOrderStatus =
     | "pending_payment"
+    | "WAITING_ONGKIR"
+    | "WAITING_CONFIRMATION"
+    | "DELIVERING"
     | "paid"
     | "processing"
     | "shipped"
@@ -14,7 +17,9 @@ export type PaymentStatus =
     | "success"
     | "failed"
     | "refunded"
-    | "expired";
+    | "expired"
+    | "SELLER_PAID"
+    | "CANCELED";
 export type DbNotificationType = "order" | "promo" | "announcement" | "system";
 export type ChatSenderRole = "customer" | "agent" | "admin" | "bot";
 
@@ -114,6 +119,9 @@ export interface DbProduct {
     compare_price?: number;
     stock?: number;
     is_featured?: boolean;
+    is_preorder?: boolean;
+    preorder_eta?: string;
+    preorder_deposit?: number;
     status?: ProductStatus;
     average_rating?: number;
     review_count?: number;
@@ -261,6 +269,7 @@ export interface DbChatConversation {
     customer_user_id?: string;
     customer_name?: string;
     customer_email?: string;
+    customer_phone?: string;
     status?: string;
     created_at?: string;
     last_activity_at?: string;
