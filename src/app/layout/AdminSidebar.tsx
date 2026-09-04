@@ -20,9 +20,8 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         onClick={onNavigate}
         className="flex h-16 shrink-0 items-center gap-2 border-b px-5"
       >
-        <span className="font-display text-xl font-bold tracking-tight">
-          Store<span className="text-primary">.</span>
-        </span>
+        <img src="/logo.svg" alt="Nadrical" className="h-6 w-auto dark:hidden" />
+        <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-6 w-auto dark:block" />
         <span className="rounded-sm bg-primary px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-primary-foreground">
           ADMIN
         </span>

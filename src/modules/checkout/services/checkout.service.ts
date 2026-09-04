@@ -21,6 +21,8 @@ export const checkoutService = {
         city: payload.customer.shipping_city,
         shipping_courier: payload.shipping_method,
         shipping_cost: payload.totals.shipping_total,
+        discount: payload.totals.discount ?? 0,
+        voucher_code: payload.voucher_code || payload.totals.voucher_code || undefined,
         service_fee: 0,
         items: itemsInput,
       })

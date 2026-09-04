@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Headset, LoaderCircle, MessageCircle, Send } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Headset, LoaderCircle, MessageCircle, Send, X } from 'lucide-react'
 import { cn } from '../../../shared/utils/cn'
-import { Button, Input, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../../shared/components/ui'
+import { Button, Input } from '../../../shared/components/ui'
 import { useChat } from '../hooks/useChat'
 import type { ChatIdentity } from '../types/chat.type'
 
@@ -16,7 +16,35 @@ function formatTime(iso: string): string {
 export function ChatWidget({ identity }: ChatWidgetProps) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const { messages, status, sending, send, markRead } = useChat(identity)
+  const [guestName, setGuestName] = useState(() => {
+    try {
+      return localStorage.getItem('chat-guest-name') ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const [guestPhone, setGuestPhone] = useState(() => {
+    try {
+      return localStorage.getItem('chat-guest-phone') ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const [gateError, setGateError] = useState<string | null>(null)
+
+  const isGuest = !identity.customer_email || identity.customer_name === 'Guest'
+
+  const effectiveIdentity: ChatIdentity = useMemo(() => {
+    if (!isGuest) return identity
+    return {
+      customer_user_id: identity.customer_user_id,
+      customer_name: guestName.trim() || identity.customer_name,
+      customer_email: identity.customer_email,
+      customer_phone: guestPhone.trim() || undefined,
+    }
+  }, [identity, isGuest, guestName, guestPhone])
+
+  const { messages, status, sending, send, markRead } = useChat(effectiveIdentity)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -27,11 +55,65 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
     if (open) void markRead()
   }, [open, markRead])
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ message?: string; productId?: string }>).detail
+      if (detail?.message) setDraft(detail.message)
+      setOpen(true)
+      if (detail?.message) void send(detail.message)
+    }
+    window.addEventListener('nadrical:open-chat', handler as EventListener)
+    return () => window.removeEventListener('nadrical:open-chat', handler as EventListener)
+  }, [send])
+
+  useEffect(() => {
+    try {
+      if (guestName) localStorage.setItem('chat-guest-name', guestName)
+      else localStorage.removeItem('chat-guest-name')
+    } catch {
+      // ignore storage errors
+      void 0
+    }
+  }, [guestName])
+
+  useEffect(() => {
+    try {
+      if (guestPhone) localStorage.setItem('chat-guest-phone', guestPhone)
+      else localStorage.removeItem('chat-guest-phone')
+    } catch {
+      // ignore storage errors
+      void 0
+    }
+  }, [guestPhone])
+
+  const validateGate = (): boolean => {
+    if (!isGuest) return true
+    if (!guestName.trim()) {
+      setGateError('Nama harus diisi')
+      return false
+    }
+    if (!guestPhone.trim()) {
+      setGateError('Nomor HP harus diisi')
+      return false
+    }
+    if (!/^\+?[0-9\s-]{8,15}$/.test(guestPhone.trim())) {
+      setGateError('Nomor HP tidak valid (8-15 digit)')
+      return false
+    }
+    setGateError(null)
+    return true
+  }
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
+    if (!validateGate()) return
+    if (!draft.trim()) return
     void send(draft)
     setDraft('')
+    setGateError(null)
   }
+
+  const canSend = isGuest ? guestName.trim() !== '' && guestPhone.trim() !== '' && draft.trim() !== '' : draft.trim() !== ''
 
   return (
     <>
@@ -47,19 +129,40 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
         </Button>
       )}
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
-          <SheetHeader className="border-b px-5 py-4">
+      {open && (
+        <div className="fixed right-5 bottom-5 z-50 flex h-[75vh] max-h-[75vh] w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl">
+          <div className="flex items-center justify-between border-b px-4 py-3">
             <div className="flex items-center gap-2">
               <Headset className="size-5 text-primary" />
-              <SheetTitle className="font-display text-lg font-bold tracking-tight">
-                Chat with us
-              </SheetTitle>
+              <h2 className="font-display text-base font-bold tracking-tight">Chat with us</h2>
             </div>
-            <SheetDescription className="text-xs">
-              Live support · typical reply in ~5 minutes
-            </SheetDescription>
-          </SheetHeader>
+            <Button type="button" variant="ghost" size="icon-sm" onClick={() => setOpen(false)} aria-label="Close chat">
+              <X className="size-4" />
+            </Button>
+          </div>
+          <p className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">Live support · typical reply in ~5 minutes</p>
+
+          {isGuest && (
+            <div className="space-y-2 border-b bg-card p-3">
+              <p className="text-xs font-medium">Sebelum chat, isi data Anda:</p>
+              <Input
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Nama"
+                aria-label="Nama"
+                className="h-9"
+              />
+              <Input
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
+                placeholder="Nomor HP"
+                aria-label="Nomor HP"
+                type="tel"
+                className="h-9"
+              />
+              {gateError && <p role="alert" className="text-xs text-destructive">{gateError}</p>}
+            </div>
+          )}
 
           <div className="flex-1 space-y-3 overflow-y-auto bg-muted/40 p-4">
             {status === 'loading' && (
@@ -102,7 +205,7 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
             <div ref={bottomRef} />
           </div>
 
-          <form onSubmit={onSubmit} className="flex items-center gap-2 border-t p-3">
+          <form onSubmit={onSubmit} className="flex items-center gap-2 border-t bg-background p-3">
             <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -110,12 +213,12 @@ export function ChatWidget({ identity }: ChatWidgetProps) {
               aria-label="Chat message"
               className="h-10"
             />
-            <Button type="submit" size="icon" className="size-10 shrink-0" disabled={sending || !draft.trim()}>
+            <Button type="submit" size="icon" className="size-10 shrink-0" disabled={sending || !canSend}>
               {sending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
             </Button>
           </form>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
     </>
   )
 }

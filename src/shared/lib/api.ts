@@ -1,4 +1,8 @@
-import axios from "axios";
+import axios, {
+  type AxiosError,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
 
 export const api = axios.create({
     baseURL:
@@ -25,15 +29,18 @@ export function getAuthToken(): string | null {
 }
 
 api.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig) => {
         let token = getAuthToken();
         if (!token) {
             try {
                 const rawAuth = localStorage.getItem("store-auth");
                 if (rawAuth) {
-                    const parsed = JSON.parse(rawAuth);
+                    const parsed = JSON.parse(rawAuth) as {
+                        state?: { session?: { token?: string } };
+                        session?: { token?: string };
+                    };
                     token =
-                        parsed?.state?.session?.token || parsed?.session?.token;
+                        parsed?.state?.session?.token || parsed?.session?.token || null;
                 }
             } catch {
                 // ignore parse error
@@ -44,12 +51,12 @@ api.interceptors.request.use(
         }
         return config;
     },
-    (error) => Promise.reject(error),
+    (error: AxiosError) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
+    (response: AxiosResponse) => response,
+    (error: AxiosError) => {
         if (error.response?.status === 401) {
             localStorage.removeItem("token");
             sessionStorage.removeItem("token");

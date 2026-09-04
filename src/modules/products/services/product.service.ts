@@ -3,6 +3,7 @@ import type { CursorPage } from '../../../shared/types/common.type'
 import type {
   Product,
   ProductCategory,
+  ProductCategoryId,
   ProductFilters,
   ProductSpec,
   ProductVariant,
@@ -29,10 +30,16 @@ interface BackendProduct {
   description?: string
   image?: string
   cover_image_url?: string
+  images?: string[]
   price?: number
   base_price?: number
   stock?: number
   is_featured?: boolean
+  is_preorder?: boolean
+  preorder_eta?: string
+  preorder_deposit?: number
+  discount_percent?: number
+  badge?: string
   category_uuid?: string
   category_id?: string
   category?: {
@@ -72,6 +79,19 @@ interface StandardApiResponse<T> {
     total: number
     total_pages: number
   }
+}
+
+const VALID_CATEGORY_IDS: ReadonlySet<ProductCategoryId> = new Set(
+  CATEGORIES.map((c) => c.id),
+)
+
+function isProductCategoryId(value: string): value is ProductCategoryId {
+  return VALID_CATEGORY_IDS.has(value as ProductCategoryId)
+}
+
+function toProductCategoryId(slug: string): ProductCategoryId {
+  const normalized = slug.toLowerCase().replace(/\s+/g, '-')
+  return isProductCategoryId(normalized) ? normalized : 'electronics'
 }
 
 function mapBackendProduct(bp: BackendProduct): Product {
@@ -114,18 +134,32 @@ function mapBackendProduct(bp: BackendProduct): Product {
     bp.category_uuid ||
     'electronics'
 
+  // deterministic mock rating/review/discount when backend doesn't provide
+  const hash = (bp.uuid || bp.id || bp.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  const rating = 4.2 + ((hash % 7) * 0.1) // 4.2-4.8
+  const review_count = 12 + (hash % 229) // 12-240
+  const hasDiscount = bp.sku?.includes('SALE') || (bp as unknown as Record<string, unknown>).discount_percent !== undefined
+
   return {
     id: bp.uuid || bp.id || '',
     sku: bp.sku || `SKU-${bp.uuid || bp.id || ''}`,
     name: bp.name,
-    category_id: categorySlug as any,
+    category_id: toProductCategoryId(categorySlug),
     base_price: Number(bp.price ?? bp.base_price ?? 0),
     stock: Number(bp.stock ?? 0),
     cover_image_url: bp.image || bp.cover_image_url || '',
+    images: Array.isArray(bp.images) && bp.images.length > 0 ? bp.images : undefined,
     is_featured: Boolean(bp.is_featured),
+    is_preorder: Boolean(bp.is_preorder),
+    preorder_eta: bp.preorder_eta,
+    preorder_deposit: bp.preorder_deposit !== undefined ? Number(bp.preorder_deposit) : undefined,
     summary: bp.summary || bp.description?.slice(0, 120) || '',
     specs,
     variants: variants.length > 0 ? variants : undefined,
+    rating: Number(rating.toFixed(1)),
+    review_count,
+    discount_percent: bp.discount_percent !== undefined ? Number(bp.discount_percent) : hasDiscount ? 10 + (hash % 20) : undefined,
+    badge: bp.badge as Product['badge'] | undefined,
   }
 }
 
@@ -139,6 +173,19 @@ function matchesQuery(product: Product, query?: string): boolean {
   )
 }
 
+function matchesSpecs(product: Product, specs?: Record<string, string[]>): boolean {
+  if (!specs || Object.keys(specs).length === 0) return true
+  return Object.entries(specs).every(([key, values]) => {
+    if (values.length === 0) return true
+    const productValues = product.specs
+      .filter((s) => s.spec_name.toLowerCase() === key.toLowerCase())
+      .map((s) => s.spec_value.toLowerCase())
+    const variantNames = (product.variants ?? []).map((v) => v.variant_name.toLowerCase())
+    const combined = [...productValues, ...variantNames].join(' ').toLowerCase()
+    return values.some((v) => combined.includes(v.toLowerCase()))
+  })
+}
+
 function filterAndSort(
   products: Product[],
   filters: ProductFilters,
@@ -150,7 +197,11 @@ function filterAndSort(
       (filters.category_id === undefined ||
         filters.category_id === 'all' ||
         p.category_id === filters.category_id) &&
-      (!filters.in_stock_only || p.stock > 0),
+      (!filters.in_stock_only || p.stock > 0) &&
+      (filters.min_price === undefined || p.base_price >= filters.min_price) &&
+      (filters.max_price === undefined || p.base_price <= filters.max_price) &&
+      (!filters.discount_only || !!p.discount_percent) &&
+      matchesSpecs(p, filters.specs),
   )
 
   switch (filters.sort) {
@@ -292,8 +343,8 @@ export const productService = {
         '/ecommerce/categories',
       )
       if (Array.isArray(res.data.data) && res.data.data.length > 0) {
-        return res.data.data.map((c) => ({
-          id: (c.slug || c.name.toLowerCase().replace(/\s+/g, '-')) as any,
+        return res.data.data.map((c: BackendCategory) => ({
+          id: toProductCategoryId(c.slug || c.name),
           label: c.name,
           tagline: c.description || '',
         }))

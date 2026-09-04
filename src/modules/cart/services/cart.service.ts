@@ -14,10 +14,16 @@ export const cartService = {
     return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT
   },
 
-  totals(items: CartItem[]): CartTotals {
+  totals(items: CartItem[], discount = 0): CartTotals {
     const subtotal = this.subtotal(items)
     const shipping_total = this.shipping(subtotal)
-    return { subtotal, shipping_total, grand_total: subtotal + shipping_total }
+    const safeDiscount = Math.min(discount, subtotal)
+    return {
+      subtotal,
+      shipping_total,
+      discount: safeDiscount,
+      grand_total: Math.max(0, subtotal - safeDiscount + shipping_total),
+    }
   },
 
   totalQty(items: CartItem[]): number {

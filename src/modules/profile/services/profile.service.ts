@@ -1,8 +1,32 @@
 import api from '../../../shared/lib/api'
-import type { DbOrderItem } from '../../../shared/types/database.type'
+import type { DbOrderItem, DbOrderStatus } from '../../../shared/types/database.type'
 import type { OrderWithItems } from '../../../shared/types/order.type'
 import { orderRepository } from '../../checkout/services/order.repository'
 import type { ProfileStats } from '../types/profile.type'
+
+const VALID_ORDER_STATUSES: ReadonlySet<DbOrderStatus> = new Set([
+  'pending_payment',
+  'WAITING_ONGKIR',
+  'WAITING_CONFIRMATION',
+  'DELIVERING',
+  'paid',
+  'processing',
+  'shipped',
+  'completed',
+  'cancelled',
+  'refunded',
+])
+
+function isDbOrderStatus(value: string): value is DbOrderStatus {
+  return VALID_ORDER_STATUSES.has(value as DbOrderStatus)
+}
+
+function normalizeOrderStatus(raw: string): DbOrderStatus {
+  const lower = raw.toLowerCase()
+  if (isDbOrderStatus(lower)) return lower
+  if (isDbOrderStatus(raw)) return raw
+  return 'pending_payment'
+}
 
 interface RawBackendOrder {
   uuid?: string
@@ -83,7 +107,7 @@ function mapBackendOrder(bo: RawBackendOrder): OrderWithItems {
     updated_at: oi.updated_at,
   }))
 
-  let status = bo.status || bo.order_status || 'pending_payment'
+  let status: string = bo.status || bo.order_status || 'pending_payment'
   if (status === 'WAITING_CONFIRMATION' || status === 'WAITING_ONGKIR') {
     status = 'pending_payment'
   } else if (status === 'PAID') {
@@ -111,7 +135,7 @@ function mapBackendOrder(bo: RawBackendOrder): OrderWithItems {
     shipping_country_code: bo.shipping_country_code,
     shipping_method: bo.shipping_courier || bo.shipping_method,
     tracking_number: bo.tracking_number,
-    status: status.toLowerCase() as any,
+    status: normalizeOrderStatus(status),
     currency_code: bo.currency_code || 'IDR',
     subtotal: Number(bo.subtotal || 0),
     discount_total: Number(bo.discount_total || 0),
@@ -143,7 +167,7 @@ export const profileService = {
         return res.data.data
           .map(mapBackendOrder)
           .sort(
-            (a, b) =>
+            (a: OrderWithItems, b: OrderWithItems) =>
               Date.parse(b.placed_at ?? '') -
               Date.parse(a.placed_at ?? ''),
           )
@@ -160,7 +184,7 @@ export const profileService = {
         (o) => (o.user_id ?? '').toLowerCase() === email.toLowerCase(),
       )
       .sort(
-        (a, b) =>
+        (a: OrderWithItems, b: OrderWithItems) =>
           Date.parse(b.placed_at ?? '') -
           Date.parse(a.placed_at ?? ''),
       )

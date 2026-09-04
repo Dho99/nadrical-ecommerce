@@ -155,6 +155,50 @@ export function ProductForm({ product }: { product?: Product }) {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                name="is_preorder"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-900 dark:bg-amber-950/20">
+                    <div>
+                      <FormLabel>Pre-order</FormLabel>
+                      <FormDescription>Allow ordering when stock is 0 with future ETA.</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  name="preorder_eta"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ETA date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormDescription>Estimated delivery for pre-orders.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  name="preorder_deposit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deposit ($)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" placeholder="49" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <Separator />

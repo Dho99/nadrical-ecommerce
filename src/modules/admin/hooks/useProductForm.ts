@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import type { Product } from '../../../shared/types/product.type'
 import { adminProductService } from '../services/admin-product.service'
 import { productFormSchema } from '../schemas/product-form.schema'
@@ -18,6 +18,9 @@ export function valuesFromProduct(product: Product): ProductFormValues {
     cover_image_url: product.cover_image_url,
     badge: product.badge ?? '',
     is_featured: product.is_featured ?? false,
+    is_preorder: product.is_preorder ?? false,
+    preorder_eta: product.preorder_eta ? product.preorder_eta.slice(0, 10) : '',
+    preorder_deposit: product.preorder_deposit !== undefined ? String(product.preorder_deposit) : '',
     summary: product.summary,
     specs: product.specs.length > 0 ? product.specs.map((s) => ({ ...s })) : [emptySpec()],
     variants: product.variants?.map((v) => ({
@@ -37,6 +40,9 @@ const createDefaults = (): ProductFormValues => ({
   cover_image_url: '',
   badge: '',
   is_featured: false,
+  is_preorder: false,
+  preorder_eta: '',
+  preorder_deposit: '',
   summary: '',
   specs: [emptySpec()],
   variants: [],

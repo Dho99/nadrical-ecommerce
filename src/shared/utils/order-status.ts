@@ -25,10 +25,23 @@ export const ORDER_STATUS_VARIANT: Record<
   DELIVERING: 'secondary',
   paid: 'default',
   processing: 'default',
-  shipped: 'secondary',
-  completed: 'outline',
+  shipped: 'default',
+  completed: 'secondary',
   cancelled: 'destructive',
   refunded: 'destructive',
+}
+
+export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
+  pending_payment: 'bg-amber-500 text-white border-amber-500',
+  WAITING_ONGKIR: 'bg-amber-500 text-white border-amber-500',
+  WAITING_CONFIRMATION: 'bg-blue-500 text-white border-blue-500',
+  DELIVERING: 'bg-blue-500 text-white border-blue-500',
+  paid: 'bg-emerald-600 text-white border-emerald-600',
+  processing: 'bg-blue-600 text-white border-blue-600',
+  shipped: 'bg-sky-600 text-white border-sky-600',
+  completed: 'bg-emerald-600 text-white border-emerald-600',
+  cancelled: 'bg-destructive text-destructive-foreground border-destructive',
+  refunded: 'bg-destructive text-destructive-foreground border-destructive',
 }
 
 export const STATUS_STEPS = [

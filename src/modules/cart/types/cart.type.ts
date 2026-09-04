@@ -11,10 +11,13 @@ export interface CartItem {
   category_id: ProductCategoryId
   variant_id?: string
   variant_name?: string
+  is_preorder?: boolean
 }
 
 export interface CartTotals {
   subtotal: number
   shipping_total: number
+  discount: number
   grand_total: number
+  voucher_code?: string
 }

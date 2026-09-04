@@ -23,7 +23,9 @@ export const useCartStore = create<CartStore>()(
       items: [],
 
       add: (product, qty = 1) => {
-        const clamped = Math.min(qty, product.variant_stock ?? product.stock)
+        const isPreorder = Boolean((product as unknown as { is_preorder?: boolean }).is_preorder)
+        const stock = product.variant_stock ?? product.stock
+        const clamped = isPreorder ? Math.min(qty, 99) : Math.min(qty, stock)
         if (clamped <= 0) return
         cartService.apiAddToCart(product.id, clamped, product.variant_id)
         set((state) => {
@@ -34,7 +36,7 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map((i) =>
                 i.product_id === product.id && i.variant_id === product.variant_id
-                  ? { ...i, quantity: Math.min(i.quantity + clamped, i.stock) }
+                  ? { ...i, quantity: isPreorder ? i.quantity + clamped : Math.min(i.quantity + clamped, i.stock) }
                   : i,
               ),
             }
@@ -53,6 +55,7 @@ export const useCartStore = create<CartStore>()(
                 category_id: product.category_id,
                 variant_id: product.variant_id,
                 variant_name: product.variant_name,
+                is_preorder: isPreorder,
               },
             ],
           }
@@ -71,7 +74,7 @@ export const useCartStore = create<CartStore>()(
           items: state.items
             .map((i) =>
               matches(i, product_id, variant_id)
-                ? { ...i, quantity: Math.min(Math.max(quantity, 1), i.stock) }
+                ? { ...i, quantity: i.is_preorder ? Math.min(Math.max(quantity, 1), 99) : Math.min(Math.max(quantity, 1), i.stock) }
                 : i,
             )
             .filter((i) => i.quantity > 0),

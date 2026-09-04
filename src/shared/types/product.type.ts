@@ -29,11 +29,19 @@ export interface Product {
   base_price: number
   stock: number
   cover_image_url: string
+  images?: string[]
   badge?: ProductBadge
   is_featured?: boolean
+  is_preorder?: boolean
+  preorder_eta?: string
+  preorder_deposit?: number
   summary: string
   specs: ProductSpec[]
   variants?: ProductVariant[]
+  rating: number
+  review_count: number
+  discount_percent?: number
+  rating_count?: number
 }
 
 export interface ProductFilters {
@@ -41,6 +49,10 @@ export interface ProductFilters {
   query?: string
   sort?: ProductSort
   in_stock_only?: boolean
+  min_price?: number
+  max_price?: number
+  specs?: Record<string, string[]>
+  discount_only?: boolean
 }
 
 export interface ProductCategory {

@@ -6,12 +6,11 @@ export function SiteFooter() {
     <footer className="mt-auto border-t bg-muted/40">
       <div className="container mx-auto grid gap-8 px-5 py-12 sm:px-8 md:grid-cols-3">
         <div>
-          <p className="font-display text-2xl font-bold tracking-tight">
-            Store<span className="text-primary">.</span>
-          </p>
+          <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
+          <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            A general store template — curated products across electronics, apparel,
-            home, and more. Built to be renamed and repurposed.
+            Nadrical — curated essentials across electronics, apparel, home & outdoors. Designed
+            for everyday living, shipped within 48 hours.
           </p>
         </div>
         <div>
@@ -56,8 +55,8 @@ export function SiteFooter() {
       </div>
       <div className="border-t">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-5 py-4 font-mono text-xs tracking-[0.12em] text-muted-foreground sm:px-8">
-          <span>© 2026 Store.</span>
-          <span>GENERAL E-COMMERCE TEMPLATE</span>
+          <span>© 2026 Nadrical.</span>
+          <span>NADRICAL — CURATED FOR EVERYDAY LIVING</span>
         </div>
       </div>
     </footer>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { useAuth } from '../../auth'
 import type { AppNotification } from '../types/notification.type'
 import { notificationService } from '../services/notification.service'

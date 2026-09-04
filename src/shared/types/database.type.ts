@@ -119,6 +119,9 @@ export interface DbProduct {
     compare_price?: number;
     stock?: number;
     is_featured?: boolean;
+    is_preorder?: boolean;
+    preorder_eta?: string;
+    preorder_deposit?: number;
     status?: ProductStatus;
     average_rating?: number;
     review_count?: number;
@@ -266,6 +269,7 @@ export interface DbChatConversation {
     customer_user_id?: string;
     customer_name?: string;
     customer_email?: string;
+    customer_phone?: string;
     status?: string;
     created_at?: string;
     last_activity_at?: string;

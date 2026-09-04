@@ -1,19 +1,27 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Check, ShoppingCart } from 'lucide-react'
-import { toast } from 'sonner'
+import { Check, MessageCircle, ShoppingCart } from 'lucide-react'
+import { toast } from '@/shared/lib/alert'
 import {
   Alert,
   AlertDescription,
   AlertTitle,
   Badge,
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
   QtyStepper,
   Separator,
   Table,
   TableBody,
   TableCell,
   TableRow,
+  Textarea,
 } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import type { Product, ProductVariant } from '../types/product.type'
@@ -24,7 +32,8 @@ interface SpecSheetProps {
   onBuyNow?: (product: Product, qty: number, variant?: ProductVariant) => void
 }
 
-function StockBadge({ stock }: { stock: number }) {
+function StockBadge({ stock, isPreorder }: { stock: number; isPreorder?: boolean }) {
+  if (isPreorder) return <Badge className="bg-amber-500 text-white">Pre-order</Badge>
   if (stock === 0) return <Badge variant="destructive">Out of stock</Badge>
   if (stock < 20) return <Badge variant="secondary">Low stock · {stock} left</Badge>
   return <Badge variant="outline">In stock</Badge>
@@ -96,10 +105,13 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [messageOpen, setMessageOpen] = useState(false)
+  const [messageText, setMessageText] = useState(`Hi, I'm interested in ${product.name}. Is it available?`)
 
   const price = product.base_price + (selected?.price_delta ?? 0)
   const stock = selected ? selected.stock : (variants.length > 0 ? 0 : product.stock)
-  const soldOut = stock === 0
+  const isPreorder = Boolean(product.is_preorder)
+  const soldOut = stock === 0 && !isPreorder
 
   const handleSelectSingle = (variant: ProductVariant) => {
     setSelectedSingle(variant)
@@ -118,27 +130,45 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
   const handleAdd = () => {
     onAdd(product, qty, selected ?? undefined)
-    toast.success(`${product.name}${selected ? ` — ${selected.variant_name}` : ''} added to cart`)
+    toast.success(`${product.name}${selected ? ` — ${selected.variant_name}` : ''} added to cart`, {
+      position: 'top-center',
+      style: { marginTop: '72px' },
+      duration: 2500,
+      closeButton: true,
+    })
     setAdded(true)
     setTimeout(() => setAdded(false), 1600)
   }
 
+  const handleSendMessage = () => {
+    // fire custom event to open floating chat
+    window.dispatchEvent(
+      new CustomEvent('nadrical:open-chat', { detail: { message: messageText, productId: product.id } }),
+    )
+    toast.info('Message sent — check live chat', {
+      position: 'top-center',
+      style: { marginTop: '72px' },
+      closeButton: true,
+    })
+    setMessageOpen(false)
+  }
+
   return (
-    <div className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
+    <div className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5">
       <Table>
         <TableBody>
           {product.specs.map((spec) => (
             <TableRow key={spec.spec_name}>
-              <TableCell className="w-1/3 font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
+              <TableCell className="w-1/3 py-2 font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
                 {spec.spec_name}
               </TableCell>
-              <TableCell className="font-medium">{spec.spec_value}</TableCell>
+              <TableCell className="py-2 text-sm font-medium">{spec.spec_value}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      <Separator className="my-5" />
+      <Separator className="my-4" />
 
       {variants.length > 0 && (
         <div className="mb-5">
@@ -247,8 +277,8 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <StockBadge stock={stock} />
-        <p className="font-display text-3xl font-bold tracking-tight">
+        <StockBadge stock={stock} isPreorder={isPreorder} />
+        <p className="font-display text-2xl font-bold tracking-tight">
           ${price.toFixed(2)}
           {selected && selected.price_delta > 0 && (
             <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
@@ -257,35 +287,51 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
           )}
         </p>
       </div>
+      {isPreorder && (
+        <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs dark:bg-amber-950/20">
+          <p className="font-medium text-amber-800 dark:text-amber-400">Pre-order{product.preorder_eta ? ` · ETA ${new Date(product.preorder_eta).toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</p>
+          {product.preorder_deposit !== undefined && <p className="text-muted-foreground">Deposit ${product.preorder_deposit.toFixed(2)} required</p>}
+        </div>
+      )}
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <QtyStepper
           value={qty}
-          max={Math.max(stock, 1)}
+          max={isPreorder ? 99 : Math.max(stock, 1)}
           onChange={setQty}
           label={`quantity of ${product.name}`}
         />
-        <Button size="lg" className="grow" disabled={soldOut} onClick={handleAdd} aria-live="polite">
+        <Button
+          variant="outline"
+          size="default"
+          className="grow sm:grow-0"
+          disabled={soldOut}
+          onClick={handleAdd}
+          aria-live="polite"
+        >
           {added ? (
             <>
-              <Check /> Added to cart
+              <Check className="size-4" /> Added
             </>
           ) : (
             <>
-              <ShoppingCart /> Add to cart
+              <ShoppingCart className="size-4" /> Add to cart
             </>
           )}
         </Button>
         {onBuyNow && (
           <Button
-            size="lg"
-            variant="outline"
+            size="default"
+            className="grow font-bold"
             disabled={soldOut}
             onClick={() => onBuyNow(product, qty, selected ?? undefined)}
           >
             Buy now
           </Button>
         )}
+        <Button variant="ghost" size="default" onClick={() => setMessageOpen(true)} className="sm:ml-auto">
+          <MessageCircle className="size-4" /> Message
+        </Button>
       </div>
 
       {soldOut && (
@@ -297,16 +343,40 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
         </Alert>
       )}
 
-      <p className="mt-4 text-sm text-muted-foreground">
+      <p className="mt-3 text-xs text-muted-foreground">
         Ships within 48h · 14-day returns · 2-year guarantee included.
       </p>
 
-      <Link
-        to="/products"
-        className="mt-3 inline-block font-mono text-xs tracking-[0.12em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-      >
-        ← BACK TO CATALOG
-      </Link>
+      <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ask about {product.name}</DialogTitle>
+            <DialogDescription>Send a message and our team will reply via live chat.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Label htmlFor="msg">Message</Label>
+            <Textarea
+              id="msg"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={4}
+            />
+            <Input
+              placeholder="Your name (optional)"
+              aria-label="Name"
+              className="hidden"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMessageOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
+              Send to chat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

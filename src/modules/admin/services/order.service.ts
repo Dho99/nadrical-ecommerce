@@ -1,14 +1,109 @@
 import api from "../../../shared/lib/api";
 import type { CursorPage } from "../../../shared/types/common.type";
-import type { DbOrderItem } from "../../../shared/types/database.type";
+import type { DbOrderItem, DbOrderStatus } from "../../../shared/types/database.type";
 import type { OrderWithItems } from "../../../shared/types/order.type";
 import { orderRepository } from "../../checkout/services/order.repository";
 
-function mapBackendOrder(bo: any): OrderWithItems {
-    const items: DbOrderItem[] = (bo.order_items || []).map((oi: any) => ({
-        id: oi.uuid || oi.id,
-        order_id: bo.uuid || bo.id,
-        product_id: oi.product_uuid || oi.product_id,
+interface RawBackendOrderItem {
+  uuid?: string;
+  id?: string;
+  product_uuid?: string;
+  product_id?: string;
+  product_name_snapshot?: string;
+  product?: { name?: string; sku?: string };
+  sku_snapshot?: string;
+  variant_name_snapshot?: string;
+  quantity?: number;
+  price?: number;
+  unit_price?: number;
+  line_total?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface RawBackendOrder {
+  uuid?: string;
+  id?: string;
+  order_number?: string;
+  account_uuid?: string;
+  user_id?: string;
+  account?: { email?: string };
+  user_address_uuid?: string;
+  user_address_id?: string;
+  recipient_name?: string;
+  phone?: string;
+  recipient_phone?: string;
+  address?: string;
+  shipping_address_line_1?: string;
+  shipping_address_line_2?: string;
+  city?: string;
+  shipping_city?: string;
+  shipping_province?: string;
+  postal_code?: string;
+  shipping_postal_code?: string;
+  shipping_country_code?: string;
+  shipping_courier?: string;
+  shipping_method?: string;
+  tracking_number?: string;
+  status?: string;
+  order_status?: string;
+  currency_code?: string;
+  subtotal?: number;
+  discount_total?: number;
+  shipping_cost?: number;
+  shipping_total?: number;
+  service_fee?: number;
+  service_fee_total?: number;
+  tax_total?: number;
+  total?: number;
+  grand_total?: number;
+  paid_at?: string;
+  placed_at?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  cancelled_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  order_items?: RawBackendOrderItem[];
+}
+
+interface OrdersApiMeta {
+  total: number;
+  current_page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+const VALID_ORDER_STATUSES: ReadonlySet<DbOrderStatus> = new Set([
+  "pending_payment",
+  "WAITING_ONGKIR",
+  "WAITING_CONFIRMATION",
+  "DELIVERING",
+  "paid",
+  "processing",
+  "shipped",
+  "completed",
+  "cancelled",
+  "refunded",
+]);
+
+function isDbOrderStatus(value: string): value is DbOrderStatus {
+  return VALID_ORDER_STATUSES.has(value as DbOrderStatus);
+}
+
+function normalizeOrderStatus(raw: string): DbOrderStatus {
+  const lower = raw.toLowerCase();
+  if (isDbOrderStatus(lower)) return lower;
+  if (isDbOrderStatus(raw)) return raw;
+  return "pending_payment";
+}
+
+function mapBackendOrder(bo: RawBackendOrder): OrderWithItems {
+    const orderId = bo.uuid || bo.id || ""
+    const items: DbOrderItem[] = (bo.order_items || []).map((oi: RawBackendOrderItem) => ({
+        id: oi.uuid || oi.id || "",
+        order_id: orderId,
+        product_id: oi.product_uuid || oi.product_id || "",
         product_name_snapshot:
             oi.product_name_snapshot || oi.product?.name || "Product",
         sku_snapshot: oi.sku_snapshot || oi.product?.sku || undefined,
@@ -22,7 +117,7 @@ function mapBackendOrder(bo: any): OrderWithItems {
         updated_at: oi.updated_at,
     }));
 
-    let status = bo.status || bo.order_status || "pending_payment";
+    let status: string = bo.status || bo.order_status || "pending_payment";
     if (status === "WAITING_CONFIRMATION" || status === "WAITING_ONGKIR")
         status = "pending_payment";
     else if (status === "PAID") status = "paid";
@@ -31,7 +126,7 @@ function mapBackendOrder(bo: any): OrderWithItems {
     else if (status === "CANCELED") status = "cancelled";
 
     return {
-        id: bo.uuid || bo.id,
+        id: bo.uuid || bo.id || "",
         order_number: bo.order_number || `ORD-${bo.uuid?.slice(0, 8) || "000"}`,
         user_id: bo.account_uuid || bo.user_id || bo.account?.email,
         user_address_id: bo.user_address_uuid || bo.user_address_id,
@@ -45,7 +140,7 @@ function mapBackendOrder(bo: any): OrderWithItems {
         shipping_country_code: bo.shipping_country_code,
         shipping_method: bo.shipping_courier || bo.shipping_method,
         tracking_number: bo.tracking_number,
-        status: status.toLowerCase() as any,
+        status: normalizeOrderStatus(status),
         currency_code: bo.currency_code || "IDR",
         subtotal: Number(bo.subtotal || 0),
         discount_total: Number(bo.discount_total || 0),
@@ -67,7 +162,7 @@ function mapBackendOrder(bo: any): OrderWithItems {
 export const orderService = {
     async listOrders(): Promise<OrderWithItems[]> {
         try {
-            const res = await api.get<{ success: boolean; data: any[] }>(
+            const res = await api.get<{ success: boolean; data: RawBackendOrder[] }>(
                 "/ecommerce/orders",
                 {
                     params: { limit: 100 },
@@ -92,8 +187,8 @@ export const orderService = {
         try {
             const res = await api.get<{
                 success: boolean;
-                data: any[];
-                meta?: any;
+                data: RawBackendOrder[];
+                meta?: OrdersApiMeta;
             }>("/ecommerce/orders", {
                 params: { page, limit },
             });

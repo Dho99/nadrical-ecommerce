@@ -1,6 +1,6 @@
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ThemeProvider } from '../../shared/components/ThemeProvider'
-import { Toaster } from '../../shared/components/ui'
+import { GlobalAlertDialog } from '../../shared/components/GlobalAlertDialog'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '../routes'
 
@@ -10,7 +10,7 @@ export function AppProviders() {
   const app = (
     <>
       <RouterProvider router={router} />
-      <Toaster position="top-right" richColors />
+      <GlobalAlertDialog />
     </>
   )
 

@@ -1,9 +1,12 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../../../shared/utils/format'
 import { Card, Separator } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import type { CartItem, CartTotals } from '../../cart/types/cart.type'
 import { SHIPPING_METHODS, type ShippingMethod } from '../types/checkout.type'
+import { useVoucher } from '../../voucher/hooks/useVoucher'
+import { VoucherField } from '../../voucher/components/VoucherField'
 
 interface OrderSummaryProps {
   items: CartItem[]
@@ -15,7 +18,14 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
   const method = SHIPPING_METHODS.find((m) => m.id === shippingMethod)
   const shippingCost =
     shippingMethod === 'standard' && totals.subtotal >= 75 ? 0 : method?.price ?? 0
-  const grandTotal = totals.subtotal + shippingCost
+  const { applied, discount } = useVoucher()
+  const voucherDiscount = applied ? discount(totals.subtotal, shippingCost) : 0
+  const grandTotal = Math.max(0, totals.subtotal - voucherDiscount + shippingCost)
+  const { estimatedDate, loyaltyPoints } = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity -- Date.now is impure but needed for delivery estimate display
+    const d = new Date(Date.now() + (shippingMethod === 'express' ? 1 : 4) * 86400000)
+    return { estimatedDate: d, loyaltyPoints: Math.floor(grandTotal / 10) }
+  }, [shippingMethod, grandTotal])
 
   return (
     <Card className="h-fit p-5">
@@ -50,6 +60,10 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
         ))}
       </ul>
 
+      <div className="mt-4">
+        <VoucherField subtotal={totals.subtotal} shipping={shippingCost} />
+      </div>
+
       <Separator className="my-3" />
 
       <dl className="space-y-1.5 text-sm">
@@ -61,6 +75,12 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
           <dt className="text-muted-foreground">Shipping · {method?.label.toLowerCase()}</dt>
           <dd>{shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}</dd>
         </div>
+        {voucherDiscount > 0 && (
+          <div className="flex justify-between text-emerald-600">
+            <dt>Discount{applied ? ` · ${applied.code}` : ''}</dt>
+            <dd>-{formatPrice(voucherDiscount)}</dd>
+          </div>
+        )}
         <div className="flex items-center justify-between border-t pt-2">
           <dt className="font-semibold">Total</dt>
           <dd className="font-display text-lg font-bold tracking-tight">
@@ -68,6 +88,16 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
           </dd>
         </div>
       </dl>
+
+      <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
+        <p className="font-medium">Delivery detail preview</p>
+        <p className="mt-1 text-muted-foreground">
+          Deliver to: <span className="text-foreground">your saved address</span> · Estimated delivery{' '}
+          {estimatedDate.toLocaleDateString('en-ID', { day: 'numeric', month: 'short' })} · Loyalty points
+          you&apos;ll get: <span className="font-semibold text-foreground">{loyaltyPoints} pts</span>
+        </p>
+        <p className="mt-1 text-muted-foreground">Shipping within 24 hours upon confirmation of payment</p>
+      </div>
 
       <Separator className="my-3" />
 

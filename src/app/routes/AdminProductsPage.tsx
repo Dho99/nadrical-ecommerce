@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, RotateCcw, Search } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { ProductAdminTable, useAdminProducts } from '../../modules/admin'
 import { adminProductService } from '../../modules/admin/services/admin-product.service'
 import { CATEGORIES } from '../../shared/constants/product.constants'
