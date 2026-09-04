@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Megaphone } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import { notificationService } from '../../notifications'
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Textarea } from '../../../shared/components/ui'
 

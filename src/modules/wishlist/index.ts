@@ -1,0 +1,7 @@
+﻿export { WishlistButton } from './components/WishlistButton'
+export { WishlistDialog } from './components/WishlistDialog'
+export { useWishlist, useWishlistStore } from './hooks/useWishlist'
+export { useWishlistCatalog } from './hooks/useWishlistCatalog'
+export { wishlistService } from './services/wishlist.service'
+export { openWishlistDialog } from './utils/openWishlist'
+export type { WishlistItem } from './types/wishlist.type'

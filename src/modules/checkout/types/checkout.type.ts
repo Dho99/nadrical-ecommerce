@@ -35,8 +35,11 @@ export interface OrderPayload {
   totals: {
     subtotal: number
     shipping_total: number
+    discount: number
     grand_total: number
+    voucher_code?: string
   }
+  voucher_code?: string
 }
 
 export interface OrderConfirmation {

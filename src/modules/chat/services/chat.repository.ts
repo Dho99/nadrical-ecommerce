@@ -42,6 +42,7 @@ export const chatRepository = {
       customer_user_id: conversation.customer_user_id,
       customer_name: conversation.customer_name,
       customer_email: conversation.customer_email,
+      customer_phone: conversation.customer_phone,
       status: conversation.status,
       created_at: conversation.created_at,
       last_activity_at: conversation.last_activity_at,
@@ -72,9 +73,27 @@ export const chatRepository = {
     return this.list().find((c) => c.customer_user_id === customer_user_id) ?? null
   },
 
-  insertMessage(conversation_id: string, message: ChatMessage): ChatConversation | null {
-    const conversation = this.get(conversation_id)
-    if (!conversation) return null
+  insertMessage(
+    conversation_id: string,
+    message: ChatMessage,
+    fallbackConversation?: Partial<ChatConversation>,
+  ): ChatConversation {
+    let conversation = this.get(conversation_id)
+    if (!conversation) {
+      const now = new Date().toISOString()
+      conversation = this.upsert({
+        id: conversation_id,
+        customer_user_id: fallbackConversation?.customer_user_id ?? 'unknown',
+        customer_name: fallbackConversation?.customer_name ?? 'Customer',
+        customer_email: fallbackConversation?.customer_email,
+        status: fallbackConversation?.status ?? 'active',
+        created_at: fallbackConversation?.created_at ?? now,
+        last_activity_at: message.created_at || now,
+        messages: [],
+        customer_read_at: fallbackConversation?.customer_read_at ?? now,
+        agent_read_at: fallbackConversation?.agent_read_at ?? now,
+      })
+    }
     if (conversation.messages.some((m) => m.id === message.id)) return conversation
     return this.upsert({
       ...conversation,
@@ -85,13 +104,28 @@ export const chatRepository = {
 
   ensureConversation(identity: ChatIdentity): ChatConversation {
     const existing = this.findByCustomer(identity.customer_user_id)
-    if (existing) return existing
+    if (existing) {
+      const needsUpdate =
+        (identity.customer_name && identity.customer_name !== existing.customer_name) ||
+        (identity.customer_email && identity.customer_email !== existing.customer_email) ||
+        (identity.customer_phone && identity.customer_phone !== existing.customer_phone)
+      if (needsUpdate) {
+        return this.upsert({
+          ...existing,
+          customer_name: identity.customer_name || existing.customer_name,
+          customer_email: identity.customer_email ?? existing.customer_email,
+          customer_phone: identity.customer_phone ?? existing.customer_phone,
+        })
+      }
+      return existing
+    }
     const now = new Date().toISOString()
     return this.upsert({
       id: `conv-${Math.random().toString(36).slice(2, 10)}`,
       customer_user_id: identity.customer_user_id,
       customer_name: identity.customer_name,
       customer_email: identity.customer_email,
+      customer_phone: identity.customer_phone,
       status: 'active',
       created_at: now,
       last_activity_at: now,

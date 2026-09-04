@@ -7,10 +7,10 @@ import type {
   DbProductImage,
 } from '../../../shared/types/database.type'
 
-const PRODUCTS_KEY = 'db-products-v2'
-const VARIANTS_KEY = 'db-product-variants-v2'
-const SPECS_KEY = 'db-product-specs-v2'
-const IMAGES_KEY = 'db-product-images-v2'
+const PRODUCTS_KEY = 'db-products-v3'
+const VARIANTS_KEY = 'db-product-variants-v3'
+const SPECS_KEY = 'db-product-specs-v3'
+const IMAGES_KEY = 'db-product-images-v3'
 
 interface ProductDb {
   products: DbProduct[]
@@ -36,6 +36,9 @@ function seed(): ProductDb {
       cover_image_url: p.cover_image_url,
       summary: p.summary,
       is_featured: p.is_featured || false,
+      is_preorder: (p as Product).is_preorder || false,
+      preorder_eta: (p as Product).preorder_eta,
+      preorder_deposit: (p as Product).preorder_deposit,
       status: 'published',
       created_at: new Date().toISOString(),
     })
@@ -114,6 +117,7 @@ export const productRepository = {
           price_delta: v.price_delta || 0,
           stock: v.stock || 0,
         }))
+      const hash = p.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
       return {
         id: p.id,
         sku: p.sku || p.id,
@@ -123,9 +127,14 @@ export const productRepository = {
         stock: p.stock || 0,
         cover_image_url: p.cover_image_url || '',
         is_featured: p.is_featured,
+        is_preorder: (p as unknown as { is_preorder?: boolean }).is_preorder,
+        preorder_eta: (p as unknown as { preorder_eta?: string }).preorder_eta,
+        preorder_deposit: (p as unknown as { preorder_deposit?: number }).preorder_deposit,
         summary: p.summary || '',
         specs: pSpecs,
         variants: pVariants.length > 0 ? pVariants : undefined,
+        rating: 4.2 + ((hash % 7) * 0.1),
+        review_count: 12 + (hash % 229),
       }
     })
   },
@@ -147,6 +156,9 @@ export const productRepository = {
         cover_image_url: p.cover_image_url,
         summary: p.summary,
         is_featured: p.is_featured || false,
+        is_preorder: p.is_preorder || false,
+        preorder_eta: p.preorder_eta,
+        preorder_deposit: p.preorder_deposit,
         status: 'published',
       })
 

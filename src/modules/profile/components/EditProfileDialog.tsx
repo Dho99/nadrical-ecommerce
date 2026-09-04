@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, Pencil } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/shared/lib/alert'
 import {
   Button,
   Dialog,

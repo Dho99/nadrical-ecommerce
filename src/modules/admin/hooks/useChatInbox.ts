@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AsyncStatus } from '../../../shared/types/common.type'
 import type { ChatConversation, ChatMessage } from '../../chat/types/chat.type'
 import { chatRepository } from '../../chat/services/chat.repository'
@@ -7,7 +7,7 @@ import { websocketService } from '../../../shared/lib/websocket'
 
 function isChatMessagePayload(
   payload: unknown,
-): payload is { type: 'chat_message'; conversation_id: string; message: ChatMessage } {
+): payload is { type: 'chat_message'; conversation_id: string; message: ChatMessage; conversation?: Partial<ChatConversation> } {
   return Boolean(
     payload &&
       typeof payload === 'object' &&
@@ -26,6 +26,9 @@ export function useChatInbox(limit = 15) {
   const [status, setStatus] = useState<AsyncStatus>('loading')
   const [attempt, setAttempt] = useState(0)
 
+  const activeIdRef = useRef<string | null>(null)
+  activeIdRef.current = activeId
+
   const active = conversations.find((c) => c.id === activeId) ?? null
 
   const readPage = useCallback(() => {
@@ -35,33 +38,35 @@ export function useChatInbox(limit = 15) {
     setTotal(sorted.length)
     const offset = Math.max(0, cursor ?? 0)
     setConversations(sorted.slice(offset, offset + limit))
+    setStatus('success')
   }, [cursor, limit])
 
   useEffect(() => {
-    let cancelled = false
+    readPage()
+  }, [readPage, attempt])
 
-    const load = () => {
-      if (cancelled) return
+  useEffect(() => {
+    const handleStorage = () => {
       readPage()
-      setStatus('success')
     }
 
-    load()
-
-    const unsubscribe = websocketService.subscribe((payload: unknown) => {
+    const unsubscribe = websocketService.on('chat_message', (payload: unknown) => {
       if (isChatMessagePayload(payload)) {
-        chatRepository.insertMessage(payload.conversation_id, payload.message)
-        load()
+        const fallback = 'conversation' in payload ? (payload.conversation as Partial<ChatConversation>) : undefined
+        chatRepository.insertMessage(payload.conversation_id, payload.message, fallback)
+        readPage()
+        if (activeIdRef.current === payload.conversation_id) {
+          void chatService.markRead(payload.conversation_id, 'agent')
+        }
       }
     })
 
-    window.addEventListener('storage', load)
+    window.addEventListener('storage', handleStorage)
     return () => {
-      cancelled = true
-      window.removeEventListener('storage', load)
+      window.removeEventListener('storage', handleStorage)
       unsubscribe()
     }
-  }, [cursor, limit, attempt, readPage])
+  }, [readPage])
 
   useEffect(() => {
     if (activeId) void chatService.markRead(activeId, 'agent')

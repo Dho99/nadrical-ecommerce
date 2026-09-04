@@ -25,6 +25,9 @@ export function ProfileLayout() {
         <NavLink to="/profile" end className={navLinkClass}>
           Account
         </NavLink>
+        <NavLink to="/profile/edit" className={navLinkClass}>
+          Edit profile
+        </NavLink>
         <NavLink to="/profile/orders" className={navLinkClass}>
           Order history
         </NavLink>

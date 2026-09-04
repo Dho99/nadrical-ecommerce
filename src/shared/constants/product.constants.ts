@@ -7,6 +7,7 @@ export const CATEGORIES: ProductCategory[] = [
   { id: 'accessories', label: 'Accessories', tagline: 'Bags, sunglasses, leather' },
   { id: 'outdoors', label: 'Outdoors', tagline: 'Tents, bottles, camping gear' },
 ]
+/** @deprecated Categories are now fetched from the API via `productService.getCategories()` */
 
 export const CATEGORY_LABEL: Record<ProductCategoryId, string> = CATEGORIES.reduce(
   (acc, cat) => ({ ...acc, [cat.id]: cat.label }),

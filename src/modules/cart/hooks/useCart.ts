@@ -23,8 +23,11 @@ export const useCartStore = create<CartStore>()(
       items: [],
 
       add: (product, qty = 1) => {
-        const clamped = Math.min(qty, product.variant_stock ?? product.stock)
+        const isPreorder = Boolean((product as unknown as { is_preorder?: boolean }).is_preorder)
+        const stock = product.variant_stock ?? product.stock
+        const clamped = isPreorder ? Math.min(qty, 99) : Math.min(qty, stock)
         if (clamped <= 0) return
+        cartService.apiAddToCart(product.id, clamped, product.variant_id)
         set((state) => {
           const existing = state.items.find(
             (i) => i.product_id === product.id && i.variant_id === product.variant_id,
@@ -33,7 +36,7 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map((i) =>
                 i.product_id === product.id && i.variant_id === product.variant_id
-                  ? { ...i, quantity: Math.min(i.quantity + clamped, i.stock) }
+                  ? { ...i, quantity: isPreorder ? i.quantity + clamped : Math.min(i.quantity + clamped, i.stock) }
                   : i,
               ),
             }
@@ -52,28 +55,36 @@ export const useCartStore = create<CartStore>()(
                 category_id: product.category_id,
                 variant_id: product.variant_id,
                 variant_name: product.variant_name,
+                is_preorder: isPreorder,
               },
             ],
           }
         })
       },
 
-      remove: (product_id, variant_id) =>
+      remove: (product_id, variant_id) => {
+        cartService.apiRemoveItem(product_id)
         set((state) => ({
           items: state.items.filter((i) => !matches(i, product_id, variant_id)),
-        })),
-      setQty: (product_id, variant_id, quantity) =>
+        }))
+      },
+      setQty: (product_id, variant_id, quantity) => {
+        cartService.apiUpdateItem(product_id, quantity)
         set((state) => ({
           items: state.items
             .map((i) =>
               matches(i, product_id, variant_id)
-                ? { ...i, quantity: Math.min(Math.max(quantity, 1), i.stock) }
+                ? { ...i, quantity: i.is_preorder ? Math.min(Math.max(quantity, 1), 99) : Math.min(Math.max(quantity, 1), i.stock) }
                 : i,
             )
             .filter((i) => i.quantity > 0),
-        })),
+        }))
+      },
 
-      clear: () => set({ items: [] }),
+      clear: () => {
+        cartService.apiClearCart()
+        set({ items: [] })
+      },
 
       qtyOf: (product_id, variant_id) =>
         get().items.find((i) => matches(i, product_id, variant_id))?.quantity ?? 0,

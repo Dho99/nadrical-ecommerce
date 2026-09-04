@@ -3,7 +3,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from '@/shared/lib/alert';
 import {
     Button,
     Card,

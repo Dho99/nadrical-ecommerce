@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { HomeHero, CategoryIndex } from "../../modules/home";
+import { HomeBanner, CategoryIndex } from "../../modules/home";
 import {
     ProductGrid,
     useProducts,
@@ -17,7 +17,7 @@ export function HomePage() {
 
     return (
         <>
-            {heroProducts && <HomeHero products={heroProducts} />}
+            <HomeBanner />
             <CategoryIndex categories={categories} />
 
             <section className="mx-auto container px-5 pb-16 sm:px-8">

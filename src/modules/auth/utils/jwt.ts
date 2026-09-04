@@ -1,31 +1,37 @@
-export interface GoogleIdTokenPayload {
-  email?: string
-  email_verified?: boolean
-  name?: string
-  given_name?: string
-  family_name?: string
-  sub?: string
+export interface JwtPayload {
+    akun_uuid?: string;
+    username?: string;
+    email: string;
+    roles?: string[];
+    name?: string;
+    email_verified?: boolean;
+    exp?: number;
+    iat?: number;
+    nbf?: number;
+    iss?: string;
+    sub?: string;
 }
 
-function base64UrlDecode(input: string): string {
-  const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')
-  return decodeURIComponent(
-    atob(padded)
-      .split('')
-      .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
-      .join(''),
-  )
+export function decodeJWT(token: string): JwtPayload | null {
+    try {
+        const parts = token.split(".");
+        if (parts.length !== 3) return null;
+        const payload = parts[1];
+        const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+        return JSON.parse(decoded) as JwtPayload;
+    } catch {
+        return null;
+    }
 }
 
-export function decodeGoogleIdToken(token: string): GoogleIdTokenPayload | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(base64UrlDecode(parts[1])) as GoogleIdTokenPayload
-    if (typeof payload.email !== 'string') return null
-    return payload
-  } catch {
-    return null
-  }
+export function isTokenExpired(token: string): boolean {
+    const payload = decodeJWT(token);
+    if (!payload?.exp) return true;
+    return Date.now() >= payload.exp * 1000;
+}
+
+export function getTokenExpiration(token: string): Date | null {
+    const payload = decodeJWT(token);
+    if (!payload?.exp) return null;
+    return new Date(payload.exp * 1000);
 }
