@@ -1,4 +1,7 @@
 export { ChatWidget } from './components/ChatWidget'
+export { ChatInput } from './components/ChatInput'
+export { ChatWindow } from './components/ChatWindow'
+export { ProductContextPreview } from './components/ProductContextPreview'
 export { useChat } from './hooks/useChat'
 export { chatService } from './services/chat.service'
 export { chatRepository } from './services/chat.repository'

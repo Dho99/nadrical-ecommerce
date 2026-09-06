@@ -24,6 +24,8 @@ import {
   Textarea,
 } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
+import { CHAT_OPEN_EVENT, type ProductChatContext } from '../../../shared/constants/chat.constants'
+import { useCurrency } from '../../currency'
 import type { Product, ProductVariant } from '../types/product.type'
 
 interface SpecSheetProps {
@@ -42,6 +44,7 @@ function StockBadge({ stock, isPreorder }: { stock: number; isPreorder?: boolean
 export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const variants = product.variants ?? []
   const isMultiVariant = variants.length > 0 && variants[0].variant_name.includes(' / ')
+  const { format, code } = useCurrency()
 
   // Single variant states
   const [selectedSingle, setSelectedSingle] = useState<ProductVariant | null>(
@@ -141,9 +144,25 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   }
 
   const handleSendMessage = () => {
-    // fire custom event to open floating chat
+    const context: ProductChatContext = {
+      id: product.id,
+      name: product.name,
+      price,
+      currency: code,
+      category: product.category_id,
+      availability: isPreorder
+        ? 'Pre-order'
+        : stock > 0
+          ? 'In stock'
+          : 'Out of stock',
+      description: product.summary || product.name,
+      image: product.cover_image_url,
+    }
+    // fire custom event to open floating chat with product context
     window.dispatchEvent(
-      new CustomEvent('nadrical:open-chat', { detail: { message: messageText, productId: product.id } }),
+      new CustomEvent(CHAT_OPEN_EVENT, {
+        detail: { message: messageText, productId: product.id, product: context },
+      }),
     )
     toast.info('Message sent — check live chat', {
       position: 'top-center',
@@ -279,10 +298,10 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <StockBadge stock={stock} isPreorder={isPreorder} />
         <p className="font-display text-2xl font-bold tracking-tight">
-          ${price.toFixed(2)}
+          {format(price)}
           {selected && selected.price_delta > 0 && (
             <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
-              +${selected.price_delta.toFixed(2)}
+              +{format(selected.price_delta)}
             </span>
           )}
         </p>
@@ -290,7 +309,7 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       {isPreorder && (
         <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs dark:bg-amber-950/20">
           <p className="font-medium text-amber-800 dark:text-amber-400">Pre-order{product.preorder_eta ? ` · ETA ${new Date(product.preorder_eta).toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</p>
-          {product.preorder_deposit !== undefined && <p className="text-muted-foreground">Deposit ${product.preorder_deposit.toFixed(2)} required</p>}
+          {product.preorder_deposit !== undefined && <p className="text-muted-foreground">Deposit {format(product.preorder_deposit)} required</p>}
         </div>
       )}
 
