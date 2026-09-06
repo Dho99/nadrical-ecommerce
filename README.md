@@ -101,7 +101,7 @@ Data berjalan mock-first via service layer: beberapa state persist di `localStor
 
 ### Live chat
 
-- Floating widget; guest (tanpa form, pesan sementara, info login) vs authenticated (riwayat, loading/sending/failed)
+- Floating widget; **guest wajib isi Nama/Email/Nomor HP** sebelum memulai chat (identity gate), authenticated langsung penuh
 - Konteks produk otomatis ketika dari halaman detail produk
 
 ### Notifikasi
@@ -189,6 +189,7 @@ Mock-first. Sebagian state persist zustand (`localStorage`), sebagian lain in-me
 | `store-addresses-v1`     | Buku alamat                                      |
 | `store-notifications-v1` | Notifikasi                                       |
 | `store-chat-guest`       | ID guest chat                                    |
+| `store-chat-guest-profile` | Profil guest (nama/email/HP) utk livechat      |
 
 Catatan:
 
