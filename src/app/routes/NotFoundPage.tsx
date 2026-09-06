@@ -7,7 +7,7 @@ export function NotFoundPage() {
   const status = error?.status ?? 404
 
   return (
-    <div className="container mx-auto flex flex-col items-center px-5 py-20 text-center sm:px-8">
+    <div className="mx-auto w-full max-w-7xl flex flex-col items-center px-5 py-20 text-center sm:px-8">
       <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
         {status === 404 ? 'Page not found' : 'Something went wrong'}
       </p>

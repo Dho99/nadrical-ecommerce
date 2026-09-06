@@ -93,17 +93,34 @@ export function HomeBanner() {
     touchStart.current = null
   }
 
+  // mouse drag
+  const mouseStart = useRef<number | null>(null)
+  const onMouseDown = (e: React.MouseEvent) => {
+    mouseStart.current = e.clientX
+  }
+  const onMouseUp = (e: React.MouseEvent) => {
+    if (mouseStart.current == null) return
+    const diff = e.clientX - mouseStart.current
+    if (Math.abs(diff) > 50) {
+      if (diff < 0) next()
+      else prev()
+    }
+    mouseStart.current = null
+  }
+
   return (
     <section
-      className="relative overflow-hidden bg-black"
+      className="relative cursor-grab overflow-hidden bg-black active:cursor-grabbing"
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseLeave={() => { setPaused(false); mouseStart.current = null }}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
-      <div className="relative h-[420px] sm:h-[480px] lg:h-[560px]">
+      <div className="relative h-[75vh] max-h-[80vh]">
         {BANNERS.map((slide, idx) => (
           <div
             key={slide.id}
@@ -123,7 +140,7 @@ export function HomeBanner() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-            <div className="relative container mx-auto flex h-full items-center px-5 sm:px-8">
+            <div className="relative mx-auto w-full max-w-7xl flex h-full items-center px-5 sm:px-8">
               <div className="max-w-xl">
                 <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-white/80 uppercase">
                   {slide.eyebrow}
@@ -150,7 +167,7 @@ export function HomeBanner() {
           type="button"
           aria-label="Previous banner"
           onClick={prev}
-          className="absolute top-1/2 left-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-md backdrop-blur transition hover:bg-white sm:flex lg:left-6"
+          className="absolute top-1/2 left-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur transition hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:flex lg:left-6"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -158,7 +175,7 @@ export function HomeBanner() {
           type="button"
           aria-label="Next banner"
           onClick={next}
-          className="absolute top-1/2 right-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-md backdrop-blur transition hover:bg-white sm:flex lg:right-6"
+          className="absolute top-1/2 right-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur transition hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:flex lg:right-6"
         >
           <ChevronRight className="size-5" />
         </button>
@@ -173,7 +190,9 @@ export function HomeBanner() {
               aria-current={idx === active}
               onClick={() => setActive(idx)}
               className={`h-1.5 rounded-full transition-all ${
-                idx === active ? 'w-8 bg-white' : 'w-3 bg-white/50 hover:bg-white/80'
+                idx === active
+                  ? 'w-8 bg-white dark:bg-white'
+                  : 'w-3 bg-white/50 hover:bg-white/80 dark:bg-white/40 dark:hover:bg-white/70'
               }`}
             />
           ))}
@@ -182,7 +201,7 @@ export function HomeBanner() {
 
       {/* thin secondary strip mimicking bro.do category quick links below banner */}
       <div className="border-t border-white/10 bg-black text-white">
-        <div className="container mx-auto flex gap-2 overflow-x-auto px-5 py-3 text-xs font-medium tracking-wide sm:px-8">
+        <div className="mx-auto w-full max-w-7xl flex gap-2 overflow-x-auto px-5 py-3 text-xs font-medium tracking-wide sm:px-8">
           {BANNERS.map((b) => (
             <Link
               key={`strip-${b.id}`}

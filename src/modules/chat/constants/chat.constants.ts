@@ -9,3 +9,4 @@ export const BOT_REPLIES = [
 export const BOT_REPLY_DELAY_MS = 1200
 
 export const GUEST_ID_KEY = 'store-chat-guest'
+export const GUEST_PROFILE_KEY = 'store-chat-guest-profile'

@@ -7,7 +7,7 @@ export function CartPage() {
   const { items, totals, totalQty, setQty, remove } = useCart()
 
   return (
-    <div className="container mx-auto px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
       <header className="mb-6">
         <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Your basket

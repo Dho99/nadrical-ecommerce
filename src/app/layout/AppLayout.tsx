@@ -7,7 +7,7 @@ import { chatService } from '../../modules/chat/services/chat.service'
 import type { ChatIdentity } from '../../modules/chat/types/chat.type'
 
 export function AppLayout() {
-  const { user } = useAuth()
+  const { user, isAuthed } = useAuth()
   const identity: ChatIdentity = user
     ? { customer_user_id: user.id, customer_name: user.full_name ?? 'Guest', customer_email: user.email }
     : { customer_user_id: chatService.getGuestId(), customer_name: 'Guest' }
@@ -20,7 +20,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <SiteFooter />
-      <ChatWidget identity={identity} />
+      <ChatWidget identity={identity} isGuest={!isAuthed} />
     </div>
   )
 }

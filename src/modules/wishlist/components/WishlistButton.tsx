@@ -1,8 +1,8 @@
 import { BookmarkCheck, Bookmark } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from '@/shared/lib/alert'
 import { cn } from '../../../shared/utils/cn'
 import { useWishlist } from '../hooks/useWishlist'
-import { openWishlistDialog } from '../utils/openWishlist'
 
 interface WishlistButtonProps {
   productId: string
@@ -24,6 +24,7 @@ export function WishlistButton({
   ...rest
 }: WishlistButtonProps) {
   const { has, toggle } = useWishlist()
+  const navigate = useNavigate()
   const wished = has(productId)
 
   const handleClick = (e: React.MouseEvent) => {
@@ -36,7 +37,7 @@ export function WishlistButton({
           description: productName,
           action: {
             label: 'Lihat',
-            onClick: () => openWishlistDialog(),
+            onClick: () => navigate('/profile/wishlist'),
           },
         })
       } else {

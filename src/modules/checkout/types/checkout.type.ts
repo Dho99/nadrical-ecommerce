@@ -2,6 +2,8 @@ import type { ShippingMethod } from '../../../shared/types/order.type'
 
 export type { ShippingMethod } from '../../../shared/types/order.type'
 
+export type PaymentKind = 'bank' | 'e-money' | 'card'
+
 export interface CheckoutLine {
   product_id: string
   sku: string
@@ -9,7 +11,17 @@ export interface CheckoutLine {
   unit_price: number
   quantity: number
   category_id: string
+  variant_id?: string
   variant_name?: string
+}
+
+export interface PaymentDetail {
+  kind: PaymentKind
+  provider?: string
+  card_name?: string
+  card_number?: string
+  expiry?: string
+  cvc?: string
 }
 
 export interface OrderPayload {
@@ -25,17 +37,13 @@ export interface OrderPayload {
     shipping_country_code?: string
   }
   shipping_method: ShippingMethod
-  payment: {
-    card_name: string
-    card_number: string
-    expiry: string
-    cvc: string
-  }
+  payment: PaymentDetail
   items: CheckoutLine[]
   totals: {
     subtotal: number
     shipping_total: number
     discount: number
+    payment_fee?: number
     grand_total: number
     voucher_code?: string
   }
@@ -55,7 +63,11 @@ export const SHIPPING_METHODS: Array<{
   label: string
   price: number
   eta: string
+  etaDays: number
 }> = [
-  { id: 'standard', label: 'Standard', price: 8, eta: '3–5 working days' },
-  { id: 'express', label: 'Express', price: 16, eta: 'Next working day' },
+  { id: 'standard', label: 'Standard', price: 8, eta: '3–5 working days', etaDays: 4 },
+  { id: 'express', label: 'Express', price: 16, eta: 'Next working day', etaDays: 1 },
+  { id: 'jne', label: 'JNE REG', price: 1.2, eta: '2–3 days', etaDays: 3 },
+  { id: 'jnt', label: 'J&T Express', price: 1.5, eta: '1–2 days', etaDays: 2 },
+  { id: 'sicepat', label: 'SiCepat', price: 1.8, eta: '1 day', etaDays: 1 },
 ]

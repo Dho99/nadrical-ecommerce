@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
+import { useCurrency } from '../../currency'
 import type { ProductBrief } from '../../../shared/types/product.type'
 import { HERO_STATS } from '../constants/home.constants'
 
@@ -11,10 +12,11 @@ interface HomeHeroProps {
 
 export function HomeHero({ products }: HomeHeroProps) {
   const tiles = products.slice(0, 4)
+  const { format } = useCurrency()
 
   return (
     <section className="border-b bg-muted/40">
-      <div className="container mx-auto grid items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-2 lg:gap-12">
+      <div className="mx-auto w-full max-w-7xl grid items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-2 lg:gap-12">
         <div>
           <p className="mb-3 font-mono text-xs font-medium tracking-[0.14em] text-primary uppercase">
             General store · Curated, always in stock
@@ -64,7 +66,7 @@ export function HomeHero({ products }: HomeHeroProps) {
                 className="h-full w-full transition-transform duration-300 group-hover:scale-105"
               />
               <span className="absolute right-2.5 bottom-2.5 rounded-md bg-background/90 px-2 py-1 text-xs font-semibold shadow-sm">
-                ${product.base_price.toFixed(2)}
+                {format(product.base_price)}
               </span>
               <span className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 pt-10 pb-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <span className="line-clamp-1 text-sm font-medium text-white">

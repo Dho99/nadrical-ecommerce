@@ -4,7 +4,7 @@ import { CATEGORIES } from '../../modules/products/constants/product.constants'
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t bg-muted/40">
-      <div className="container mx-auto grid gap-8 px-5 py-12 sm:px-8 md:grid-cols-3">
+      <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-12 sm:px-8 md:grid-cols-3">
         <div>
           <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
           <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
@@ -54,7 +54,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-5 py-4 font-mono text-xs tracking-[0.12em] text-muted-foreground sm:px-8">
+        <div className="mx-auto w-full max-w-7xl flex flex-wrap items-center justify-between gap-2 px-5 py-4 font-mono text-xs tracking-[0.12em] text-muted-foreground sm:px-8">
           <span>© 2026 Nadrical.</span>
           <span>NADRICAL — CURATED FOR EVERYDAY LIVING</span>
         </div>

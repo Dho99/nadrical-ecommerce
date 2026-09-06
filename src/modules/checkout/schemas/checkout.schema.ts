@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { PaymentKind } from '../types/checkout.type'
 
 export const customerSchema = z.object({
   recipient_name: z
@@ -41,10 +42,10 @@ export const customerSchema = z.object({
 })
 
 export const shippingSchema = z.object({
-  shipping_method: z.enum(['standard', 'express']),
+  shipping_method: z.enum(['standard', 'express', 'jne', 'jnt', 'sicepat']),
 })
 
-export const paymentSchema = z.object({
+export const cardSchema = z.object({
   card_name: z.string().trim().min(3, 'Enter the name on the card'),
   card_number: z
     .string()
@@ -57,11 +58,28 @@ export const paymentSchema = z.object({
   cvc: z.string().trim().regex(/^\d{3,4}$/, 'CVC is 3 or 4 digits'),
 })
 
+export const paymentMethodSchema = z.object({
+  payment_method: z.enum(['bank', 'e-money', 'card'] as const).default('card'),
+  payment_provider: z.string().trim().optional(),
+})
+
 export const checkoutSchema = customerSchema
   .merge(shippingSchema)
-  .merge(paymentSchema)
+  .merge(paymentMethodSchema)
+  .merge(cardSchema.partial())
+  .superRefine((data, ctx) => {
+    if (data.payment_method === 'card') {
+      const card = cardSchema.safeParse(data)
+      if (!card.success) {
+        for (const issue of card.error.issues) {
+          ctx.addIssue({ ...issue, path: [...issue.path] })
+        }
+      }
+    }
+  })
 
 export type CustomerInput = z.infer<typeof customerSchema>
 export type ShippingInput = z.infer<typeof shippingSchema>
-export type PaymentInput = z.infer<typeof paymentSchema>
+export type CardInput = z.infer<typeof cardSchema>
+export type PaymentMethodKind = PaymentKind
 export type CheckoutInput = z.infer<typeof checkoutSchema>

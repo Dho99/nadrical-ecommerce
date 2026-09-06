@@ -8,7 +8,7 @@ import type { OrderPayload } from '../types/checkout.type'
 import type { CheckoutInput } from '../schemas/checkout.schema'
 import { StepContact } from './StepContact'
 import { StepShipping } from './StepShipping'
-import { StepPayment } from './StepPayment'
+import { PaymentAccordion } from './PaymentAccordion'
 import { OrderConfirmationCard } from './OrderConfirmationCard'
 
 interface CheckoutFormProps {
@@ -68,7 +68,7 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
         <div className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
           {step === 0 && <StepContact email={initialValues?.email} />}
           {step === 1 && <StepShipping subtotal={payloadBase.totals.subtotal} />}
-          {step === 2 && <StepPayment />}
+          {step === 2 && <PaymentAccordion />}
 
           {error && (
             <p role="alert" className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

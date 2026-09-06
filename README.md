@@ -1,13 +1,15 @@
 # Store. — E-commerce Template
 
-Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari storefront, keranjang, checkout, hingga panel admin. Seluruh data berjalan di `localStorage` dengan service layer mock (artificial delay + random failure), sehingga langsung bisa dijalankan tanpa backend.
+Template e-commerce **frontend** dengan nama "Store." — storefront lengkap: katalog, detail produk, keranjang, checkout, order management (detail/refund/tracking/invoice), live chat, akun/profile, dan currency IDR/USD. Area **back-office tidak disertakan** di repo ini (dikembangkan di aplikasi web terpisah).
 
-|                 |                                                                                  |
-| --------------- | -------------------------------------------------------------------------------- |
-| Build           | Vite 8 · React 19 · TypeScript 6 · React Compiler                                |
-| UI              | Tailwind CSS v4 · shadcn/ui · radix-ui · next-themes                             |
-| State & Data    | zustand 5 · react-router-dom 7 · react-hook-form 7 · zod 4 · recharts 3 · sonner |
-| Auth & Realtime | @react-oauth/google · Native WebSocket (Go Server backend)                       |
+Data berjalan mock-first via service layer: beberapa state persist di `localStorage`, sebagian lain in-memory (siap di-wire ke API), dengan fallback HTTP (axios) saat backend tersedia.
+
+|                 |                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| Build           | Vite 8 · React 19 · TypeScript 6 · React Compiler                                        |
+| UI              | Tailwind CSS v4 · shadcn/ui · radix-ui · next-themes                                     |
+| State & Data    | zustand 5 · react-router-dom 7 · react-hook-form 7 · zod 4 · axios · sonner              |
+| Export & Realtime | jspdf (invoice PDF) · @react-oauth/google · Native WebSocket (Go server)               |
 
 ---
 
@@ -15,7 +17,7 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 
 1. [Tech Stack](#tech-stack)
 2. [Fitur Utama](#fitur-utama)
-3. [Arsitektur & Folder Structure](#arsitektur--folder-structures)
+3. [Arsitektur & Folder Structure](#arsitektur--folder-structure)
 4. [Data & Storage](#data--storage)
 5. [Setup & Menjalankan](#setup--menjalankan)
 6. [Environment Variables](#environment-variables)
@@ -45,7 +47,7 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 | shadcn/ui + `radix-ui` (unified)      | Komponen aksesibel (Dialog, Sheet, Tabs, Select, dll.)                                  |
 | `next-themes`                         | Dark/light mode                                                                         |
 | `lucide-react`                        | Ikon                                                                                    |
-| `@fontsource/*`                       | Space Grotesk Variable (display), Archivo, IBM Plex Mono (mono), Big Shoulders Variable |
+| `@fontsource/*`                       | Font display, sans, mono                                                                 |
 | `tw-animate-css`                      | Animasi utility                                                                         |
 
 ### State, Routing & Data
@@ -55,15 +57,18 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 | `zustand` ^5.0.14                         | State management + persist middleware      |
 | `react-router-dom` ^7.18.2                | Routing (nested routes, guards)            |
 | `react-hook-form` + `zod` + `zodResolver` | Form & validasi (wajib di tiap module)     |
-| `recharts` ^3.8.0                         | Chart admin (revenue area, kategori donut) |
+| `axios`                                   | HTTP client (fallback/mock ke backend)     |
 | `sonner`                                  | Toast notifications                        |
 
-### Auth & Realtime
+### Export & Realtime
 
 | Teknologi                                  | Peran                                                                       |
 | ------------------------------------------ | --------------------------------------------------------------------------- |
+| `jspdf`                                    | Generate invoice PDF (download)                                             |
 | `@react-oauth/google` ^0.13.5              | Google OAuth (Google Identity Services)                                     |
-| Native WebSocket | WebSocket client bawaan browser, terhubung ke Go WebSocket server untuk chat real-time |
+| Native WebSocket                           | Client bawaan browser → Go WebSocket server untuk chat real-time            |
+
+> Catatan: `recharts` masih ada di `package.json` tapi tidak dipakai lagi pasca area dashboard (back-office) dipindah keluar repo.
 
 ---
 
@@ -71,67 +76,72 @@ Template e-commerce **frontend-only** dengan nama "Store." — lengkap dari stor
 
 ### Storefront
 
-- **Home** — hero grid produk + indeks kategori + featured products
-- **Katalog** (`/products`) — filter kategori, sort (featured/price/stock), pencarian (nama & SKU), in-stock filter, **infinite scroll** dengan cursor pagination
-- **Detail produk** (`/products/:id`) — gallery dengan zoom dialog, spec sheet, varian produk (harga & stok berbeda), qty stepper, tombol **Add to cart** & **Buy now**
-- **Cart** (`/cart`) — **hanya untuk user authenticated** (guest diarahkan ke login), ubah qty, hapus item, ringkasan total
-- **Checkout** (`/checkout`) — 3 langkah (Delivery → Shipping → Payment), email terkunci dari akun, validasi zod per langkah, confirmation card, order tersimpan ke history
-- **Profile** (`/profile`) — ringkasan akun (avatar inisial, role, statistik orders & total belanja) + **Order history** (`/profile/orders`) dengan status badge
+- **Home** — hero slider + kategori + featured products
+- **Search dialog** — ikon search membuka dialog (debounce 300ms, skeleton, empty state, preview hasil)
+- **Katalog** (`/products`) — filter kategori, sort, pencarian, filter harga/discount/in-stock, **infinite scroll** cursor pagination; container `max-w-7xl`
+- **Detail produk** (`/products/:id`) — gallery, spec sheet, varian (harga/stok beda), qty stepper, Add to cart / Buy now, **Message** membuka livechat dengan konteks produk
+- **Cart** (`/cart`) — authed only, ubah qty, hapus, ringkasan
+- **Checkout** (`/checkout`) — 3 langkah; pilih **kurir** (Standard/Express/JNE/J&T/SiCepat), **payment accordion** (M-Banking/E-Money/Card), qty editable, total reactive (subtotal+ongkir+fee−diskon)
+- **Currency** — switch IDR/USD dari user menu; seluruh nominal berubah tanpa reload
+- **Wishlist** (`/profile/wishlist`) — simpan/hapus produk
 
-### Admin (`/admin`, role `admin`)
+### Akun (`/profile`)
 
-- **Dashboard** — KPI cards (revenue, orders, AOV, low stock), revenue chart, kategori chart, recent orders, low stock list, **broadcast announcement**
-- **Produk** — tabel dengan cursor pagination, create/edit via form (gambar preset, specs dinamis, varian maks. 10), delete dengan konfirmasi, reset katalog
-- **Orders** — list + pagination, status otomatis (Processing → Shipped → Delivered)
-- **Chat inbox** — balas percakapan customer secara real-time (event `storage`)
-- **Guard** — area admin hanya untuk role `admin`
+- Overview + **Edit profile** (`/profile/edit`, 2 kolom, delete account dengan konfirmasi)
+- **Order history** (`/profile/orders`) — tab status + kartu order
+- **Order detail** (`/profile/orders/:id`) — journey, shipment accordion, resi + copy, tracking dialog, aksi per status, **Download invoice (PDF)**
+- **Refund** (`/profile/orders/:id/refund`) — halaman penuh: alasan (wajib, highlight), catatan, upload bukti foto/video, status refund
+- Address book, voucher, tab Wishlist
 
 ### Auth
 
-- Register / Login (mock service, tersimpan di `localStorage`)
-- **Google OAuth** — tombol "Sign in with Google" (muncul jika `VITE_GOOGLE_CLIENT_ID` diset), upsert akun otomatis
-- Guard: `RequireAuth` (cart, checkout, profile) & `AdminGuard`
+- Register / Login (mock service)
+- Google OAuth (jika `VITE_GOOGLE_CLIENT_ID` diset); placeholder Apple
+- Guard `RequireAuth` untuk cart/checkout/profile
+
+### Live chat
+
+- Floating widget; **guest wajib isi Nama/Email/Nomor HP** sebelum memulai chat (identity gate), authenticated langsung penuh
+- Konteks produk otomatis ketika dari halaman detail produk
 
 ### Notifikasi
 
-- Bell di header (hanya authed) dengan badge unread
-- Sumber: **order status** (confirmed → shipped → delivered) + **announcement broadcast** dari admin
-- Panel Sheet: mark read, mark all read, clear, time-ago
-
-### Lainnya
-
-- **Live chat widget** (floating, bottom-right) — auto-reply bot, identitas user/guest, tersimpan di `localStorage`
-- Dark/light mode, aksesibilitas (aria, semantic), layout `container mx-auto`
+- Bell (authed) — order & sistem
 
 ---
 
 ## Arsitektur & Folder Structure
 
-Menggunakan pendekatan **Service-Based Layer Architecture** (aturan detail di `AGENTS.md`): setiap feature berdiri sebagai module mandiri dengan dependency internalnya sendiri.
+Pendekatan **Service-Based Layer Architecture** (aturan di `AGENTS.md`): tiap feature module mandiri.
 
 ```text
 src/
 ├── app/
-│   ├── layout/          # AppLayout, AdminLayout, SiteHeader, ProfileLayout, dll.
-│   ├── routes/          # Router config, halaman, guards (RequireAuth, AdminGuard)
+│   ├── layout/          # AppLayout, ProfileLayout, SiteHeader, SiteFooter, SearchDialog
+│   ├── routes/          # Router config & halaman (RequireAuth untuk area privat)
 │   └── providers/       # ThemeProvider, GoogleOAuthProvider, Toaster
 │
-├── modules/             # 9 module feature mandiri
-│   ├── admin/           # Dashboard, CRUD produk, orders, chat inbox, broadcast
+├── modules/             # 13 module feature mandiri
+│   ├── address/         # Buku alamat user
 │   ├── auth/            # Register/login/Google, session (zustand persist)
-│   ├── cart/            # Cart store + guards (useGuardedAdd, useBuyNow)
-│   ├── chat/            # Live chat widget + bot
-│   ├── checkout/        # 3-step form, order placement, repository
-│   ├── home/            # Hero & kategori home
-│   ├── notifications/   # Bell, order status + announcement
+│   ├── cart/            # Cart store + guard (useGuardedAdd, useBuyNow)
+│   ├── chat/            # Live chat widget (guest/authed) + product context
+│   ├── checkout/        # 3-step form, kurir/payment, qty, total, repository
+│   ├── currency/        # Currency IDR/USD + format harga
+│   ├── home/            # Hero slider & kategori home
+│   ├── notifications/   # Bell notifikasi
+│   ├── orders/          # Order detail, timeline, refund, tracking, invoice
 │   ├── products/        # Katalog, detail, varian, specs, infinite scroll
-│   └── profile/         # Ringkasan akun & order history
+│   ├── profile/         # Overview akun & order history
+│   ├── voucher/         # Voucher diskon/ongkir
+│   └── wishlist/        # Wishlist store/button/halaman
 │
 ├── shared/              # Dipakai lintas module
-│   ├── components/      # ui/ (shadcn) + ProductImage, ThemeProvider
-│   ├── hooks/           # useInfiniteScroll
-│   ├── lib/             # mock helpers, echo (Reverb client)
-│   ├── types/           # Product, Order, CursorPage, dll.
+│   ├── components/      # ui/ (shadcn) + ProductImage, OrderStatusBadge, ThemeProvider
+│   ├── constants/       # chat event + product context contract
+│   ├── hooks/           # useDebounce, useInfiniteScroll
+│   ├── lib/             # api (axios), mock/mockApi/mockData, websocket, alert
+│   ├── types/           # Product, Order, CursorPage, Database, dll.
 │   └── utils/           # cn, format, order-status, unsplash
 │
 └── assets/
@@ -153,130 +163,135 @@ module-name/
 
 ### Aturan dependency
 
-- Prioritas: `modules → shared` — **shared tidak boleh mengimpor module**
-- Module **tidak boleh saling bergantung langsung** (komunikasi via shared types / service abstraction)
-- Komponen module hanya untuk module itu; yang lintas module pindah ke `shared/components`
-- Component **tidak boleh request langsung** ke storage/API — harus lewat service layer
-- Hook menangani state & business logic; component hanya menerima data dan action
-- Semua schema validasi wajib zod + react-hook-form + zodResolver di `schemas/`
-- Type spesifik module di `types/`; type lintas module di `shared/types/`
+- Prioritas `modules → shared`; shared tidak boleh mengimpor module.
+- Module tidak saling bergantung langsung — komunikasi via shared contract/type (contoh: product context lewat `shared/constants/chat.constants`).
+- Component tidak boleh request langsung — lewat service layer; hook memegang state/business logic.
+- Schema validasi zod + react-hook-form + zodResolver di `schemas/`.
+- Type module di `types/`, type lintas module di `shared/types/`.
 
 ### Alias
 
-`@/` → `./src` (dikonfigurasi di `vite.config.ts`).
+`@/` → `./src` (vite.config).
 
 ---
 
 ## Data & Storage
 
-Tidak ada backend — semua data tersimpan di `localStorage` browser dengan prefix `store-`.
+Mock-first. Sebagian state persist zustand (`localStorage`), sebagian lain in-memory.
 
-| Key                      | Isi                                                |
-| ------------------------ | -------------------------------------------------- |
-| `store-products-v1`      | Katalog produk (seed 18 produk)                    |
-| `store-orders-v1`        | Order dari checkout + seed demo admin (~130 order) |
-| `store-cart-v2`          | Keranjang user                                     |
-| `store-users`            | Akun terdaftar (password plain, mock)              |
-| `store-auth`             | Session aktif (zustand persist)                    |
-| `store-chat-v1`          | Percakapan live chat                               |
-| `store-chat-guest`       | ID guest chat                                      |
-| `store-notifications-v1` | Notifikasi + baseline status order                 |
+| Key                      | Isi                                              |
+| ------------------------ | ------------------------------------------------ |
+| `store-auth`             | Session aktif (zustand persist)                  |
+| `store-cart-v3`          | Keranjang user                                   |
+| `store-wishlist`         | Daftar wishlist                                  |
+| `store-currency`         | Preferensi currency (IDR/USD)                    |
+| `store-voucher-v1`       | Voucher terpasang                                |
+| `store-addresses-v1`     | Buku alamat                                      |
+| `store-notifications-v1` | Notifikasi                                       |
+| `store-chat-guest`       | ID guest chat                                    |
+| `store-chat-guest-profile` | Profil guest (nama/email/HP) utk livechat      |
 
-### Pola service layer
+Catatan:
 
-- Semua interaksi storage melalui service: `load/save` via repository + `mockDelay()` (artificial latency) + `mockFail()` (random failure ~2–5%) agar meniru kondisi API nyata
-- **Status order berbasis waktu**: `Processing` (< 2 jam), `Shipped` (< 5 hari), `Delivered` — dihitung dari `placedAt` via `shared/utils/order-status.ts` (membuat notifikasi dan dashboard live tanpa backend)
-- **Pagination cursor**: `CursorPage<T> { items, total, nextCursor, prevCursor }` — storefront 12 item, admin 10, orders 10, chat 15
+- Order history `/profile/orders` diambil dari **mock seed** (`generateUserOrders`) + order lokal sesi — tanpa fetch API, aman saat backend off.
+- **Refund** tidak persist (in-memory) karena akan di-wire ke API; bukti upload berumur sesi.
+- Invoice digenerate **di sisi klien** (jsPDF) — PDF statis, currency di-snapshot saat download.
+- Katalog produk & chat memakai service layer mock dengan fallback axios (`VITE_USE_MOCK`).
 
 ---
 
 ## Setup & Menjalankan
 
-### 1. Menjalankan Frontend
+### 1. Frontend
 ```bash
-npm install        # install dependencies
-npm run dev        # dev server (HMR) — http://localhost:5173
-npm run build      # production build (tsc -b && vite build)
-npm run preview    # preview hasil build
-npm run lint       # eslint
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # tsc -b && vite build
+npm run preview
+npm run lint
 ```
 
-### 2. Menjalankan Go WebSocket Server (Opsional, untuk Realtime Chat Multi-Browser)
+### 2. Go WebSocket Server (opsional, chat multi-browser)
 ```bash
 cd server
-go run main.go      # berjalan di http://localhost:8080/ws
+go run main.go     # http://localhost:8080/ws
 ```
 
-Build menghasilkan bundle di `dist/` (catatan: ada warning chunk > 500 kB yang non-blocking).
+Build menghasilkan `dist/`.
 
 ---
 
 ## Environment Variables
 
-Salin `.env.example` menjadi `.env` lalu isi sesuai kebutuhan:
+Salin `.env.example` → `.env`:
 
 ```env
-# Go WebSocket Server (Realtime Chat)
-VITE_WEBSOCKET_URL=ws://127.0.0.1:8080/ws
+# API Base URL
+VITE_API_BASE_URL=http://localhost:8080/api/v1
 
-# Google OAuth (Google Cloud Console > Credentials > OAuth client ID)
-VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+# WebSocket
+VITE_WEBSOCKET_URL=ws://127.0.0.1:8080/ws
+VITE_WS_HOST=127.0.0.1
+VITE_WS_PORT=8080
+
+# Use placeholder mock API while backend is not ready. false = real backend.
+VITE_USE_MOCK=false
+
+# Google OAuth
+VITE_GOOGLE_CLIENT_ID=
 ```
 
-Catatan:
-
-- Tanpa `VITE_GOOGLE_CLIENT_ID`, tombol Google tidak dirender.
-- Client WebSocket di `shared/lib/websocket.ts` bersifat **null-safe**: tanpa server WS berjalan, client akan mencoba reconnect otomatis secara berkala tanpa memblokir/crash aplikasi.
+Catatan: tanpa `VITE_GOOGLE_CLIENT_ID`, tombol Google tidak dirender. WebSocket client null-safe (auto reconnect tanpa crash).
 
 ---
 
 ## Akun Demo & Alur Tes
 
-| Peran | Email             | Password   |
-| ----- | ----------------- | ---------- |
-| Admin | `admin@store.dev` | `admin123` |
+| Peran | Email | Password |
+| ----- | ----- | -------- |
+| Admin (web terpisah) | `admin@nadrical.my.id` | `Admin123#` |
+| Customer (storefront) | `customer@store.dev` | `admin123` |
 
 ### Alur storefront
 
-1. Register akun baru (atau Google sign-in jika env diset)
-2. Buka katalog → detail produk → pilih varian/qty → **Add to cart** atau **Buy now**
-3. Checkout (email sudah terkunci dari akun) → place order
-4. Buka `/profile/orders` → order muncul; buka bell → notifikasi **"Order confirmed"**
-5. (Setelah threshold waktu) notifikasi shipped/delivered muncul otomatis
-
-### Alur admin
-
-1. Login `admin@store.dev` / `admin123` → `/admin`
-2. Dashboard → **Broadcast to customers** (muncul di bell semua user)
-3. Products → create/edit/delete produk
-4. Chat → balas percakapan customer
-5. Orders → lihat semua order + status
+1. Login `customer@store.dev` / `admin123` (atau register/Google).
+2. Jelajahi katalog → search dialog → detail produk → tambah cart / Buy now.
+3. Coba ganti currency IDR ↔ USD (user menu) — semua harga berubah.
+4. Checkout: isi alamat (postal code auto-fill), pilih kurir & metode bayar, ubah qty → Place order.
+5. Buka `/profile/orders` → klik order → detail: journey, tracking (accordion/dialog), **Download invoice**, atau **Request refund** (upload bukti).
+6. Wishlist: simpan produk → `/profile/wishlist`; live chat dari detail produk membawa konteks produk.
 
 ---
 
 ## Batasan
 
-- **Mock-only**: data hilang saat `localStorage` dibersihkan; tidak ada persistensi server
-- **Satu browser**: akun & keranjang dibagi antar tab browser yang sama
-- **Google OAuth**: butuh client ID valid; token di-decode client-side tanpa verifikasi server
-- **WebSocket Reconnect**: client mencoba terhubung otomatis; jika Go server mati, chat beralih ke sync local tab.
-- **Status order berbasis waktu**: status tidak dari event server, melainkan dihitung dari umur order
-- **Password disimpan plain** di localStorage (murni demo, jangan untuk produksi)
+- **Mock-first**: order/refund belum terhubung backend; data lokal hilang saat storage dibersihkan (kecuali seed).
+- **Refund & invoice** belum di-persist ke server (siap wire API).
+- **Payment demo** — tidak ada kartu/uang asli yang ditagih.
+- Area **back-office tidak ada di repo** ini.
+- Google OAuth: butuh client ID valid; token di-decode client-side.
+- WebSocket: jika Go server mati, chat fallback sync antar-tab.
+- `recharts` dependency tersisa (tidak terpakai).
 
 ---
 
 ## Roadmap
 
-- [ ] Integrasi backend Laravel (API + auth sanctum, migrasi service mock → HTTP)
-- [ ] WebSocket real-time via Laravel Reverb (chat, notifikasi, stock live)
+- [ ] Wire refund/upload bukti & invoice ke backend/API
+- [ ] Back-office terpisah (repo/web terpisah) dilanjutkan terpisah
+- [ ] Payment gateway nyata (Midtrans/Xendit)
 - [ ] Google OAuth dengan verifikasi token di server
-- [ ] Upload gambar produk (S3/storage Laravel) menggantikan preset URL
-- [ ] Payment gateway (Midtrans/Xendit) menggantikan kartu demo
-- [ ] Pagination storefront ganti offset-cursor dengan cursor asli (id-based)
-- [ ] E2E test (Playwright) & unit test untuk service layer
+- [ ] Upload gambar produk ke storage, bukan preset URL
+- [ ] E2E test (Playwright) & unit test service layer
+
+---
+
+## Changelog
+
+Laporan perubahan per fase tersedia di [`changelogs/`](./changelogs/).
 
 ---
 
 ## Lisensi
 
-MIT License — silakan digunakan dan dimodifikasi secara bebas. Dibuat sebagai template pembelajaran & dasar pengembangan e-commerce.
+MIT License — silakan digunakan dan dimodifikasi secara bebas. Template pembelajaran & dasar pengembangan e-commerce.

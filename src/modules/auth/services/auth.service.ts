@@ -41,11 +41,11 @@ interface StandardApiResponse<T> {
 
 function parseRole(roles?: BackendRole[]): AuthRoleName {
   if (!roles || !Array.isArray(roles) || roles.length === 0) return 'user'
-  const isAdmin = roles.some((r) => {
+  const isCustomer = roles.some((r) => {
     const name = (r.nama_role || '').toUpperCase()
     return name === 'SUPERADMIN' || name === 'ADMIN'
   })
-  return isAdmin ? 'admin' : 'user'
+  return isCustomer ? 'admin' : 'user'
 }
 
 function toAuthUser(akun: BackendAkun): AuthUser {
@@ -156,20 +156,31 @@ export const authService = {
       }
     } catch (error) {
       // Fallback for demo seed admin if server is offline or not seeded yet
-      const isOfficialAdmin =
+      const isOfficialCustomer =
         (identifier.toLowerCase() === ADMIN_EMAIL.toLowerCase() || identifier.toLowerCase() === 'superadmin') &&
         password === ADMIN_PASSWORD
-      const isDevAdmin = identifier.toLowerCase() === DEV_ADMIN_EMAIL.toLowerCase() && password === DEV_ADMIN_PASSWORD
+      const isDevCustomer = identifier.toLowerCase() === DEV_ADMIN_EMAIL.toLowerCase() && password === DEV_ADMIN_PASSWORD
 
-      if (isOfficialAdmin || isDevAdmin) {
+      if (isOfficialCustomer || isDevCustomer) {
         const token = `tok-admin-${Math.random().toString(36).slice(2, 12)}`
         localStorage.setItem('token', token)
+        if (isOfficialCustomer) {
+          return {
+            user: {
+              id: SEED_ADMIN.id,
+              email: ADMIN_EMAIL,
+              full_name: SEED_ADMIN.name,
+              role_name: 'admin',
+            },
+            token,
+          }
+        }
         return {
           user: {
-            id: SEED_ADMIN.id,
-            email: isOfficialAdmin ? ADMIN_EMAIL : DEV_ADMIN_EMAIL,
-            full_name: SEED_ADMIN.name,
-            role_name: 'admin',
+            id: `usr-dev-${Math.random().toString(36).slice(2, 10)}`,
+            email: DEV_ADMIN_EMAIL,
+            full_name: 'User',
+            role_name: 'user',
           },
           token,
         }

@@ -34,7 +34,9 @@ export function useChat(identity: ChatIdentity): UseChatResult {
   const { customer_user_id, customer_name, customer_email } = identity
 
   const conversationRef = useRef<ChatConversation | null>(null)
-  conversationRef.current = conversation
+  useEffect(() => {
+    conversationRef.current = conversation
+  }, [conversation])
 
   const loadConversation = useCallback(() => {
     return chatService

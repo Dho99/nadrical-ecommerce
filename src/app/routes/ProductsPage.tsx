@@ -20,7 +20,7 @@ export function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto px-5 pb-10 sm:px-8">
+    <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
       <header className="py-6">
         <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Nadrical catalog · {total} products live
@@ -38,7 +38,7 @@ export function ProductsPage() {
           status={status}
           error={error}
           onRetry={refetch}
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:gap-5"
         footer={
           <div ref={sentinelRef} aria-hidden="true">
             {loadingMore && (

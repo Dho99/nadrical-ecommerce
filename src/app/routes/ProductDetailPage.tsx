@@ -65,7 +65,7 @@ export function ProductDetailPage() {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <div className="container mx-auto grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-2">
+      <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-2">
         <Skeleton className="aspect-square w-full" />
         <div className="flex flex-col gap-4">
           <Skeleton className="h-4 w-24" />
@@ -80,7 +80,7 @@ export function ProductDetailPage() {
 
   if (status === 'error' || !product) {
     return (
-      <div className="container mx-auto px-5 py-16 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
         <EmptyState
           icon={<PackageX className="size-10" />}
           title="Product not found"
@@ -96,7 +96,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
       <Breadcrumb className="mb-5">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -114,7 +114,7 @@ export function ProductDetailPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{product.sku}</BreadcrumbPage>
+            <BreadcrumbPage>{product.name}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

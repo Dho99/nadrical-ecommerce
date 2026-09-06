@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoaderCircle, LogOut } from 'lucide-react'
+import { LoaderCircle, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/shared/lib/alert'
 import {
@@ -34,7 +34,7 @@ export function EditProfilePage() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [signoutOpen, setSignoutOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const form = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
@@ -60,14 +60,14 @@ export function EditProfilePage() {
     }
   })
 
-  const handleSignout = () => {
+  const handleDeleteAccount = () => {
     logout()
     navigate('/login')
-    toast.success('Signed out')
+    toast.success('Account deleted')
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <Card className="p-6">
         <h2 className="font-display text-xl font-bold tracking-tight">Edit profile</h2>
         <p className="mt-1 text-sm text-muted-foreground">Update your account details. Email cannot be changed.</p>
@@ -150,24 +150,30 @@ export function EditProfilePage() {
         </Form>
       </Card>
 
-      <Card className="border-destructive/30 p-6">
+      <Card className="h-fit border-destructive/30 p-6">
         <h3 className="font-semibold text-destructive">Danger zone</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Sign out from your account on this device.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
         <Separator className="my-4" />
-        <Button variant="destructive" onClick={() => setSignoutOpen(true)}>
-          <LogOut /> Sign out
+        <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+          <Trash2 /> Delete account
         </Button>
       </Card>
 
-      <AlertDialog open={signoutOpen} onOpenChange={setSignoutOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sign out?</AlertDialogTitle>
-            <AlertDialogDescription>You will be redirected to the sign in page.</AlertDialogDescription>
+            <AlertDialogTitle>Delete account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your account, order history, and all saved data. This action cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSignout}>Sign out</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete my account
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

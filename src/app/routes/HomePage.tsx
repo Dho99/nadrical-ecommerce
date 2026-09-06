@@ -20,7 +20,7 @@ export function HomePage() {
             <HomeBanner />
             <CategoryIndex categories={categories} />
 
-            <section className="mx-auto container px-5 pb-16 sm:px-8">
+            <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
                 <SectionHead
                     eyebrow="This week's picks"
                     title="Featured products"
@@ -39,7 +39,7 @@ export function HomePage() {
                         status={heroProducts ? status : "loading"}
                         error={error}
                         onRetry={refetch}
-                        className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+                        className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
                     />
                 </div>
             </section>
