@@ -1,10 +1,12 @@
 import { api } from '../../../shared/lib/api'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
 import { orderRepository } from './order.repository'
+import { shippingService } from './shipping.service'
 
 export const checkoutService = {
   async placeOrder(payload: OrderPayload): Promise<OrderConfirmation> {
     const now = new Date()
+    const etaDays = shippingService.etaDays(payload.shipping_method)
 
     try {
       const itemsInput = payload.items.map((i) => ({
@@ -23,7 +25,7 @@ export const checkoutService = {
         shipping_cost: payload.totals.shipping_total,
         discount: payload.totals.discount ?? 0,
         voucher_code: payload.voucher_code || payload.totals.voucher_code || undefined,
-        service_fee: 0,
+        service_fee: payload.totals.payment_fee ?? 0,
         items: itemsInput,
       })
 
@@ -32,7 +34,7 @@ export const checkoutService = {
           order_number: res.data.order.order_number,
           placed_at: new Date(res.data.order.created_at || now),
           email: payload.customer.email,
-          eta_days: payload.shipping_method === 'express' ? 1 : 4,
+          eta_days: etaDays,
           grand_total: Number(res.data.order.total || payload.totals.grand_total),
         }
       }
@@ -82,7 +84,7 @@ export const checkoutService = {
       order_number: orderNumber,
       placed_at: now,
       email: payload.customer.email,
-      eta_days: payload.shipping_method === 'express' ? 1 : 4,
+      eta_days: etaDays,
       grand_total: payload.totals.grand_total,
     }
   },

@@ -1,67 +1,50 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../../../shared/utils/format'
 import { Card, Separator } from '../../../shared/components/ui'
-import { ProductImage } from '../../../shared/components/ProductImage'
-import type { CartItem, CartTotals } from '../../cart/types/cart.type'
-import { SHIPPING_METHODS, type ShippingMethod } from '../types/checkout.type'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
 import { VoucherField } from '../../voucher/components/VoucherField'
+import { shippingService } from '../services/shipping.service'
+import { paymentService } from '../services/payment.service'
+import { useCheckoutRuntime } from '../hooks/useCheckoutRuntime'
+import type { CartItem } from '../../cart/types/cart.type'
+import { CheckoutProductItem } from './CheckoutProductItem'
 
 interface OrderSummaryProps {
   items: CartItem[]
-  totals: CartTotals
-  shippingMethod: ShippingMethod
 }
 
-export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProps) {
-  const method = SHIPPING_METHODS.find((m) => m.id === shippingMethod)
-  const shippingCost =
-    shippingMethod === 'standard' && totals.subtotal >= 75 ? 0 : method?.price ?? 0
+export function OrderSummary({ items }: OrderSummaryProps) {
+  const subtotal = items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
   const { applied, discount } = useVoucher()
-  const voucherDiscount = applied ? discount(totals.subtotal, shippingCost) : 0
-  const grandTotal = Math.max(0, totals.subtotal - voucherDiscount + shippingCost)
-  const { estimatedDate, loyaltyPoints } = useMemo(() => {
-    // eslint-disable-next-line react-hooks/purity -- Date.now is impure but needed for delivery estimate display
-    const d = new Date(Date.now() + (shippingMethod === 'express' ? 1 : 4) * 86400000)
-    return { estimatedDate: d, loyaltyPoints: Math.floor(grandTotal / 10) }
-  }, [shippingMethod, grandTotal])
+  const shippingMethod = useCheckoutRuntime((s) => s.shippingMethod)
+  const paymentKind = useCheckoutRuntime((s) => s.paymentKind)
+  const quote = shippingService.quote(shippingMethod, subtotal)
+  const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
+  const paymentFee = paymentService.fee(paymentKind, subtotal)
+  const grandTotal = Math.max(0, subtotal - voucherDiscount + quote.cost + paymentFee)
+  const etaDays = shippingService.etaDays(shippingMethod)
+  const method = shippingService.getMethod(shippingMethod)
+
+  const estimatedDate = new Date(
+    // eslint-disable-next-line react-hooks/purity -- delivery estimate uses current time
+    Date.now() + etaDays * 86400000,
+  )
+  const loyaltyPoints = Math.floor(grandTotal / 10)
 
   return (
     <Card className="h-fit p-5">
       <h2 className="font-display text-lg font-bold tracking-tight">Your order</h2>
 
-      <ul className="mt-4">
+      <ul className="mt-4 divide-y">
         {items.map((item) => (
-          <li key={`${item.product_id}-${item.variant_id ?? 'base'}`} className="flex items-center gap-3 py-2.5">
-            <Link
-              to={`/products/${item.product_id}`}
-              className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted"
-            >
-              <ProductImage
-                src={item.cover_image_url}
-                alt={item.product_name}
-                className="h-full w-full"
-              />
-            </Link>
-            <div className="min-w-0 grow">
-              <p className="truncate text-sm font-medium">{item.product_name}</p>
-              {item.variant_name && (
-                <p className="truncate text-xs text-muted-foreground">{item.variant_name}</p>
-              )}
-              <p className="font-mono text-xs text-muted-foreground">
-                {item.sku} · ×{item.quantity}
-              </p>
-            </div>
-            <span className="font-mono text-sm font-semibold">
-              {formatPrice(item.unit_price * item.quantity)}
-            </span>
+          <li key={`${item.product_id}-${item.variant_id ?? 'base'}`}>
+            <CheckoutProductItem line={item} />
           </li>
         ))}
       </ul>
 
       <div className="mt-4">
-        <VoucherField subtotal={totals.subtotal} shipping={shippingCost} />
+        <VoucherField subtotal={subtotal} shipping={quote.cost} />
       </div>
 
       <Separator className="my-3" />
@@ -69,12 +52,18 @@ export function OrderSummary({ items, totals, shippingMethod }: OrderSummaryProp
       <dl className="space-y-1.5 text-sm">
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Subtotal</dt>
-          <dd>{formatPrice(totals.subtotal)}</dd>
+          <dd>{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">Shipping · {method?.label.toLowerCase()}</dt>
-          <dd>{shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}</dd>
+          <dt className="text-muted-foreground">Shipping · {method.label}</dt>
+          <dd>{quote.cost === 0 ? 'FREE' : formatPrice(quote.cost)}</dd>
         </div>
+        {paymentFee > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Payment fee</dt>
+            <dd>{formatPrice(paymentFee)}</dd>
+          </div>
+        )}
         {voucherDiscount > 0 && (
           <div className="flex justify-between text-emerald-600">
             <dt>Discount{applied ? ` · ${applied.code}` : ''}</dt>

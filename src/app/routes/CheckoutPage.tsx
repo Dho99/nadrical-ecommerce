@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
 import { CheckoutForm, OrderSummary } from '../../modules/checkout'
+import { useCheckoutRuntime } from '../../modules/checkout/hooks/useCheckoutRuntime'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
 import { Button, EmptyState } from '../../shared/components/ui'
@@ -8,10 +10,16 @@ import { Button, EmptyState } from '../../shared/components/ui'
 export function CheckoutPage() {
   const { items, totals, clear } = useCart()
   const { user } = useAuth()
+  const resetRuntime = useCheckoutRuntime((s) => s.reset)
+
+  useEffect(() => {
+    resetRuntime()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-5 py-16 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
         <EmptyState
           icon={<PackageX className="size-10" />}
           title="Nothing to check out"
@@ -27,7 +35,7 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
       <header className="mb-6">
         <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Three steps, zero surprises
@@ -44,7 +52,7 @@ export function CheckoutPage() {
           />
         </div>
         <div className="lg:col-span-5">
-          <OrderSummary items={items} totals={totals} shippingMethod="standard" />
+          <OrderSummary items={items} />
         </div>
       </div>
     </div>

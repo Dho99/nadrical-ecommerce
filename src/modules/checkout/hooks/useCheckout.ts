@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { useForm, type Path, type SubmitHandler } from 'react-hook-form'
+import { useForm, type Path, type Resolver, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { checkoutService } from '../services/checkout.service'
 import { checkoutSchema, type CheckoutInput } from '../schemas/checkout.schema'
-import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
+import type { OrderConfirmation, OrderPayload, PaymentDetail } from '../types/checkout.type'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
+import { shippingService } from '../services/shipping.service'
+import { paymentService } from '../services/payment.service'
+import { useCheckoutRuntime } from './useCheckoutRuntime'
 
 export const CHECKOUT_STEPS = [
   { num: '01', label: 'Delivery' },
@@ -46,10 +49,11 @@ export function useCheckout(
   initialValues: Partial<Pick<CheckoutInput, 'recipient_name' | 'email'>> = {},
 ): UseCheckoutResult {
   const form = useForm<CheckoutInput>({
-    resolver: zodResolver(checkoutSchema),
+    resolver: zodResolver(checkoutSchema) as unknown as Resolver<CheckoutInput>,
     mode: 'onTouched',
     defaultValues: {
       shipping_method: 'standard',
+      payment_method: 'card',
       ...initialValues,
     },
   })
@@ -58,12 +62,22 @@ export function useCheckout(
   const [error, setError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null)
   const { applied, discount } = useVoucher()
+  const shippingMethod = useCheckoutRuntime((s) => s.shippingMethod)
+  const paymentKind = useCheckoutRuntime((s) => s.paymentKind)
 
   const isFirstStep = step === 0
   const isLastStep = step === CHECKOUT_STEPS.length - 1
 
+  const fieldsForStep = (): Array<keyof CheckoutInput> => {
+    if (step !== 2) return STEP_FIELDS[step]
+    const method = (form.getValues('payment_method') ?? 'card') as CheckoutInput['payment_method']
+    return method === 'card'
+      ? [...STEP_FIELDS[2], 'payment_method']
+      : ['payment_method']
+  }
+
   const next = async () => {
-    const fields = STEP_FIELDS[step].map((f) => f as Path<CheckoutInput>)
+    const fields = fieldsForStep().map((f) => f as Path<CheckoutInput>)
     const valid = await form.trigger(fields)
     if (!valid) return
     setError(null)
@@ -84,15 +98,29 @@ export function useCheckout(
     setIsSubmitting(true)
     setError(null)
     try {
-      const shippingForTotals = values.shipping_method === 'express' ? 16 : payloadBase.totals.shipping_total
-      const voucherDiscount = applied ? discount(payloadBase.totals.subtotal, shippingForTotals) : 0
-      const discountedTotals = {
-        ...payloadBase.totals,
-        discount: voucherDiscount,
-        voucher_code: applied?.code,
-        grand_total: Math.max(0, payloadBase.totals.subtotal - voucherDiscount + shippingForTotals),
-        shipping_total: shippingForTotals,
+      const subtotal = payloadBase.totals.subtotal
+      const quote = shippingService.quote(shippingMethod, subtotal)
+      const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
+      const paymentFee = paymentService.fee(paymentKind, subtotal)
+      const grandTotal = Math.max(
+        0,
+        subtotal - voucherDiscount + quote.cost + paymentFee,
+      )
+
+      const payment: PaymentDetail = {
+        kind: values.payment_method ?? paymentKind,
+        provider:
+          values.payment_provider ||
+          useCheckoutRuntime.getState().paymentProvider ||
+          undefined,
       }
+      if (payment.kind === 'card') {
+        payment.card_name = values.card_name
+        payment.card_number = values.card_number
+        payment.expiry = values.expiry
+        payment.cvc = values.cvc
+      }
+
       const payload: OrderPayload = {
         customer: {
           recipient_name: values.recipient_name,
@@ -105,19 +133,22 @@ export function useCheckout(
           shipping_postal_code: values.shipping_postal_code,
           shipping_country_code: values.shipping_country_code,
         },
-        shipping_method: values.shipping_method,
-        payment: {
-          card_name: values.card_name,
-          card_number: values.card_number,
-          expiry: values.expiry,
-          cvc: values.cvc,
-        },
+        shipping_method: shippingMethod,
+        payment,
         items: payloadBase.items,
-        totals: discountedTotals,
+        totals: {
+          subtotal,
+          shipping_total: quote.cost,
+          discount: voucherDiscount,
+          payment_fee: paymentFee,
+          voucher_code: applied?.code,
+          grand_total: grandTotal,
+        },
         voucher_code: applied?.code,
       }
       const result = await checkoutService.placeOrder(payload)
       setConfirmation(result)
+      useCheckoutRuntime.getState().reset()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Order failed. Try again.')
     } finally {
