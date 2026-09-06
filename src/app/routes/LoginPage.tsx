@@ -2,7 +2,7 @@ import { AuthForm } from "../../modules/auth";
 
 export function LoginPage() {
     return (
-        <div className="container mx-auto px-5 py-12 sm:px-8">
+        <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8">
             <header className="mb-8 text-center">
                 <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
                     Store account
