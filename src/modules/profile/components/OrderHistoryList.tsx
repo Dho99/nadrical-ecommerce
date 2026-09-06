@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { PackageOpen, RefreshCw, Repeat2, Truck, X } from 'lucide-react'
+import { ArrowRight, PackageOpen, RefreshCw, Repeat2, Truck, X } from 'lucide-react'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { PRODUCT_CATALOG } from '../../products/services/mock-data'
 import { useCart } from '../../cart/hooks/useCart'
@@ -30,9 +30,6 @@ import {
   EmptyState,
   Separator,
   Skeleton,
-  Tabs,
-  TabsList,
-  TabsTrigger,
 } from '../../../shared/components/ui'
 import { formatOrderDate } from '../utils/profile.utils'
 
@@ -61,6 +58,14 @@ const TAB_EMPTY: Record<TabKey, { title: string; description: string }> = {
   shipped: { title: 'No orders in transit', description: 'When an order ships, it will appear here with tracking info.' },
   completed: { title: 'No completed orders', description: 'Delivered orders will show up here once they arrive.' },
   cancelled: { title: 'No cancelled orders', description: 'No orders have been cancelled or refunded.' },
+}
+
+const TAB_DOT: Record<TabKey, string> = {
+  all: 'bg-[#f34e7b]',
+  processing: 'bg-blue-500',
+  shipped: 'bg-purple-500',
+  completed: 'bg-emerald-500',
+  cancelled: 'bg-red-500',
 }
 
 function Stepper({ status }: { status: DbOrderStatus }) {
@@ -190,16 +195,43 @@ export function OrderHistoryList({
 
   return (
     <>
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
-        <TabsList variant="line" className="flex w-full justify-start">
-          {(['all', 'processing', 'shipped', 'completed', 'cancelled'] as const).map((key) => (
-            <TabsTrigger key={key} value={key} className="gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Filter orders by status"
+        className="flex gap-1 overflow-x-auto rounded-full bg-muted p-1 mb-5"
+      >
+        {(['all', 'processing', 'shipped', 'completed', 'cancelled'] as const).map((key) => {
+          const active = activeTab === key
+          return (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all',
+                active
+                  ? 'bg-[#f34e7b] text-white shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn('size-2 rounded-full', TAB_DOT[key], active && 'bg-white/80')}
+              />
               {key === 'all' ? 'All' : key.charAt(0).toUpperCase() + key.slice(1)}
-              <span className="font-mono text-[10px] text-muted-foreground">({counts[key]})</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+              <span
+                className={cn(
+                  'rounded-full px-1.5 font-mono text-[10px]',
+                  active ? 'bg-white/25 text-white' : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {counts[key]}
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -224,7 +256,12 @@ export function OrderHistoryList({
                         {formatOrderDate(order.placed_at ?? '')}
                       </p>
                       <h3 className="mt-0.5 font-display text-lg font-semibold tracking-tight">
-                        {order.order_number}
+                        <Link
+                          to={`/profile/orders/${order.order_number}`}
+                          className="transition-colors hover:text-primary"
+                        >
+                          {order.order_number}
+                        </Link>
                       </h3>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {order.recipient_name}
@@ -318,6 +355,11 @@ export function OrderHistoryList({
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
                     <div className="flex items-center gap-2">
+                      <Button asChild size="sm" className="h-8 gap-1 bg-[#f34e7b] text-white shadow-sm hover:bg-[#f34e7b]/90">
+                        <Link to={`/profile/orders/${order.order_number}`}>
+                          View details <ArrowRight className="size-3.5" />
+                        </Link>
+                      </Button>
                       <span className="text-sm text-muted-foreground">
                         {order.shipping_method === 'express' ? 'Express' : 'Standard'}
                       </span>
