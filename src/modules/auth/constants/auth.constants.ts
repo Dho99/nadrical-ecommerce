@@ -10,5 +10,5 @@ export const SEED_ADMIN = {
 } as const
 
 // Legacy / Quick dev demo fallback
-export const DEV_ADMIN_EMAIL = 'admin@store.dev'
+export const DEV_ADMIN_EMAIL = 'customer@store.dev'
 export const DEV_ADMIN_PASSWORD = 'admin123'
