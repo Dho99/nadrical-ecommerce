@@ -15,7 +15,7 @@ interface CategoryIndexProps {
 
 export function CategoryIndex({ categories }: CategoryIndexProps) {
   return (
-    <section className="container mx-auto px-5 py-12 sm:px-8 sm:py-16">
+    <section className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
       <SectionHead
         eyebrow="Categories"
         title="Shop by category"

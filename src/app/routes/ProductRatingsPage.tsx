@@ -51,7 +51,7 @@ export function ProductRatingsPage() {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <div className="container mx-auto px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="mt-4 h-8 w-2/3" />
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -68,7 +68,7 @@ export function ProductRatingsPage() {
 
   if (status === 'error' || !product) {
     return (
-      <div className="container mx-auto px-5 py-16 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
         <EmptyState
           icon={<PackageX className="size-10" />}
           title="Product not found"
@@ -83,7 +83,7 @@ export function ProductRatingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
       <Breadcrumb className="mb-5">
         <BreadcrumbList>
           <BreadcrumbItem>

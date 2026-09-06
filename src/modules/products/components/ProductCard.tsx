@@ -3,6 +3,7 @@ import { Star } from 'lucide-react'
 import { Badge, Card, CardContent } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { WishlistButton } from '../../wishlist/components/WishlistButton'
+import { useCurrency } from '../../currency'
 import { CATEGORY_LABEL } from '../constants/product.constants'
 import type { Product, ProductBadge } from '../types/product.type'
 
@@ -20,6 +21,7 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const isPreorder = Boolean(product.is_preorder)
   const soldOut = product.stock === 0 && !isPreorder
+  const { format } = useCurrency()
 
   return (
     <Card
@@ -82,11 +84,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         <div className="mt-auto flex items-baseline gap-2 pt-1">
           <p className="font-display text-base font-bold tracking-tight">
-            ${product.base_price.toFixed(2)}
+            {format(product.base_price)}
           </p>
           {product.discount_percent && (
             <p className="text-xs text-muted-foreground line-through">
-              ${(product.base_price / (1 - product.discount_percent / 100)).toFixed(2)}
+              {format(product.base_price / (1 - product.discount_percent / 100))}
             </p>
           )}
         </div>
