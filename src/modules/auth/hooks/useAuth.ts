@@ -35,6 +35,8 @@ export const useAuthStore = create<AuthStore>()(
             },
 
             googleLogin: async (_name, _email) => {
+                void _name;
+                void _email;
                 throw new Error("Google login not supported");
             },
 

@@ -118,9 +118,9 @@ export const authService = {
         token,
       }
     } catch (error) {
-      throw new Error(
-        getErrorMessage(error, 'Registration failed. Please try again.'),
-      )
+      throw new Error(getErrorMessage(error, 'Registration failed. Please try again.'), {
+        cause: error,
+      })
     }
   },
 
@@ -185,9 +185,9 @@ export const authService = {
           token,
         }
       }
-      throw new Error(
-        getErrorMessage(error, 'Incorrect credentials. Please try again.'),
-      )
+      throw new Error(getErrorMessage(error, 'Incorrect credentials. Please try again.'), {
+        cause: error,
+      })
     }
   },
 

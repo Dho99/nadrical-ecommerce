@@ -39,15 +39,25 @@ export const reviewService = {
     let stats: ReviewStats | null = null
 
     try {
-      const res = await api.get<{
+      type ReviewEnvelope = {
         success: boolean
         data?: { items?: Review[]; data?: Review[] }
         meta?: { total?: number }
-      }>(`/ecommerce/products/${productId}/reviews`, {
+      }
+      type ReviewListPayload = { items?: Review[]; data?: Review[] }
+      const res = await api.get<ReviewEnvelope>(`/ecommerce/products/${productId}/reviews`, {
         params: { page, limit, sort },
       })
-      const payload = res.data?.data ?? res.data
-      const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : []
+      const envelope: ReviewEnvelope = res.data
+      const rawPayload: unknown = envelope.data ?? (envelope as unknown as ReviewListPayload & ReviewEnvelope)
+      let items: Review[] = []
+      if (Array.isArray(rawPayload)) {
+        items = rawPayload as Review[]
+      } else if (rawPayload !== null && typeof rawPayload === 'object') {
+        const obj = rawPayload as ReviewListPayload
+        if (Array.isArray(obj.items)) items = obj.items
+        else if (Array.isArray(obj.data)) items = obj.data
+      }
       if (items.length > 0) {
         reviews = items
         stats = reviewStats(reviews)

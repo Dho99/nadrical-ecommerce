@@ -183,7 +183,7 @@ function handleCart(req: MockRequest): MockResponse {
       const body = (req.body ?? {}) as { quantity?: number }
       const updated: MockCartItem = {
         ...mockData.cart[index],
-        quantity: Number(body.quantity) ?? mockData.cart[index].quantity,
+        quantity: body.quantity === undefined ? mockData.cart[index].quantity : Number(body.quantity),
       }
       mockData.cart[index] = updated
       return ok({ item: updated })

@@ -32,6 +32,7 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!email) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync loads stored + remote notifications on mount/focus
     void sync()
     const interval = setInterval(() => void sync(), 60_000)
     const onFocus = () => void sync()
