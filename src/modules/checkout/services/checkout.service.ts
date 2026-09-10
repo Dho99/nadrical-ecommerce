@@ -29,13 +29,14 @@ export const checkoutService = {
         items: itemsInput,
       })
 
-      if (res.data?.order) {
+      const orderData = (res.data as any)?.data || (res.data as any)?.order
+      if (orderData) {
         return {
-          order_number: res.data.order.order_number,
-          placed_at: new Date(res.data.order.created_at || now),
+          order_number: orderData.order_number,
+          placed_at: new Date(orderData.created_at || now),
           email: payload.customer.email,
           eta_days: etaDays,
-          grand_total: Number(res.data.order.total || payload.totals.grand_total),
+          grand_total: Number(orderData.total || payload.totals.grand_total),
         }
       }
     } catch {

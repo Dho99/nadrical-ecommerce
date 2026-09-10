@@ -105,10 +105,10 @@ export const orderRepository = {
       phone: order.recipient_phone,
       address: order.shipping_address_line_1,
       city: order.shipping_city,
+      shipping_courier: order.shipping_method || "standard",
       items: items.map((i) => ({
-        product_id: i.product_id,
+        product_uuid: i.product_id,
         quantity: i.quantity,
-        unit_price: i.unit_price,
       })),
     })
   },

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
 import { CheckoutForm, OrderSummary } from '../../modules/checkout'
@@ -11,13 +11,14 @@ export function CheckoutPage() {
   const { items, totals, clear } = useCart()
   const { user } = useAuth()
   const resetRuntime = useCheckoutRuntime((s) => s.reset)
+  const [isPlaced, setIsPlaced] = useState(false)
 
   useEffect(() => {
     resetRuntime()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isPlaced) {
     return (
       <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
         <EmptyState
@@ -48,7 +49,7 @@ export function CheckoutPage() {
           <CheckoutForm
             payloadBase={{ items, totals }}
             initialValues={{ recipient_name: user?.full_name, email: user?.email }}
-            onOrderPlaced={clear}
+            onOrderPlaced={() => { setIsPlaced(true); clear(); }}
           />
         </div>
         <div className="lg:col-span-5">
