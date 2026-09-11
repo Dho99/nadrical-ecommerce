@@ -5,6 +5,7 @@ import { ADMIN_EMAIL, ADMIN_PASSWORD, DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD, SEED_
 export interface UpdateProfileInput {
   full_name: string
   phone?: string
+  avatar_url?: string
   current_password?: string
   new_password?: string
 }
@@ -54,6 +55,7 @@ function toAuthUser(akun: BackendAkun): AuthUser {
     email: akun.email,
     full_name: akun.full_name || akun.username || akun.email.split('@')[0],
     phone: akun.phone || undefined,
+    avatar_url: akun.avatar_url || undefined,
     role_name: parseRole(akun.roles),
   }
 }
@@ -254,12 +256,27 @@ export const authService = {
     userId: string,
     input: UpdateProfileInput,
   ): Promise<AuthUser> {
+    if (input.avatar_url) {
+      try {
+        const form = new FormData()
+        form.append('avatar_url', input.avatar_url)
+        const up = await api.put<StandardApiResponse<BackendAkun>>(
+          `/core/accounts/${userId}/avatar`,
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
+        if (up.data.data?.avatar_url) return toAuthUser(up.data.data)
+      } catch {
+        // fallback to profile update with data URL
+      }
+    }
     try {
       const res = await api.put<StandardApiResponse<BackendAkun>>(
         `/core/accounts/${userId}`,
         {
           full_name: input.full_name,
           phone: input.phone,
+          avatar_url: input.avatar_url || undefined,
           ...(input.new_password ? { password: input.new_password } : {}),
         },
       )
@@ -275,6 +292,7 @@ export const authService = {
       email: '',
       full_name: input.full_name,
       phone: input.phone,
+      avatar_url: input.avatar_url,
       role_name: 'user',
     }
   },

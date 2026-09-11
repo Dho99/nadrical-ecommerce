@@ -14,6 +14,12 @@ export const profileSchema = z
       .regex(/^[+\d\s()-]*$/, 'Phone can only contain digits and + - ( )')
       .optional()
       .or(z.literal('')),
+    avatar_url: z.string().trim().optional().or(z.literal('')),
+    avatar_file: z
+      .instanceof(File)
+      .refine((f) => f.size <= 2 * 1024 * 1024, 'Max 2MB')
+      .refine((f) => f.type.startsWith('image/'), 'Must be an image')
+      .optional(),
     current_password: z.string().optional().or(z.literal('')),
     new_password: z
       .string()
