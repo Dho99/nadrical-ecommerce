@@ -129,6 +129,7 @@ export function OrderHistoryList({
   onCancel,
   cancellingId,
 }: OrderHistoryListProps) {
+  void cancellingId
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [cancelTarget, setCancelTarget] = useState<OrderWithItems | null>(null)
   const { add } = useCart()
@@ -244,7 +245,7 @@ export function OrderHistoryList({
           {filtered.map((order) => {
             const oStatus = (order.status ?? 'pending_payment') as DbOrderStatus
             const terminal = isTerminalBad(oStatus)
-            const cancellable = isCancellable(oStatus)
+            void isCancellable(oStatus)
             const etaDays = order.shipping_method === 'express' ? 1 : 4
 
             return (
@@ -252,10 +253,7 @@ export function OrderHistoryList({
                 <Card className={cn('p-5 sm:p-6', terminal && 'opacity-75')}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {formatOrderDate(order.placed_at ?? '')}
-                      </p>
-                      <h3 className="mt-0.5 font-display text-lg font-semibold tracking-tight">
+                      <h3 className="font-display text-lg font-semibold tracking-tight">
                         <Link
                           to={`/profile/orders/${order.order_number}`}
                           className="transition-colors hover:text-primary"
@@ -263,9 +261,12 @@ export function OrderHistoryList({
                           {order.order_number}
                         </Link>
                       </h3>
+                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        Order date: {formatOrderDate(order.placed_at ?? '')}
+                      </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {order.recipient_name}
-                        {order.recipient_phone ? ` · ${order.recipient_phone}` : ''}
+                        {order.recipient_phone ? ` | ${order.recipient_phone}` : ''}
                       </p>
                       {(order.shipping_city || order.shipping_province) && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -275,6 +276,35 @@ export function OrderHistoryList({
                     </div>
                     <OrderStatusBadge status={oStatus} />
                   </div>
+
+                  <ul className="space-y-2">
+                    {order.order_items.map((line, i) => {
+                      const img = productImage(line.product_id)
+                      return (
+                        <li
+                          key={`${line.sku_snapshot ?? line.product_id}-${i}`}
+                          className="flex items-center gap-3 text-sm"
+                        >
+                          <div className="size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                            {img ? (
+                              <ProductImage src={img} alt={line.product_name_snapshot} className="h-full w-full" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                <PackageOpen className="size-4" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{line.product_name_snapshot}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {line.variant_name_snapshot ? `${line.variant_name_snapshot} · ` : ''}×{line.quantity}
+                            </p>
+                          </div>
+                          <span className="font-medium">{formatPrice(line.unit_price * line.quantity)}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
 
                   <div className="mt-4">
                     {terminal ? (
@@ -309,46 +339,20 @@ export function OrderHistoryList({
 
                   <Separator className="my-4" />
 
-                  <ul className="space-y-2">
-                    {order.order_items.map((line, i) => {
-                      const img = productImage(line.product_id)
-                      return (
-                        <li
-                          key={`${line.sku_snapshot ?? line.product_id}-${i}`}
-                          className="flex items-center gap-3 text-sm"
-                        >
-                          <div className="size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
-                            {img ? (
-                              <ProductImage src={img} alt={line.product_name_snapshot} className="h-full w-full" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                <PackageOpen className="size-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{line.product_name_snapshot}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {line.variant_name_snapshot ? `${line.variant_name_snapshot} · ` : ''}×{line.quantity} · {line.sku_snapshot ?? line.product_id}
-                            </p>
-                          </div>
-                          <span className="font-medium">{formatPrice(line.unit_price * line.quantity)}</span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-
                   {(order.shipping_address_line_1 || order.tracking_number) && (
                     <div className="mt-3 rounded-md bg-muted/50 p-3 text-xs leading-relaxed">
-                      <p className="font-medium">Shipping information</p>
-                      {order.shipping_address_line_1 && (
-                        <p className="text-muted-foreground">
-                          {order.shipping_address_line_1} {order.shipping_city ? `, ${order.shipping_city}` : ''}{' '}
-                          {order.shipping_province ?? ''} {order.shipping_postal_code ?? ''}
+                      <p className="font-medium">Shipping Information</p>
+                      {order.tracking_number ? (
+                        <p className="font-mono text-muted-foreground">
+                          {order.shipping_method === 'express' ? 'JNE Express' : order.shipping_method === 'standard' ? 'JNE Reguler' : order.shipping_method} : {order.tracking_number} (No Resi)
                         </p>
-                      )}
-                      {order.tracking_number && (
-                        <p className="mt-1 font-mono text-muted-foreground">Tracking: {order.tracking_number}</p>
+                      ) : (
+                        order.shipping_address_line_1 && (
+                          <p className="text-muted-foreground">
+                            {order.shipping_address_line_1} {order.shipping_city ? `, ${order.shipping_city}` : ''}{' '}
+                            {order.shipping_province ?? ''} {order.shipping_postal_code ?? ''}
+                          </p>
+                        )
                       )}
                     </div>
                   )}
@@ -360,9 +364,6 @@ export function OrderHistoryList({
                           View details <ArrowRight className="size-3.5" />
                         </Link>
                       </Button>
-                      <span className="text-sm text-muted-foreground">
-                        {order.shipping_method === 'express' ? 'Express' : 'Standard'}
-                      </span>
                       <Button
                         variant="outline"
                         size="sm"
@@ -378,18 +379,6 @@ export function OrderHistoryList({
                       >
                         <Repeat2 className="size-3" /> Reorder
                       </Button>
-                      {cancellable && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-destructive hover:text-destructive"
-                          disabled={cancellingId === order.id}
-                          onClick={() => setCancelTarget(order)}
-                        >
-                          <X className="size-3" />
-                          {cancellingId === order.id ? 'Cancelling…' : 'Cancel'}
-                        </Button>
-                      )}
                     </div>
                     <span className="font-display text-lg font-bold tracking-tight">
                       {formatPrice(order.grand_total)}

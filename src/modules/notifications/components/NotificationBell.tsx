@@ -68,7 +68,7 @@ export function NotificationBell() {
           className="relative"
           aria-label={`Notifications, ${unreadCount} unread`}
         >
-          {unreadCount > 0 ? <BellRing /> : <Bell />}
+          {unreadCount > 0 ? <BellRing className="size-5" /> : <Bell className="size-5" />}
           {unreadCount > 0 && (
             <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center rounded-full px-0 text-[10px]">
               {unreadCount > 9 ? '9+' : unreadCount}

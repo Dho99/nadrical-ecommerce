@@ -14,7 +14,7 @@ export function ProfileLayout() {
     <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8">
       <header className="mb-6">
         <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Store account
+          User account
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl">
           Profile
@@ -25,14 +25,8 @@ export function ProfileLayout() {
         <NavLink to="/profile" end className={navLinkClass}>
           Account
         </NavLink>
-        <NavLink to="/profile/edit" className={navLinkClass}>
-          Edit profile
-        </NavLink>
         <NavLink to="/profile/orders" className={navLinkClass}>
           Order history
-        </NavLink>
-        <NavLink to="/profile/wishlist" className={navLinkClass}>
-          Wishlist
         </NavLink>
         <NavLink to="/profile/addresses" className={navLinkClass}>
           Addresses
