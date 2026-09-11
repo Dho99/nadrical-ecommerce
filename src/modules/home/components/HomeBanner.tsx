@@ -132,7 +132,7 @@ export function HomeBanner() {
             <img
               src={slide.image}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out ${idx === active ? 'scale-100' : 'scale-105'}`}
               loading={idx === 0 ? 'eager' : 'lazy'}
               draggable={false}
             />
@@ -200,7 +200,7 @@ export function HomeBanner() {
       </div>
 
       {/* thin secondary strip mimicking bro.do category quick links below banner */}
-      <div className="border-t border-white/10 bg-black text-white">
+      {/* <div className="border-t border-white/10 bg-black text-white">
         <div className="mx-auto w-full max-w-7xl flex gap-2 overflow-x-auto px-5 py-3 text-xs font-medium tracking-wide sm:px-8">
           {BANNERS.map((b) => (
             <Link
@@ -215,10 +215,10 @@ export function HomeBanner() {
             to="/products"
             className="whitespace-nowrap rounded-full bg-white px-3.5 py-1.5 text-black transition hover:bg-white/90"
           >
-            All Catalog →
+            All Products →
           </Link>
         </div>
-      </div>
+      </div> */}
     </section>
   )
 }

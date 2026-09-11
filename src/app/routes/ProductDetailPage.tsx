@@ -124,10 +124,19 @@ export function ProductDetailPage() {
 
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            {product.badge && <Badge variant={BADGE_VARIANT[product.badge]}>{product.badge}</Badge>}
+            {product.is_preorder ? (
+              <Badge className="bg-amber-500 text-white">Pre-order</Badge>
+            ) : product.stock === 0 ? (
+              <Badge variant="destructive">Out of stock</Badge>
+            ) : product.stock < 20 ? (
+              <Badge variant="secondary">Low stock · {product.stock} left</Badge>
+            ) : (
+              <Badge variant="outline">In stock</Badge>
+            )}
             <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
               {CATEGORY_LABEL[product.category_id]}
             </p>
+            {product.badge && <Badge variant={BADGE_VARIANT[product.badge]}>{product.badge}</Badge>}
           </div>
           <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
             <h1 className="font-display text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
@@ -142,8 +151,9 @@ export function ProductDetailPage() {
           </div>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link
-              to={`/products/${product.id}/ratings`}
+            <button
+              type="button"
+              onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-1.5 text-sm transition-opacity hover:opacity-80"
               aria-label={`${product.rating} out of 5 rating, ${product.review_count} reviews`}
             >
@@ -152,13 +162,14 @@ export function ProductDetailPage() {
               <span className="font-mono text-xs text-muted-foreground">
                 ({product.review_count})
               </span>
-            </Link>
-            <Link
-              to={`/products/${product.id}/ratings`}
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
               className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               Lihat ulasan
-            </Link>
+            </button>
           </div>
 
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -171,7 +182,9 @@ export function ProductDetailPage() {
         </div>
       </div>
 
-      <ReviewSection product={product} />
+      <div id="reviews">
+        <ReviewSection product={product} />
+      </div>
 
       {related.length > 0 && (
         <section className="mt-16">

@@ -297,14 +297,28 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <StockBadge stock={stock} isPreorder={isPreorder} />
-        <p className="font-display text-2xl font-bold tracking-tight">
-          {format(price)}
-          {selected && selected.price_delta > 0 && (
-            <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
-              +{format(selected.price_delta)}
-            </span>
+        <div className="flex items-baseline gap-2">
+          {product.discount_percent ? (
+            <>
+              <p className="font-display text-2xl font-bold tracking-tight">
+                {format((price * (1 - product.discount_percent / 100)))}
+              </p>
+              <p className="text-sm text-muted-foreground line-through">{format(price)}</p>
+              <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
+                -{product.discount_percent}%
+              </span>
+            </>
+          ) : (
+            <p className="font-display text-2xl font-bold tracking-tight">
+              {format(price)}
+              {selected && selected.price_delta > 0 && (
+                <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
+                  +{format(selected.price_delta)}
+                </span>
+              )}
+            </p>
           )}
-        </p>
+        </div>
       </div>
       {isPreorder && (
         <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs dark:bg-amber-950/20">
@@ -361,10 +375,6 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
           </AlertDescription>
         </Alert>
       )}
-
-      <p className="mt-3 text-xs text-muted-foreground">
-        Ships within 48h · 14-day returns · 2-year guarantee included.
-      </p>
 
       <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
         <DialogContent>

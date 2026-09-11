@@ -1,16 +1,14 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { HomeBanner, CategoryIndex } from "../../modules/home";
+import { HomeBanner } from "../../modules/home";
 import {
     ProductGrid,
     useProducts,
-    useCategories,
 } from "../../modules/products";
 import { SectionHead } from "../../shared/components/ui";
 
 export function HomePage() {
     const { products, status, error, refetch } = useProducts({});
-    const categories = useCategories();
 
     const featured = products.filter((p) => p.is_featured).slice(0, 4);
     const heroProducts = products.length > 0 ? products : null;
@@ -18,9 +16,8 @@ export function HomePage() {
     return (
         <>
             <HomeBanner />
-            <CategoryIndex categories={categories} />
 
-            <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+            <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8 py-10">
                 <SectionHead
                     eyebrow="This week's picks"
                     title="Featured products"

@@ -1,6 +1,13 @@
 import type { Product } from '../types/product.type'
 import { unsplashUrl as img } from '../../../shared/utils/unsplash'
 
+const v = (id: string, name: string, delta: number, stock: number) => ({
+  id,
+  variant_name: name,
+  price_delta: delta,
+  stock,
+})
+
 export const PRODUCT_CATALOG: Product[] = [
   {
     id: 'SKU-1001',
@@ -23,6 +30,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Weight', spec_value: '254 g' },
       { spec_name: 'Includes', spec_value: 'USB-C cable, carry case' },
     ],
+    variants: [
+      v('SKU-1001-S-MER', 'S / Merah', 0, 12),
+      v('SKU-1001-S-HIJ', 'S / Hijau', 0, 8),
+      v('SKU-1001-S-BLK', 'S / Hitam', 0, 15),
+      v('SKU-1001-M-MER', 'M / Merah', 0, 10),
+      v('SKU-1001-M-HIJ', 'M / Hijau', 0, 14),
+      v('SKU-1001-M-BLK', 'M / Hitam', 0, 9),
+      v('SKU-1001-L-MER', 'L / Merah', 2, 6),
+      v('SKU-1001-L-HIJ', 'L / Hijau', 2, 4),
+    ],
   },
   {
     id: 'SKU-1002',
@@ -43,6 +60,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Water rating', spec_value: '5 ATM' },
       { spec_name: 'Sensors', spec_value: 'HR, SpO2, GPS' },
       { spec_name: 'Strap', spec_value: 'Interchangeable 22 mm' },
+    ],
+    variants: [
+      v('SKU-1002-S-MER', 'S / Merah', 0, 10),
+      v('SKU-1002-S-HIJ', 'S / Hijau', 0, 7),
+      v('SKU-1002-S-BLK', 'S / Hitam', 0, 11),
+      v('SKU-1002-M-MER', 'M / Merah', 0, 9),
+      v('SKU-1002-M-HIJ', 'M / Hijau', 0, 13),
+      v('SKU-1002-M-BLK', 'M / Hitam', 0, 8),
+      v('SKU-1002-L-MER', 'L / Merah', 2, 5),
+      v('SKU-1002-L-BLK', 'L / Hitam', 2, 3),
     ],
   },
   {
@@ -65,6 +92,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Mount', spec_value: 'Lens kit 16-50 mm' },
       { spec_name: 'Card slot', spec_value: 'SD UHS-II' },
     ],
+    variants: [
+      v('SKU-1003-S-MER', 'S / Merah', 0, 6),
+      v('SKU-1003-S-HIJ', 'S / Hijau', 0, 4),
+      v('SKU-1003-S-BLK', 'S / Hitam', 0, 5),
+      v('SKU-1003-M-MER', 'M / Merah', 0, 7),
+      v('SKU-1003-M-HIJ', 'M / Hijau', 0, 3),
+      v('SKU-1003-M-BLK', 'M / Hitam', 0, 8),
+      v('SKU-1003-L-MER', 'L / Merah', 5, 2),
+      v('SKU-1003-L-HIJ', 'L / Hijau', 5, 4),
+    ],
   },
   {
     id: 'SKU-1004',
@@ -86,6 +123,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Water rating', spec_value: 'IPX4' },
       { spec_name: 'Includes', spec_value: '3 tip sizes' },
     ],
+    variants: [
+      v('SKU-1004-S-MER', 'S / Merah', 0, 20),
+      v('SKU-1004-S-HIJ', 'S / Hijau', 0, 18),
+      v('SKU-1004-S-BLK', 'S / Hitam', 0, 22),
+      v('SKU-1004-M-MER', 'M / Merah', 0, 16),
+      v('SKU-1004-M-HIJ', 'M / Hijau', 0, 14),
+      v('SKU-1004-M-BLK', 'M / Hitam', 0, 19),
+      v('SKU-1004-L-MER', 'L / Merah', 2, 8),
+      v('SKU-1004-L-HIJ', 'L / Hijau', 2, 6),
+    ],
   },
   {
     id: 'SKU-2001',
@@ -106,6 +153,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Fit', spec_value: 'Regular' },
       { spec_name: 'Care', spec_value: 'Machine wash 30°C' },
       { spec_name: 'Sizes', spec_value: 'XS – XXL' },
+    ],
+    variants: [
+      v('SKU-2001-S-MER', 'S / Merah', 0, 18),
+      v('SKU-2001-S-HIJ', 'S / Hijau', 0, 12),
+      v('SKU-2001-S-BLK', 'S / Hitam', 0, 15),
+      v('SKU-2001-M-MER', 'M / Merah', 0, 20),
+      v('SKU-2001-M-HIJ', 'M / Hijau', 0, 14),
+      v('SKU-2001-M-BLK', 'M / Hitam', 0, 16),
+      v('SKU-2001-L-MER', 'L / Merah', 0, 11),
+      v('SKU-2001-L-HIJ', 'L / Hijau', 0, 9),
     ],
   },
   {
@@ -167,6 +224,8 @@ export const PRODUCT_CATALOG: Product[] = [
       { id: 'SKU-2003-42-HIJ', variant_name: 'EU 42 / Hijau', price_delta: 0, stock: 0 },
       { id: 'SKU-2003-44-MER', variant_name: 'EU 44 / Merah', price_delta: 0, stock: 4 },
       { id: 'SKU-2003-44-HIJ', variant_name: 'EU 44 / Hijau', price_delta: 2, stock: 2 },
+      { id: 'SKU-2003-46-MER', variant_name: 'EU 46 / Merah', price_delta: 2, stock: 3 },
+      { id: 'SKU-2003-46-HIJ', variant_name: 'EU 46 / Hijau', price_delta: 2, stock: 5 },
     ],
   },
   {
@@ -187,6 +246,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Fit', spec_value: 'True to size' },
       { spec_name: 'Care', spec_value: 'Machine wash 30°C' },
       { spec_name: 'Sizes', spec_value: 'S – XXL' },
+    ],
+    variants: [
+      v('SKU-2004-S-MER', 'S / Merah', 0, 10),
+      v('SKU-2004-S-HIJ', 'S / Hijau', 0, 8),
+      v('SKU-2004-S-BLK', 'S / Hitam', 0, 9),
+      v('SKU-2004-M-MER', 'M / Merah', 0, 12),
+      v('SKU-2004-M-HIJ', 'M / Hijau', 0, 11),
+      v('SKU-2004-M-BLK', 'M / Hitam', 0, 7),
+      v('SKU-2004-L-MER', 'L / Merah', 0, 6),
+      v('SKU-2004-L-HIJ', 'L / Hijau', 0, 5),
     ],
   },
   {
@@ -213,6 +282,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Frame', spec_value: 'Kiln-dried hardwood' },
       { spec_name: 'Assembly', spec_value: 'None — ships assembled' },
     ],
+    variants: [
+      v('SKU-3001-GRY-MER', 'Grey / Merah', 0, 8),
+      v('SKU-3001-GRY-HIJ', 'Grey / Hijau', 0, 6),
+      v('SKU-3001-BEI-MER', 'Beige / Merah', 0, 7),
+      v('SKU-3001-BEI-HIJ', 'Beige / Hijau', 0, 5),
+      v('SKU-3001-NAV-MER', 'Navy / Merah', 0, 4),
+      v('SKU-3001-NAV-HIJ', 'Navy / Hijau', 0, 3),
+      v('SKU-3001-GRN-MER', 'Green / Merah', 10, 2),
+      v('SKU-3001-GRN-HIJ', 'Green / Hijau', 10, 4),
+    ],
   },
   {
     id: 'SKU-3002',
@@ -233,6 +312,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Colour temp', spec_value: '2700 K' },
       { spec_name: 'Material', spec_value: 'Steel, matte black' },
       { spec_name: 'Cable', spec_value: '2.5 m, in-line switch' },
+    ],
+    variants: [
+      v('SKU-3002-S-MER', 'S / Merah', 0, 12),
+      v('SKU-3002-S-HIJ', 'S / Hijau', 0, 10),
+      v('SKU-3002-M-MER', 'M / Merah', 0, 9),
+      v('SKU-3002-M-HIJ', 'M / Hijau', 0, 8),
+      v('SKU-3002-L-MER', 'L / Merah', 2, 6),
+      v('SKU-3002-L-HIJ', 'L / Hijau', 2, 5),
+      v('SKU-3002-XL-MER', 'XL / Merah', 2, 4),
+      v('SKU-3002-XL-HIJ', 'XL / Hijau', 2, 3),
     ],
   },
   {
@@ -255,6 +344,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Closure', spec_value: 'Horn-look buttons' },
       { spec_name: 'Care', spec_value: 'Machine wash 40°C' },
     ],
+    variants: [
+      v('SKU-3003-S-MER', 'S / Merah', 0, 9),
+      v('SKU-3003-S-HIJ', 'S / Hijau', 0, 7),
+      v('SKU-3003-S-BEI', 'S / Beige', 0, 6),
+      v('SKU-3003-M-MER', 'M / Merah', 0, 11),
+      v('SKU-3003-M-HIJ', 'M / Hijau', 0, 8),
+      v('SKU-3003-M-BEI', 'M / Beige', 0, 10),
+      v('SKU-3003-L-MER', 'L / Merah', 5, 4),
+      v('SKU-3003-L-HIJ', 'L / Hijau', 5, 3),
+    ],
   },
   {
     id: 'SKU-3004',
@@ -274,6 +373,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Oven safe', spec_value: 'Up to 260°C' },
       { spec_name: 'Dishwasher', spec_value: 'Safe' },
       { spec_name: 'Warranty', spec_value: 'Lifetime' },
+    ],
+    variants: [
+      v('SKU-3004-S-SIL', 'Silver / Standard', 0, 10),
+      v('SKU-3004-S-BLK', 'Silver / Hitam', 0, 8),
+      v('SKU-3004-M-SIL', 'Black / Standard', 0, 9),
+      v('SKU-3004-M-BLK', 'Black / Hitam', 0, 7),
+      v('SKU-3004-L-SIL', 'Gold / Standard', 5, 4),
+      v('SKU-3004-L-BLK', 'Gold / Hitam', 5, 3),
+      v('SKU-3004-XL-SIL', 'Copper / Standard', 8, 2),
+      v('SKU-3004-XL-BLK', 'Copper / Hitam', 8, 5),
     ],
   },
   {
@@ -296,6 +405,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Pockets', spec_value: '5 internal, 2 external' },
       { spec_name: 'Weight', spec_value: '980 g' },
     ],
+    variants: [
+      v('SKU-4001-S-BLK', 'S / Hitam', 0, 20),
+      v('SKU-4001-S-GRY', 'S / Abu', 0, 15),
+      v('SKU-4001-S-NAV', 'S / Navy', 0, 12),
+      v('SKU-4001-M-BLK', 'M / Hitam', 0, 18),
+      v('SKU-4001-M-GRY', 'M / Abu', 0, 14),
+      v('SKU-4001-M-NAV', 'M / Navy', 0, 10),
+      v('SKU-4001-L-BLK', 'L / Hitam', 0, 8),
+      v('SKU-4001-L-GRY', 'L / Abu', 2, 6),
+    ],
   },
   {
     id: 'SKU-4002',
@@ -315,6 +434,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Width', spec_value: '58 mm' },
       { spec_name: 'Includes', spec_value: 'Hard case, cloth' },
       { spec_name: 'Care', spec_value: 'Microfibre clean' },
+    ],
+    variants: [
+      v('SKU-4002-58-BLK', '58mm / Hitam', 0, 15),
+      v('SKU-4002-58-GLD', '58mm / Gold', 0, 12),
+      v('SKU-4002-58-SIL', '58mm / Silver', 0, 10),
+      v('SKU-4002-60-BLK', '60mm / Hitam', 0, 9),
+      v('SKU-4002-60-GLD', '60mm / Gold', 0, 8),
+      v('SKU-4002-60-SIL', '60mm / Silver', 0, 11),
+      v('SKU-4002-62-BLK', '62mm / Hitam', 2, 6),
+      v('SKU-4002-62-GLD', '62mm / Gold', 2, 4),
     ],
   },
   {
@@ -337,6 +466,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Lining', spec_value: 'Cotton canvas' },
       { spec_name: 'Hardware', spec_value: 'Solid brass' },
       { spec_name: 'Warranty', spec_value: '10 years' },
+    ],
+    variants: [
+      v('SKU-4003-S-BRN', 'S / Coklat', 0, 9),
+      v('SKU-4003-S-BLK', 'S / Hitam', 0, 7),
+      v('SKU-4003-M-BRN', 'M / Coklat', 0, 8),
+      v('SKU-4003-M-BLK', 'M / Hitam', 0, 6),
+      v('SKU-4003-L-BRN', 'L / Coklat', 5, 4),
+      v('SKU-4003-L-BLK', 'L / Hitam', 5, 3),
+      v('SKU-4003-XL-BRN', 'XL / Coklat', 8, 2),
+      v('SKU-4003-XL-BLK', 'XL / Hitam', 8, 5),
     ],
   },
   {
@@ -363,6 +502,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Weight', spec_value: '4.9 kg' },
       { spec_name: 'Pitch time', spec_value: '~10 minutes' },
     ],
+    variants: [
+      v('SKU-5001-2P-GRN', '2P / Hijau', 0, 6),
+      v('SKU-5001-2P-BLU', '2P / Biru', 0, 5),
+      v('SKU-5001-4P-GRN', '4P / Hijau', 0, 8),
+      v('SKU-5001-4P-BLU', '4P / Biru', 0, 7),
+      v('SKU-5001-4P-ORN', '4P / Oranye', 0, 4),
+      v('SKU-5001-6P-GRN', '6P / Hijau', 15, 3),
+      v('SKU-5001-6P-BLU', '6P / Biru', 15, 5),
+      v('SKU-5001-6P-ORN', '6P / Oranye', 15, 2),
+    ],
   },
   {
     id: 'SKU-5002',
@@ -387,6 +536,11 @@ export const PRODUCT_CATALOG: Product[] = [
       { id: 'SKU-5002-BLK', variant_name: 'Black', price_delta: 0, stock: 96 },
       { id: 'SKU-5002-STL', variant_name: 'Steel', price_delta: 0, stock: 74 },
       { id: 'SKU-5002-MOS', variant_name: 'Moss', price_delta: 2, stock: 41 },
+      { id: 'SKU-5002-SND', variant_name: 'Sand', price_delta: 0, stock: 32 },
+      { id: 'SKU-5002-NAV', variant_name: 'Navy', price_delta: 0, stock: 28 },
+      { id: 'SKU-5002-RED', variant_name: 'Red', price_delta: 2, stock: 18 },
+      { id: 'SKU-5002-WHT', variant_name: 'White', price_delta: 0, stock: 22 },
+      { id: 'SKU-5002-GRY', variant_name: 'Graphite', price_delta: 2, stock: 15 },
     ],
   },
   {
@@ -408,6 +562,16 @@ export const PRODUCT_CATALOG: Product[] = [
       { spec_name: 'Charging', spec_value: 'USB-C, 3 h' },
       { spec_name: 'Water rating', spec_value: 'IPX4' },
       { spec_name: 'Weight', spec_value: '290 g' },
+    ],
+    variants: [
+      v('SKU-5003-S-WRM', 'S / Warm', 0, 12),
+      v('SKU-5003-S-CLD', 'S / Cool', 0, 10),
+      v('SKU-5003-M-WRM', 'M / Warm', 0, 9),
+      v('SKU-5003-M-CLD', 'M / Cool', 0, 8),
+      v('SKU-5003-L-WRM', 'L / Warm', 2, 6),
+      v('SKU-5003-L-CLD', 'L / Cool', 2, 5),
+      v('SKU-5003-XL-WRM', 'XL / Warm', 2, 4),
+      v('SKU-5003-XL-CLD', 'XL / Cool', 2, 3),
     ],
   },
 ]

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Badge, Button, QtyStepper } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { formatPrice } from '../../../shared/utils/format'
+import { CATEGORY_LABEL } from '../../../shared/constants/product.constants'
 import type { CartItem } from '../types/cart.type'
 
 interface CartLineItemProps {
@@ -26,7 +27,20 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
       </Link>
 
       <div className="col-span-9 sm:col-span-5">
-        <p className="font-mono text-xs text-muted-foreground">{item.sku}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+            {CATEGORY_LABEL[item.category_id]}
+          </p>
+          {item.is_preorder ? (
+            <Badge className="bg-amber-500 text-white text-[10px]">Pre-order</Badge>
+          ) : item.stock === 0 ? (
+            <Badge variant="destructive">Out of stock</Badge>
+          ) : item.stock < 20 ? (
+            <Badge variant="secondary">Low stock · {item.stock} left</Badge>
+          ) : (
+            <Badge variant="outline">In stock</Badge>
+          )}
+        </div>
         <Link
           to={`/products/${item.product_id}`}
           className="font-display text-lg font-semibold leading-tight tracking-tight transition-colors hover:text-primary"
@@ -34,15 +48,8 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
           {item.product_name}
         </Link>
         {item.variant_name && (
-          <p className="mt-0.5 text-sm text-muted-foreground">Variant: {item.variant_name}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">Spec: {item.variant_name}</p>
         )}
-        <div className="mt-1.5">
-          {item.stock === 0 ? (
-            <Badge variant="destructive">Out of stock</Badge>
-          ) : (
-            <Badge variant="outline">In stock</Badge>
-          )}
-        </div>
         <p className="mt-1 font-mono text-xs text-muted-foreground">
           {formatPrice(item.unit_price)} / unit
         </p>

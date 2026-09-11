@@ -15,6 +15,7 @@ import {
 } from '../../../shared/components/ui'
 import { CATEGORIES, SORT_OPTIONS } from '../constants/product.constants'
 import type { Product, ProductFilters } from '../types/product.type'
+import { useCurrency } from '../../currency'
 
 interface ProductFilterProps {
   filters: ProductFilters
@@ -54,6 +55,8 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
   const currentQuery = filters.query ?? ''
   const [specsOpen, setSpecsOpen] = useState(false)
   const specOptions = useMemo(() => getFilteredSpecOptions(products), [products])
+  const { code: currencyCode } = useCurrency()
+  const priceStep = currencyCode === 'IDR' ? 1000 : 1
 
   const [prevQuery, setPrevQuery] = useState(currentQuery)
   if (prevQuery !== currentQuery) {
@@ -97,7 +100,7 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name or SKU…"
+              placeholder="Search name…"
               aria-label="Search products"
               className="pl-9"
             />
@@ -133,20 +136,22 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
             <div className="flex items-center gap-2">
               <Input
                 type="number"
-                placeholder="Min $"
+                placeholder={currencyCode === 'IDR' ? 'Min Rp' : 'Min $'}
                 value={filters.min_price ?? ''}
                 onChange={(e) => onChange({ min_price: e.target.value ? Number(e.target.value) : undefined })}
                 className="w-24"
                 aria-label="Min price"
+                step={priceStep}
               />
               <span className="text-muted-foreground">–</span>
               <Input
                 type="number"
-                placeholder="Max $"
+                placeholder={currencyCode === 'IDR' ? 'Max Rp' : 'Max $'}
                 value={filters.max_price ?? ''}
                 onChange={(e) => onChange({ max_price: e.target.value ? Number(e.target.value) : undefined })}
                 className="w-24"
                 aria-label="Max price"
+                step={priceStep}
               />
             </div>
 
