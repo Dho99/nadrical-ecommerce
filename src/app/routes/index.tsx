@@ -7,6 +7,7 @@ import { ProductDetailPage } from './ProductDetailPage'
 import { ProductRatingsPage } from './ProductRatingsPage'
 import { CartPage } from './CartPage'
 import { CheckoutPage } from './CheckoutPage'
+import { OrderConfirmationPage } from './OrderConfirmationPage'
 import { LoginPage } from './LoginPage'
 import { RegisterPage } from './RegisterPage'
 import { NotFoundPage } from './NotFoundPage'
@@ -42,6 +43,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <CheckoutPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/checkout/confirmation',
+        element: (
+          <RequireAuth>
+            <OrderConfirmationPage />
           </RequireAuth>
         ),
       },

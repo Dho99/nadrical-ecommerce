@@ -42,6 +42,7 @@ interface UseCheckoutResult {
   back: () => void
   goTo: (index: CheckoutStepIndex) => void
   submit: SubmitHandler<CheckoutInput>
+  resetCheckout: () => void
 }
 
 export function useCheckout(
@@ -91,6 +92,18 @@ export function useCheckout(
 
   const goTo = (index: CheckoutStepIndex) => {
     if (index < step) setStep(index)
+  }
+
+  const resetCheckout = () => {
+    setConfirmation(null)
+    setError(null)
+    setStep(0)
+    form.reset({
+      shipping_method: 'standard',
+      payment_method: 'card',
+      ...initialValues,
+    })
+    useCheckoutRuntime.getState().reset()
   }
 
   const submit: SubmitHandler<CheckoutInput> = async (values) => {
@@ -156,5 +169,5 @@ export function useCheckout(
     }
   }
 
-  return { step, isFirstStep, isLastStep, isSubmitting, error, confirmation, form, next, back, goTo, submit }
+  return { step, isFirstStep, isLastStep, isSubmitting, error, confirmation, form, next, back, goTo, submit, resetCheckout }
 }

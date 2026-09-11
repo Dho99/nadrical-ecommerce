@@ -4,17 +4,18 @@ import { ArrowLeft, ArrowRight, LoaderCircle } from 'lucide-react'
 import { Button, Separator } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { CHECKOUT_STEPS, useCheckout, type CheckoutStepIndex } from '../hooks/useCheckout'
-import type { OrderPayload } from '../types/checkout.type'
+import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
 import type { CheckoutInput } from '../schemas/checkout.schema'
 import { StepContact } from './StepContact'
 import { StepShipping } from './StepShipping'
 import { PaymentAccordion } from './PaymentAccordion'
-import { OrderConfirmationCard } from './OrderConfirmationCard'
+
+const CONFIRMATION_STORAGE_KEY = 'last-order-confirmation'
 
 interface CheckoutFormProps {
   payloadBase: Pick<OrderPayload, 'items' | 'totals'>
   initialValues?: Partial<Pick<CheckoutInput, 'recipient_name' | 'email'>>
-  onOrderPlaced: () => void
+  onOrderPlaced: (confirmation: OrderConfirmation) => void
 }
 
 export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: CheckoutFormProps) {
@@ -22,12 +23,21 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
     useCheckout(payloadBase, initialValues)
 
   useEffect(() => {
-    if (confirmation) onOrderPlaced()
+    if (!confirmation) return
+    try {
+      const storable = {
+        order_number: confirmation.order_number,
+        placed_at: confirmation.placed_at instanceof Date ? confirmation.placed_at.toISOString() : String(confirmation.placed_at),
+        email: confirmation.email,
+        eta_days: confirmation.eta_days,
+        grand_total: confirmation.grand_total,
+      }
+      sessionStorage.setItem(CONFIRMATION_STORAGE_KEY, JSON.stringify(storable))
+    } catch {
+      // ignore storage errors
+    }
+    onOrderPlaced(confirmation)
   }, [confirmation, onOrderPlaced])
-
-  if (confirmation) {
-    return <OrderConfirmationCard confirmation={confirmation} />
-  }
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await submit(values)

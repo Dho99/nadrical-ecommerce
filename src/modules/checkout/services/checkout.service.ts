@@ -29,14 +29,28 @@ export const checkoutService = {
         items: itemsInput,
       })
 
-      const orderData = (res.data as any)?.data || (res.data as any)?.order
-      if (orderData) {
+      const raw = res.data as unknown as {
+        data?: unknown
+        order?: unknown
+      }
+      const candidate =
+        raw !== null && typeof raw === 'object' && 'data' in raw && (raw as { data?: unknown }).data !== undefined
+          ? (raw as { data?: unknown }).data
+          : (raw as { order?: unknown }).order ?? raw
+      const orderData =
+        candidate !== null && typeof candidate === 'object' && 'order' in (candidate as Record<string, unknown>)
+          ? ((candidate as Record<string, unknown>).order as Record<string, unknown>)
+          : (candidate as Record<string, unknown> | null)
+      const orderNumber = typeof orderData?.order_number === 'string' ? orderData.order_number : undefined
+      if (orderNumber) {
+        const createdAt = typeof orderData?.created_at === 'string' ? orderData.created_at : undefined
+        const totalRaw = orderData?.total
         return {
-          order_number: orderData.order_number,
-          placed_at: new Date(orderData.created_at || now),
+          order_number: orderNumber,
+          placed_at: new Date(createdAt ?? now.toISOString()),
           email: payload.customer.email,
           eta_days: etaDays,
-          grand_total: Number(orderData.total || payload.totals.grand_total),
+          grand_total: typeof totalRaw === 'number' || typeof totalRaw === 'string' ? Number(totalRaw) : payload.totals.grand_total,
         }
       }
     } catch {

@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { PackageX } from 'lucide-react'
 import { CheckoutForm, OrderSummary } from '../../modules/checkout'
 import { useCheckoutRuntime } from '../../modules/checkout/hooks/useCheckoutRuntime'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
 import { Button, EmptyState } from '../../shared/components/ui'
+import type { OrderConfirmation } from '../../modules/checkout/types/checkout.type'
 
 export function CheckoutPage() {
   const { items, totals, clear } = useCart()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const resetRuntime = useCheckoutRuntime((s) => s.reset)
   const [isPlaced, setIsPlaced] = useState(false)
 
@@ -17,6 +19,15 @@ export function CheckoutPage() {
     resetRuntime()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleOrderPlaced = useCallback(
+    (confirmation: OrderConfirmation) => {
+      setIsPlaced(true)
+      clear()
+      navigate('/checkout/confirmation', { state: confirmation, replace: true })
+    },
+    [clear, navigate],
+  )
 
   if (items.length === 0 && !isPlaced) {
     return (
@@ -49,7 +60,7 @@ export function CheckoutPage() {
           <CheckoutForm
             payloadBase={{ items, totals }}
             initialValues={{ recipient_name: user?.full_name, email: user?.email }}
-            onOrderPlaced={() => { setIsPlaced(true); clear(); }}
+            onOrderPlaced={handleOrderPlaced}
           />
         </div>
         <div className="lg:col-span-5">

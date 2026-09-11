@@ -6,9 +6,10 @@ import type { OrderConfirmation } from '../types/checkout.type'
 
 interface OrderConfirmationCardProps {
   confirmation: OrderConfirmation
+  onBackToCheckout?: () => void
 }
 
-export function OrderConfirmationCard({ confirmation }: OrderConfirmationCardProps) {
+export function OrderConfirmationCard({ confirmation, onBackToCheckout }: OrderConfirmationCardProps) {
   return (
     <Card className="mx-auto max-w-lg p-6 text-center sm:p-8">
       <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -33,9 +34,21 @@ export function OrderConfirmationCard({ confirmation }: OrderConfirmationCardPro
         Total charged (demo): <span className="font-semibold">{formatPrice(confirmation.grand_total)}</span>
       </p>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {onBackToCheckout ? (
+          <Button size="lg" onClick={onBackToCheckout}>
+            Kembali ke checkout
+          </Button>
+        ) : null}
+        <Link to={`/profile/orders/${encodeURIComponent(confirmation.order_number)}`}>
+          <Button variant={onBackToCheckout ? 'outline' : 'default'} size="lg">
+            Lihat pesanan
+          </Button>
+        </Link>
         <Link to="/products">
-          <Button size="lg">Continue shopping</Button>
+          <Button variant="outline" size="lg">
+            Continue shopping
+          </Button>
         </Link>
       </div>
     </Card>
