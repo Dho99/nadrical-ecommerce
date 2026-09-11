@@ -62,11 +62,7 @@ export function PaymentAccordion() {
               <span className="grow font-display text-base font-semibold tracking-tight">
                 {group.label}
               </span>
-              {active && (
-                <span className="font-mono text-[10px] font-medium tracking-wider text-primary uppercase">
-                  Selected
-                </span>
-              )}
+
               {group.feeRate > 0 && (
                 <span className="font-mono text-xs text-muted-foreground">
                   {(group.feeRate * 100).toFixed(0)}% fee

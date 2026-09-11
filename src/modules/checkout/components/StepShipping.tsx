@@ -27,13 +27,14 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
   }
 
   return (
-    <fieldset className="grid gap-3">
+    <fieldset>
       <legend className="sr-only">Shipping method</legend>
       <p className="text-sm text-muted-foreground">
         Choose a delivery service. Shipping is calculated from your destination postal code and order weight.
       </p>
       <input type="hidden" value={selected} {...register('shipping_method')} readOnly />
-      {SHIPPING_METHODS.map((method) => {
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {SHIPPING_METHODS.map((method) => {
         const Icon = METHOD_ICONS[method.id] ?? Truck
         const active = selected === method.id
         const quote = shippingService.quote(method.id, subtotal)
@@ -71,6 +72,7 @@ export function StepShipping({ subtotal }: { subtotal: number }) {
           </button>
         )
       })}
+      </div>
     </fieldset>
   )
 }

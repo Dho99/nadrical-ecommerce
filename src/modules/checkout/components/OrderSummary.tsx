@@ -80,11 +80,9 @@ export function OrderSummary({ items }: OrderSummaryProps) {
 
       <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
         <p className="font-medium">Delivery detail preview</p>
-        <p className="mt-1 text-muted-foreground">
-          Deliver to: <span className="text-foreground">your saved address</span> · Estimated delivery{' '}
-          {estimatedDate.toLocaleDateString('en-ID', { day: 'numeric', month: 'short' })} · Loyalty points
-          you&apos;ll get: <span className="font-semibold text-foreground">{loyaltyPoints} pts</span>
-        </p>
+        <p className="mt-1 text-muted-foreground">Deliver to: <span className="text-foreground">your saved address</span></p>
+        <p className="text-muted-foreground">Estimated delivery {estimatedDate.toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+        <p className="text-muted-foreground">Loyalty points you&apos;ll get: <span className="font-semibold text-foreground">{loyaltyPoints} pts</span></p>
         <p className="mt-1 text-muted-foreground">Shipping within 24 hours upon confirmation of payment</p>
       </div>
 

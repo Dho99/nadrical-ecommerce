@@ -141,10 +141,13 @@ export function OrderDetailPage() {
       <Card className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-mono text-xs text-muted-foreground">
-              {order.placed_at ? new Date(order.placed_at).toLocaleDateString('en-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+            <h2 className="font-display text-2xl font-bold tracking-tight">{order.order_number}</h2>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+              Order date: {order.placed_at ? new Date(order.placed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             </p>
-            <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight">{order.order_number}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {order.recipient_name} {order.recipient_phone ? `| ${order.recipient_phone}` : ''}
+            </p>
           </div>
           <OrderStatusBadge status={order.status} />
         </div>
@@ -210,10 +213,10 @@ export function OrderDetailPage() {
 
         <div className="space-y-4">
           <Card className="p-5">
-            <h3 className="font-display text-lg font-bold tracking-tight">Shipping</h3>
+            <h3 className="font-display text-lg font-bold tracking-tight">Shipping Detail</h3>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Courier</dt>
+                <dt className="text-muted-foreground">Shipment Method</dt>
                 <dd className="font-medium">{shipmentService.courierLabel(order.shipping_method)}</dd>
               </div>
               <div className="flex justify-between">
@@ -222,10 +225,15 @@ export function OrderDetailPage() {
                   {shipmentService.isTrackable(order) ? shipmentService.trackingNumber(order) : '—'}
                 </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Address</dt>
-                <dd className="max-w-40 truncate text-right">
-                  {order.shipping_address_line_1}, {order.shipping_city}
+              <div className="flex flex-col gap-1">
+                <dt className="text-muted-foreground">Recipient Address</dt>
+                <dd className="text-right">
+                  <p className="font-medium">{order.recipient_name}</p>
+                  <p className="text-muted-foreground">
+                    {order.shipping_address_line_1}
+                    {order.shipping_city ? `, ${order.shipping_city}` : ''} {order.shipping_province ?? ''} {order.shipping_postal_code ?? ''}
+                  </p>
+                  <p className="font-mono text-muted-foreground">{order.recipient_phone}</p>
                 </dd>
               </div>
             </dl>

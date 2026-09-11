@@ -2,9 +2,9 @@ import type { OrderWithItems } from '../types/order.type'
 import type { ShipmentEvent, ShipmentInfo } from '../types/shipment.type'
 
 const COURIER_LABEL: Record<string, string> = {
-  standard: 'Standard',
-  express: 'Express',
-  jne: 'JNE REG',
+  standard: 'JNE Standard',
+  express: 'JNE Express',
+  jne: 'JNE Standard',
   jnt: 'J&T Express',
   sicepat: 'SiCepat',
 }

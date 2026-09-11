@@ -23,12 +23,24 @@ export function AddressBookPage() {
   const [deleting, setDeleting] = useState<UserAddress | null>(null)
 
   const handleCreate = (values: AddressSchema) => {
+    const exists = addresses.some((a) => (a.label ?? '').toLowerCase() === values.label.toLowerCase())
+    if (exists) {
+      toast.error(`Label "${values.label}" already exists. Use unique label.`)
+      return
+    }
     addAddress(values)
     toast.success('Address saved')
   }
 
   const handleUpdate = (values: AddressSchema) => {
-    if (editing) updateAddress(editing.id, values)
+    if (editing) {
+      const exists = addresses.some((a) => a.id !== editing.id && (a.label ?? '').toLowerCase() === values.label.toLowerCase())
+      if (exists) {
+        toast.error(`Label "${values.label}" already exists. Use unique label.`)
+        return
+      }
+      updateAddress(editing.id, values)
+    }
     setEditing(null)
     toast.success('Address updated')
   }
