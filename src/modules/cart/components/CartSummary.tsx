@@ -69,9 +69,12 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
           Checkout <ArrowRight />
         </Button>
       </Link>
+      <p className="mt-3 text-center font-mono text-[11px] text-muted-foreground">
+        Checkout guarantee: 256-bit encryption + 30-day free returns.
+      </p>
       <Link
         to="/products"
-        className="mt-3 block text-center font-mono text-xs tracking-[0.12em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        className="mt-2 block text-center font-mono text-xs tracking-[0.12em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
       >
         CONTINUE BROWSING
       </Link>

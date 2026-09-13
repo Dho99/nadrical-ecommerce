@@ -1,17 +1,11 @@
 import { Link } from 'react-router-dom'
-import { Star } from 'lucide-react'
+import { Award, Clock, Flame, ShieldAlert, Sparkles, Star, Tag } from 'lucide-react'
 import { Badge, Card, CardContent } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { WishlistButton } from '../../wishlist/components/WishlistButton'
 import { useCurrency } from '../../currency'
 import { CATEGORY_LABEL } from '../constants/product.constants'
-import type { Product, ProductBadge } from '../types/product.type'
-
-const BADGE_VARIANT: Record<ProductBadge, 'default' | 'secondary' | 'destructive'> = {
-  NEW: 'default',
-  SALE: 'destructive',
-  'BEST SELLER': 'secondary',
-}
+import type { Product } from '../types/product.type'
 
 interface ProductCardProps {
   product: Product
@@ -21,11 +15,48 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const isPreorder = Boolean(product.is_preorder)
   const soldOut = product.stock === 0 && !isPreorder
+  const isLowStock = product.stock > 0 && product.stock < 20 && !isPreorder
   const { format } = useCurrency()
+
+  const renderBadge = () => {
+    if (isLowStock) {
+      return (
+        <Badge className="bg-gradient-to-r from-amber-600 to-red-600 text-white font-extrabold text-[10px] tracking-wider uppercase shadow-md border-none px-2 py-0.5 rounded-md flex items-center gap-1">
+          <ShieldAlert className="size-3 text-amber-200" />
+          <span>Only {product.stock} Left</span>
+        </Badge>
+      )
+    }
+    if (product.badge === 'SALE') {
+      return (
+        <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-[10px] tracking-wider uppercase shadow-md border-none px-2 py-0.5 rounded-md flex items-center gap-1">
+          <Flame className="size-3 text-yellow-300 fill-yellow-300 animate-pulse" />
+          <span>Save {product.discount_percent ?? 20}% Today</span>
+        </Badge>
+      )
+    }
+    if (product.badge === 'NEW') {
+      return (
+        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-sm border-none px-2 py-0.5 rounded-md flex items-center gap-1">
+          <Sparkles className="size-3 text-emerald-100" />
+          <span>Risk-Free · New</span>
+        </Badge>
+      )
+    }
+    if (product.badge === 'BEST SELLER') {
+      return (
+        <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-sm border-none px-2 py-0.5 rounded-md flex items-center gap-1">
+          <Award className="size-3 text-amber-100" />
+          <span>VIP Choice</span>
+        </Badge>
+      )
+    }
+    return null
+  }
 
   return (
     <Card
-      className="group relative flex flex-col overflow-hidden rounded-xl border transition-shadow hover:shadow-lg"
+      className="group relative flex flex-col overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-xl hover:border-primary/30"
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
       <WishlistButton
@@ -43,16 +74,26 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           alt={product.name}
           className="h-full w-full transition-transform duration-300 group-hover:scale-105"
         />
-        {product.badge && (
-          <Badge variant={BADGE_VARIANT[product.badge]} className="absolute left-2.5 top-2.5 text-[10px]">
-            {product.badge}
+
+        <div className="absolute left-2.5 top-2.5 z-10 flex flex-col gap-1 items-start">
+          {renderBadge()}
+          {isPreorder && (
+            <Badge className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-sm border-none px-2 py-0.5 rounded-md flex items-center gap-1">
+              <Clock className="size-3" />
+              <span>Early Access</span>
+            </Badge>
+          )}
+        </div>
+
+        {product.discount_percent && (
+          <Badge className="absolute right-2.5 bottom-2.5 z-10 bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-[11px] tracking-tight shadow-md border border-white/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+            <Tag className="size-3" />
+            <span>-{product.discount_percent}%</span>
           </Badge>
         )}
-        {isPreorder && (
-          <Badge className="absolute left-2.5 top-2.5 bg-amber-500 text-white text-[10px]">PRE-ORDER</Badge>
-        )}
+
         {soldOut && (
-          <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-semibold tracking-wide text-foreground backdrop-blur-[1px]">
+          <span className="absolute inset-0 flex items-center justify-center bg-background/80 text-xs font-bold tracking-wider text-foreground backdrop-blur-[2px]">
             SOLD OUT
           </span>
         )}
@@ -75,11 +116,6 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             {product.rating.toFixed(1)}
           </span>
           <span className="text-muted-foreground">({product.review_count})</span>
-          {product.discount_percent && (
-            <span className="ml-auto rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
-              -{product.discount_percent}%
-            </span>
-          )}
         </div>
 
         <div className="mt-auto flex items-baseline gap-2 pt-1">

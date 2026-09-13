@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Search, X, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Search, X, SlidersHorizontal, Tag, Percent } from 'lucide-react'
 import {
   Button,
   Input,
@@ -16,6 +16,7 @@ import {
 import { CATEGORIES, SORT_OPTIONS } from '../constants/product.constants'
 import type { Product, ProductFilters } from '../types/product.type'
 import { useCurrency } from '../../currency'
+import { cn } from '../../../shared/utils/cn'
 
 interface ProductFilterProps {
   filters: ProductFilters
@@ -155,15 +156,19 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
               />
             </div>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium select-none">
-              <input
-                type="checkbox"
-                checked={filters.discount_only ?? false}
-                onChange={(e) => onChange({ discount_only: e.target.checked || undefined })}
-                className="size-4 accent-primary"
-              />
-              Discount only
-            </label>
+            <button
+              type="button"
+              onClick={() => onChange({ discount_only: filters.discount_only ? undefined : true })}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer',
+                filters.discount_only
+                  ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-500/30'
+                  : 'border border-border bg-background text-muted-foreground hover:border-red-500/50 hover:text-red-600 dark:hover:text-red-400',
+              )}
+            >
+              <Tag className={cn('size-3.5', filters.discount_only ? 'text-white' : 'text-red-500')} />
+              <span>Discount only</span>
+            </button>
           </div>
 
           <div className="ml-auto flex items-center gap-2">

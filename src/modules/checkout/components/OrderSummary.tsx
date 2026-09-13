@@ -86,6 +86,10 @@ export function OrderSummary({ items }: OrderSummaryProps) {
         <p className="mt-1 text-muted-foreground">Shipping within 24 hours upon confirmation of payment</p>
       </div>
 
+      <p className="mt-2 text-center font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+        100% Buyer Protection · 30-Day Money-Back Guarantee
+      </p>
+
       <Separator className="my-3" />
 
       <Link

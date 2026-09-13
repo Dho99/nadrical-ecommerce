@@ -8,8 +8,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
-
-declare module '@fontsource-variable/big-shoulders-display' {
-  const css: string
-  export default css
-}
