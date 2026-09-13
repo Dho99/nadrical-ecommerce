@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react'
 import { cn } from '../../../shared/utils/cn'
 import { galleryVariants } from '../../../shared/utils/unsplash'
-import { Dialog, DialogContent, DialogTitle } from '../../../shared/components/ui'
+import { Sheet, SheetContent, SheetTitle } from '../../../shared/components/ui/sheet'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import type { Product } from '../types/product.type'
 
@@ -123,15 +123,16 @@ export function ProductGallery({ product }: ProductGalleryProps) {
         </p>
       )}
 
-      <Dialog open={lightbox} onOpenChange={setLightbox}>
-        <DialogContent
+      <Sheet open={lightbox} onOpenChange={setLightbox}>
+        <SheetContent
+          side="bottom"
           showCloseButton={false}
           onKeyDown={handleKeyDown}
-          className="top-0 left-0 z-[60] h-screen w-screen max-w-none -translate-x-0 -translate-y-0 gap-0 rounded-none bg-black/95 p-0 ring-0 data-open:zoom-in-100"
+          className="z-[60] h-screen w-screen max-w-none border-none bg-black/95 p-0 ring-0 data-[side=bottom]:h-screen"
         >
-          <DialogTitle className="sr-only">
+          <SheetTitle className="sr-only">
             {product.name} — image {lightboxIndex + 1} of {count}
-          </DialogTitle>
+          </SheetTitle>
 
           <div
             className="relative flex h-full w-full touch-pan-y items-center justify-center overflow-hidden"
@@ -141,7 +142,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
             <ProductImage
               src={slides[lightboxIndex].src}
               alt={slides[lightboxIndex].label ? `${product.name} — ${slides[lightboxIndex].label}` : product.name}
-              className="max-h-[82vh] max-w-[92vw] object-contain"
+              className="max-h-[85vh] max-w-[95vw] object-contain transition-all duration-200"
             />
 
             {count > 1 && (
@@ -150,7 +151,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
                   type="button"
                   onClick={() => go(-1)}
                   aria-label="Previous image"
-                  className="absolute top-1/2 left-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25"
+                  className="absolute top-1/2 left-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <ChevronLeft className="size-6" />
                 </button>
@@ -158,7 +159,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
                   type="button"
                   onClick={() => go(1)}
                   aria-label="Next image"
-                  className="absolute top-1/2 right-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25"
+                  className="absolute top-1/2 right-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <ChevronRight className="size-6" />
                 </button>
@@ -168,18 +169,26 @@ export function ProductGallery({ product }: ProductGalleryProps) {
             <button
               type="button"
               onClick={() => setLightbox(false)}
-              aria-label="Close full screen"
-              className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25"
+              aria-label="Close full screen drawer"
+              className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <X className="size-5" />
             </button>
 
-            <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 font-mono text-xs text-white/90">
-              {lightboxIndex + 1} / {count}
-            </p>
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/60 px-4 py-1.5 backdrop-blur">
+              <span className="font-mono text-xs text-white/90">
+                {lightboxIndex + 1} / {count}
+              </span>
+              {slides[lightboxIndex].label && (
+                <>
+                  <span className="text-white/40">·</span>
+                  <span className="font-mono text-xs text-white/75">{slides[lightboxIndex].label}</span>
+                </>
+              )}
+            </div>
 
             {count > 1 && (
-              <div className="absolute right-4 bottom-4 hidden items-center gap-1.5 sm:flex">
+              <div className="absolute bottom-4 right-4 hidden items-center gap-1.5 sm:flex">
                 {slides.map((slide, i) => (
                   <button
                     key={`${slide.src}-lb-${i}`}
@@ -187,16 +196,16 @@ export function ProductGallery({ product }: ProductGalleryProps) {
                     onClick={() => setLightboxIndex(i)}
                     aria-label={`Go to image ${i + 1}`}
                     className={cn(
-                      'size-2 rounded-full transition-colors',
-                      i === lightboxIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/70',
+                      'size-2.5 rounded-full transition-all',
+                      i === lightboxIndex ? 'w-5 bg-white' : 'bg-white/40 hover:bg-white/70',
                     )}
                   />
                 ))}
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { PackageX } from 'lucide-react'
+import { Award, Clock, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
 import {
   ProductGallery,
   SpecSheet,
@@ -125,7 +125,10 @@ export function ProductDetailPage() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.is_preorder ? (
-              <Badge className="bg-amber-500 text-white">Pre-order</Badge>
+              <Badge className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-bold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Clock className="size-3.5" />
+                <span>Pre-order</span>
+              </Badge>
             ) : product.stock === 0 ? (
               <Badge variant="destructive">Out of stock</Badge>
             ) : product.stock < 20 ? (
@@ -133,10 +136,33 @@ export function ProductDetailPage() {
             ) : (
               <Badge variant="outline">In stock</Badge>
             )}
-            <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
+            <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
               {CATEGORY_LABEL[product.category_id]}
             </p>
-            {product.badge && <Badge variant={BADGE_VARIANT[product.badge]}>{product.badge}</Badge>}
+            {product.badge === 'SALE' && (
+              <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-xs shadow-sm border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Flame className="size-3.5 text-yellow-300 fill-yellow-300" />
+                <span>SALE</span>
+              </Badge>
+            )}
+            {product.badge === 'NEW' && (
+              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Sparkles className="size-3.5 text-emerald-100" />
+                <span>NEW</span>
+              </Badge>
+            )}
+            {product.badge === 'BEST SELLER' && (
+              <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Award className="size-3.5 text-amber-100" />
+                <span>BEST SELLER</span>
+              </Badge>
+            )}
+            {product.discount_percent && (
+              <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Tag className="size-3.5" />
+                <span>-{product.discount_percent}% OFF</span>
+              </Badge>
+            )}
           </div>
           <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
             <h1 className="font-display text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
@@ -175,6 +201,16 @@ export function ProductDetailPage() {
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
             {product.summary}
           </p>
+
+          <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">
+            {product.stock > 0 && product.stock < 20
+              ? `Low stock: Only ${product.stock} units left. Order soon.`
+              : product.discount_percent
+                ? `Special offer: Save ${product.discount_percent}% + 30-day money-back guarantee.`
+                : product.is_preorder
+                  ? 'Early access: Reserve yours with 30-day risk-free return.'
+                  : 'Risk-free purchase: Free 30-day return policy included.'}
+          </div>
 
           <div className="mt-5">
             <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} />
