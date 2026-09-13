@@ -1,4 +1,5 @@
 import { mockData, type MockCartItem, type MockOrder, type MockProduct } from './mockData'
+import { productRepository } from '../../modules/products/services/product.repository'
 
 export interface MockRequest {
   method: string
@@ -113,8 +114,15 @@ function handleProducts(req: MockRequest): MockResponse {
   if (varsId) {
     const id = varsId.id
     if (req.method === 'GET') {
+      const p = productRepository.list().find((item) => item.id === id)
+      if (p) {
+        return ok({
+          data: p,
+          item: p,
+        })
+      }
       const product = mockData.productByUuid(id)
-      return ok({ item: product ?? null })
+      return ok({ data: product ?? null, item: product ?? null })
     }
     if (req.method === 'PUT') {
       const updated = mockData.updateProduct(id, (req.body ?? {}) as Partial<MockProduct>)

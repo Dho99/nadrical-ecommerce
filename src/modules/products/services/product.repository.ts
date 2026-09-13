@@ -7,10 +7,10 @@ import type {
   DbProductImage,
 } from '../../../shared/types/database.type'
 
-const PRODUCTS_KEY = 'db-products-v3'
-const VARIANTS_KEY = 'db-product-variants-v3'
-const SPECS_KEY = 'db-product-specs-v3'
-const IMAGES_KEY = 'db-product-images-v3'
+const PRODUCTS_KEY = 'db-products-v5'
+const VARIANTS_KEY = 'db-product-variants-v5'
+const SPECS_KEY = 'db-product-specs-v5'
+const IMAGES_KEY = 'db-product-images-v5'
 
 interface ProductDb {
   products: DbProduct[]
@@ -39,9 +39,11 @@ function seed(): ProductDb {
       is_preorder: (p as Product).is_preorder || false,
       preorder_eta: (p as Product).preorder_eta,
       preorder_deposit: (p as Product).preorder_deposit,
+      discount_percent: (p as Product).discount_percent,
+      badge: (p as Product).badge,
       status: 'published',
       created_at: new Date().toISOString(),
-    })
+    } as DbProduct)
 
     p.specs.forEach((s, idx) => {
       specs.push({
@@ -80,7 +82,9 @@ function loadDb(): ProductDb {
       const variants = JSON.parse(localStorage.getItem(VARIANTS_KEY) || '[]') as DbProductVariant[]
       const specs = JSON.parse(localStorage.getItem(SPECS_KEY) || '[]') as DbProductSpec[]
       const images = JSON.parse(localStorage.getItem(IMAGES_KEY) || '[]') as DbProductImage[]
-      return { products, variants, specs, images }
+      if (variants.length >= 100) {
+        return { products, variants, specs, images }
+      }
     }
   } catch {
     // fall through
@@ -96,10 +100,14 @@ function saveDb(
   specs: DbProductSpec[],
   images: DbProductImage[],
 ): void {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
-  localStorage.setItem(VARIANTS_KEY, JSON.stringify(variants))
-  localStorage.setItem(SPECS_KEY, JSON.stringify(specs))
-  localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
+  try {
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
+    localStorage.setItem(VARIANTS_KEY, JSON.stringify(variants))
+    localStorage.setItem(SPECS_KEY, JSON.stringify(specs))
+    localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
+  } catch {
+    // Ignore storage errors in non-browser env
+  }
 }
 
 export const productRepository = {
@@ -133,6 +141,8 @@ export const productRepository = {
         summary: p.summary || '',
         specs: pSpecs,
         variants: pVariants.length > 0 ? pVariants : undefined,
+        discount_percent: (p as unknown as { discount_percent?: number }).discount_percent ?? PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.discount_percent,
+        badge: (p as unknown as { badge?: string }).badge ?? PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.badge,
         rating: 4.2 + ((hash % 7) * 0.1),
         review_count: 12 + (hash % 229),
       }

@@ -127,7 +127,7 @@ const SEED: SeedOrder[] = [
     tracking_number: 'TRK-900736184',
     lines: [
       { product_id: 'SKU-5001', sku: 'SKU-5001', name: '4-Person Camping Tent', price: 219, quantity: 1 },
-      { product_id: 'SKU-5002', sku: 'SKU-5002', name: 'Insulated Steel Bottle 750ml', price: 32, quantity: 2, variant_id: 'SKU-5002-BLK', variant_name: 'Black' },
+      { product_id: 'SKU-5002', sku: 'SKU-5002', name: 'Insulated Steel Bottle 750ml', price: 32, quantity: 2, variant_id: 'SKU-5002-750ml-BLA', variant_name: '750ml / Black' },
     ],
   },
   {
