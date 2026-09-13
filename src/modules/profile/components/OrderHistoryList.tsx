@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, PackageOpen, RefreshCw, Repeat2, Truck, X } from 'lucide-react'
+import { ArrowRight, PackageOpen, RefreshCw, Repeat2, Star, Truck, X } from 'lucide-react'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { PRODUCT_CATALOG } from '../../products/services/mock-data'
+import { ReviewFormDialog, userReviewStorage } from '../../products'
 import { useCart } from '../../cart/hooks/useCart'
 import { toast } from '@/shared/lib/alert'
 import type { AsyncStatus } from '../../../shared/types/common.type'
@@ -19,6 +20,7 @@ import {
 } from '../../../shared/utils/order-status'
 import { OrderStatusBadge } from '../../../shared/components/OrderStatusBadge'
 import {
+  Badge,
   Button,
   Card,
   Dialog,
@@ -30,6 +32,9 @@ import {
   EmptyState,
   Separator,
   Skeleton,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from '../../../shared/components/ui'
 import { formatOrderDate } from '../utils/profile.utils'
 
@@ -132,6 +137,12 @@ export function OrderHistoryList({
   void cancellingId
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [cancelTarget, setCancelTarget] = useState<OrderWithItems | null>(null)
+  const [reviewingItem, setReviewingItem] = useState<{
+    product: { id: string; name: string; cover_image_url?: string }
+    orderNumber: string
+    variantName?: string
+  } | null>(null)
+  const [reviewsVersion, setReviewsVersion] = useState(0)
   const { add } = useCart()
   const navigate = useNavigate()
 
@@ -196,43 +207,45 @@ export function OrderHistoryList({
 
   return (
     <>
-      <div
-        role="tablist"
-        aria-label="Filter orders by status"
-        className="flex gap-1 overflow-x-auto rounded-full bg-muted p-1 mb-5"
-      >
-        {(['all', 'processing', 'shipped', 'completed', 'cancelled'] as const).map((key) => {
-          const active = activeTab === key
-          return (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setActiveTab(key)}
-              className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all',
-                active
-                  ? 'bg-[#f34e7b] text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className={cn('size-2 rounded-full', TAB_DOT[key], active && 'bg-white/80')}
-              />
-              {key === 'all' ? 'All' : key.charAt(0).toUpperCase() + key.slice(1)}
-              <span
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabKey)} className="mb-5 w-full">
+        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none bg-muted/60 p-1.5 rounded-xl">
+          {(['all', 'processing', 'shipped', 'completed', 'cancelled'] as const).map((key) => {
+            const isActive = activeTab === key
+            return (
+              <TabsTrigger
+                key={key}
+                value={key}
                 className={cn(
-                  'rounded-full px-1.5 font-mono text-[10px]',
-                  active ? 'bg-white/25 text-white' : 'bg-muted text-muted-foreground',
+                  'group gap-2 px-3.5 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-all rounded-lg',
+                  'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/20',
                 )}
               >
-                {counts[key]}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'size-2 rounded-full transition-all duration-200',
+                    TAB_DOT[key],
+                    isActive && 'scale-125 ring-2 ring-primary/30 ring-offset-1 ring-offset-background',
+                  )}
+                />
+                <span className={cn(isActive && 'font-bold text-foreground')}>
+                  {key === 'all' ? 'All' : key.charAt(0).toUpperCase() + key.slice(1)}
+                </span>
+                <Badge
+                  className={cn(
+                    'ml-0.5 px-1.5 py-0.5 font-mono text-[10px] font-semibold transition-colors border-none',
+                    isActive
+                      ? 'bg-[#f34e7b] text-white shadow-2xs'
+                      : 'bg-muted text-muted-foreground group-hover:bg-muted/80',
+                  )}
+                >
+                  {counts[key]}
+                </Badge>
+              </TabsTrigger>
+            )
+          })}
+        </TabsList>
+      </Tabs>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -280,27 +293,62 @@ export function OrderHistoryList({
                   <ul className="space-y-2">
                     {order.order_items.map((line, i) => {
                       const img = productImage(line.product_id)
+                      const existingReview = reviewsVersion >= 0 ? userReviewStorage.findReview(order.order_number, line.product_id, line.variant_name_snapshot) : undefined
+                      const isCompleted = oStatus === 'completed'
                       return (
                         <li
                           key={`${line.sku_snapshot ?? line.product_id}-${i}`}
-                          className="flex items-center gap-3 text-sm"
+                          className="flex flex-wrap items-center justify-between gap-3 text-sm"
                         >
-                          <div className="size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
-                            {img ? (
-                              <ProductImage src={img} alt={line.product_name_snapshot} className="h-full w-full" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                <PackageOpen className="size-4" />
-                              </div>
+                          <div className="flex flex-1 items-center gap-3 min-w-[200px]">
+                            <div className="size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                              {img ? (
+                                <ProductImage src={img} alt={line.product_name_snapshot} className="h-full w-full" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                  <PackageOpen className="size-4" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{line.product_name_snapshot}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {line.variant_name_snapshot ? `${line.variant_name_snapshot} · ` : ''}×{line.quantity}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium">{formatPrice(line.unit_price * line.quantity)}</span>
+                            {isCompleted && (
+                              existingReview ? (
+                                <Badge variant="secondary" className="gap-1 text-[11px] border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+                                  <Star className="size-3 fill-amber-400 text-amber-400" />
+                                  {existingReview.rating}/5 Ulasan Terkirim
+                                </Badge>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 gap-1 text-xs"
+                                  onClick={() =>
+                                    setReviewingItem({
+                                      product: {
+                                        id: line.product_id,
+                                        name: line.product_name_snapshot,
+                                        cover_image_url: img,
+                                      },
+                                      orderNumber: order.order_number,
+                                      variantName: line.variant_name_snapshot,
+                                    })
+                                  }
+                                >
+                                  <Star className="size-3 fill-amber-400 text-amber-400" /> Beri Ulasan
+                                </Button>
+                              )
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{line.product_name_snapshot}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {line.variant_name_snapshot ? `${line.variant_name_snapshot} · ` : ''}×{line.quantity}
-                            </p>
-                          </div>
-                          <span className="font-medium">{formatPrice(line.unit_price * line.quantity)}</span>
                         </li>
                       )
                     })}
@@ -422,6 +470,17 @@ export function OrderHistoryList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {reviewingItem && (
+        <ReviewFormDialog
+          open={Boolean(reviewingItem)}
+          onOpenChange={(open) => !open && setReviewingItem(null)}
+          product={reviewingItem.product}
+          orderNumber={reviewingItem.orderNumber}
+          variantName={reviewingItem.variantName}
+          onSubmitted={() => setReviewsVersion((v) => v + 1)}
+        />
+      )}
     </>
   )
 }
