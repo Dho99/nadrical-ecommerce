@@ -6,6 +6,7 @@ import {
   sortReviews,
   type ReviewSeedHints,
 } from './review.mock'
+import { userReviewStorage } from './userReview.storage'
 
 export interface ReviewPage {
   items: Review[]
@@ -73,13 +74,25 @@ export const reviewService = {
         reviewCount: hints?.reviewCount ?? 18,
       })
       reviews = mockAll
-      stats = reviewStats(mockAll)
     }
 
-    const sorted = sortReviews(reviews, sort)
+    const userRevs: Review[] = userReviewStorage.getReviewsForProduct(productId).map((ur) => ({
+      id: ur.id,
+      product_id: ur.productId,
+      reviewer_name: ur.reviewerName,
+      rating: ur.rating,
+      comment: ur.comment,
+      created_at: ur.createdAt,
+      verified_purchase: true,
+    }))
+
+    const combined = [...userRevs, ...reviews]
+    stats = reviewStats(combined)
+
+    const sorted = sortReviews(combined, sort)
     const filtered = rating === 'all' ? sorted : sorted.filter((r) => r.rating === rating)
 
-    const finalStats = stats ? normalizeStats(stats, hintAvg) : normalizeStats(reviewStats(sorted), hintAvg)
+    const finalStats = normalizeStats(stats, hintAvg)
     const start = (page - 1) * limit
     return {
       items: filtered.slice(start, start + limit),

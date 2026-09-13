@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PackageCheck } from 'lucide-react'
+import { Download, Loader2, PackageCheck } from 'lucide-react'
+import { toast } from '@/shared/lib/alert'
 import { Button, Card, Separator } from '../../../shared/components/ui'
 import { formatPrice } from '../../../shared/utils/format'
+import { orderRepository } from '../services/order.repository'
+import { invoiceService } from '../../orders/services/invoice.service'
 import type { OrderConfirmation } from '../types/checkout.type'
 
 interface OrderConfirmationCardProps {
@@ -10,6 +14,29 @@ interface OrderConfirmationCardProps {
 }
 
 export function OrderConfirmationCard({ confirmation, onBackToCheckout }: OrderConfirmationCardProps) {
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownloadInvoice = async () => {
+    setDownloading(true)
+    try {
+      const orders = await orderRepository.list()
+      const found = orders.find(
+        (o) => o.order_number === confirmation.order_number || o.id === confirmation.order_number,
+      )
+      if (found) {
+        const invoiceData = invoiceService.build(found, confirmation.email)
+        await invoiceService.download(invoiceData)
+        toast.success('Invoice downloaded successfully')
+      } else {
+        toast.error('Order data not found for invoice generation')
+      }
+    } catch {
+      toast.error('Failed to generate invoice')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <Card className="mx-auto max-w-lg p-6 text-center sm:p-8">
       <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -35,13 +62,24 @@ export function OrderConfirmationCard({ confirmation, onBackToCheckout }: OrderC
       </p>
 
       <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Button variant="default" size="lg" disabled={downloading} onClick={handleDownloadInvoice}>
+          {downloading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" /> Generating PDF…
+            </>
+          ) : (
+            <>
+              <Download className="size-4" /> Download invoice
+            </>
+          )}
+        </Button>
         {onBackToCheckout ? (
-          <Button size="lg" onClick={onBackToCheckout}>
+          <Button size="lg" variant="outline" onClick={onBackToCheckout}>
             Kembali ke checkout
           </Button>
         ) : null}
         <Link to={`/profile/orders/${encodeURIComponent(confirmation.order_number)}`}>
-          <Button variant={onBackToCheckout ? 'outline' : 'default'} size="lg">
+          <Button variant="outline" size="lg">
             Lihat pesanan
           </Button>
         </Link>
