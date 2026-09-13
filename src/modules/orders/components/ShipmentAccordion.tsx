@@ -9,17 +9,30 @@ import { OrderTimeline } from './OrderTimeline'
 
 interface ShipmentAccordionProps {
   order: OrderWithItems
-  onOpenLocation: () => void
+  onOpenLocation?: () => void
 }
 
 function fmtDate(iso?: string): string {
   return iso ? new Date(iso).toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 }
 
-export function ShipmentAccordion({ order, onOpenLocation }: ShipmentAccordionProps) {
-  const [openState, setOpenState] = useState<string | null>('paid')
+function fmtTime(iso?: string): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('en-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+export function ShipmentAccordion({ order }: ShipmentAccordionProps) {
+  const isTrackable = shipmentService.isTrackable(order)
+  const [openState, setOpenState] = useState<string | null>(() => (isTrackable ? 'shipped' : 'paid'))
   const tracking = shipmentService.trackingNumber(order)
   const status = (order.status ?? '').toLowerCase()
+  const info = shipmentService.info(order)
+  const events = shipmentService.events(order)
 
   const copyTracking = () => {
     void navigator.clipboard?.writeText(tracking).then(() => {
@@ -69,11 +82,11 @@ export function ShipmentAccordion({ order, onOpenLocation }: ShipmentAccordionPr
       title: 'Shipped',
       sub: 'Package handed to courier',
       detail: (
-        <div className="space-y-3 text-sm">
+        <div className="space-y-4 text-sm">
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <p className="text-xs text-muted-foreground">Courier</p>
-              <p className="font-medium">{shipmentService.info(order).courier}</p>
+              <p className="font-medium">{info.courier}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Tracking number</p>
@@ -85,14 +98,48 @@ export function ShipmentAccordion({ order, onOpenLocation }: ShipmentAccordionPr
               </div>
             </div>
           </div>
-          {shipmentService.isTrackable(order) && (
-            <Button type="button" variant="outline" size="sm" onClick={onOpenLocation}>
-              <MapPin className="size-3.5" /> View shipment location
-            </Button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Status:</span>
+            <span className="rounded-full bg-sky-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+              {info.statusLabel}
+            </span>
+          </div>
+
+          {events.length > 0 && (
+            <div className="border-t pt-4">
+              <p className="mb-3 font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Shipment Journey
+              </p>
+              <ol className="space-y-0" aria-label="Shipment journey">
+                {events.map((evt, i) => (
+                  <li key={evt.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span
+                        className={cn(
+                          'flex size-6 shrink-0 items-center justify-center rounded-full border-2',
+                          evt.done ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background',
+                        )}
+                      >
+                        {evt.done ? <MapPin className="size-3" /> : i + 1}
+                      </span>
+                      {i < events.length - 1 && (
+                        <span className={cn('w-0.5 flex-1', evt.done ? 'bg-primary' : 'bg-border')} />
+                      )}
+                    </div>
+                    <div className={cn('pb-5', !evt.done && 'opacity-60')}>
+                      <p className="text-sm font-semibold">{evt.title}</p>
+                      {evt.location && <p className="text-xs text-muted-foreground">{evt.location}</p>}
+                      {evt.time && <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{fmtTime(evt.time)}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
           )}
         </div>
       ),
-      show: shipmentService.isTrackable(order),
+      show: isTrackable,
     },
     {
       key: 'delivered',
@@ -114,7 +161,7 @@ export function ShipmentAccordion({ order, onOpenLocation }: ShipmentAccordionPr
     },
   ]
 
-  const activeIdx = shipmentService.isTrackable(order) ? 2 : status === 'completed' ? 3 : status === 'processing' || status === 'paid' ? 1 : 0
+  const activeIdx = isTrackable ? 2 : status === 'completed' ? 3 : status === 'processing' || status === 'paid' ? 1 : 0
 
   return (
     <div>

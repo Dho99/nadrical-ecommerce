@@ -1,6 +1,5 @@
 export { OrderTimeline } from './components/OrderTimeline'
 export { ShipmentAccordion } from './components/ShipmentAccordion'
-export { ShipmentDialog } from './components/ShipmentDialog'
 export { RefundRequestForm } from './components/RefundRequestForm'
 export { InvoiceButton } from './components/InvoiceButton'
 export { useRefund } from './hooks/useRefund'

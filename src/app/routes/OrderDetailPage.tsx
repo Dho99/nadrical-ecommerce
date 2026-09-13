@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, PackageOpen, Repeat2, X } from 'lucide-react'
+import { ChevronLeft, PackageOpen, Repeat2, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
 import { PRODUCT_CATALOG } from '../../modules/products/services/mock-data'
+import { ReviewFormDialog, userReviewStorage } from '../../modules/products'
 import {
   InvoiceButton,
   ShipmentAccordion,
-  ShipmentDialog,
   useRefund,
-  useShipmentTracking,
 } from '../../modules/orders'
 import { shipmentService } from '../../modules/orders/services/shipment.service'
 import type { OrderWithItems } from '../../modules/orders/types/order.type'
 import { ProductImage } from '../../shared/components/ProductImage'
 import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
-import { Button, Card, EmptyState, Skeleton } from '../../shared/components/ui'
+import { Badge, Button, Card, EmptyState, Skeleton } from '../../shared/components/ui'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,11 +36,15 @@ export function OrderDetailPage() {
   const navigate = useNavigate()
   const [order, setOrder] = useState<OrderWithItems | null>(null)
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [locationOpen, setLocationOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [reviewingItem, setReviewingItem] = useState<{
+    product: { id: string; name: string; cover_image_url?: string }
+    orderNumber: string
+    variantName?: string
+  } | null>(null)
+  const [reviewsVersion, setReviewsVersion] = useState(0)
   const { record } = useRefund(order)
-  const { trackable, info, events } = useShipmentTracking(order)
   const email = user?.email ?? null
 
   const load = useCallback(async () => {
@@ -175,38 +178,74 @@ export function OrderDetailPage() {
           <Card className="p-5 sm:p-6">
             <h3 className="font-display text-lg font-bold tracking-tight">Shipment tracking</h3>
             <div className="mt-4">
-              <ShipmentAccordion order={order} onOpenLocation={() => setLocationOpen(true)} />
+              <ShipmentAccordion order={order} />
             </div>
           </Card>
 
           <Card className="p-5 sm:p-6">
             <h3 className="font-display text-lg font-bold tracking-tight">Items</h3>
             <ul className="mt-3 divide-y">
-              {order.order_items.map((line, i) => (
-                <li key={`${line.id}-${i}`} className="flex items-center gap-3 py-3">
-                  <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted">
-                    {productImage(line.product_id) ? (
-                      <ProductImage src={productImage(line.product_id)!} alt={line.product_name_snapshot} className="h-full w-full" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <PackageOpen className="size-4" />
+              {order.order_items.map((line, i) => {
+                const existingReview = reviewsVersion >= 0 ? userReviewStorage.findReview(order.order_number, line.product_id, line.variant_name_snapshot) : undefined
+                const isCompleted = normStatus === 'completed'
+                return (
+                  <li key={`${line.id}-${i}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="flex flex-1 items-center gap-3 min-w-[200px]">
+                      <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted">
+                        {productImage(line.product_id) ? (
+                          <ProductImage src={productImage(line.product_id)!} alt={line.product_name_snapshot} className="h-full w-full" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                            <PackageOpen className="size-4" />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/products/${line.product_id}`} className="block truncate text-sm font-medium hover:underline">
-                      {line.product_name_snapshot}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">
-                      Qty: {line.quantity}
-                      {line.variant_name_snapshot ? ` · Variant: ${line.variant_name_snapshot}` : ''}
-                    </p>
-                  </div>
-                  <span className="font-mono text-sm font-semibold">
-                    {formatPrice(line.line_total ?? line.unit_price * line.quantity)}
-                  </span>
-                </li>
-              ))}
+                      <div className="min-w-0 flex-1">
+                        <Link to={`/products/${line.product_id}`} className="block truncate text-sm font-medium hover:underline">
+                          {line.product_name_snapshot}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          Qty: {line.quantity}
+                          {line.variant_name_snapshot ? ` · Variant: ${line.variant_name_snapshot}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm font-semibold">
+                        {formatPrice(line.line_total ?? line.unit_price * line.quantity)}
+                      </span>
+                      {isCompleted && (
+                        existingReview ? (
+                          <Badge variant="secondary" className="gap-1 border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+                            <Star className="size-3 fill-amber-400 text-amber-400" />
+                            {existingReview.rating}/5 Ulasan Terkirim
+                          </Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 text-xs"
+                            onClick={() =>
+                              setReviewingItem({
+                                product: {
+                                  id: line.product_id,
+                                  name: line.product_name_snapshot,
+                                  cover_image_url: productImage(line.product_id),
+                                },
+                                orderNumber: order.order_number,
+                                variantName: line.variant_name_snapshot,
+                              })
+                            }
+                          >
+                            <Star className="size-3.5 fill-amber-400 text-amber-400" /> Beri Ulasan
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           </Card>
         </div>
@@ -246,11 +285,6 @@ export function OrderDetailPage() {
               {canReorder && (
                 <Button type="button" variant="outline" size="sm" onClick={reorder}>
                   <Repeat2 className="size-3.5" /> Reorder
-                </Button>
-              )}
-              {trackable && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setLocationOpen(true)}>
-                  Track shipment
                 </Button>
               )}
               {canRefund && (
@@ -293,10 +327,6 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      {info && (
-        <ShipmentDialog open={locationOpen} onOpenChange={setLocationOpen} info={info} events={events} />
-      )}
-
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -320,6 +350,18 @@ export function OrderDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {reviewingItem && (
+        <ReviewFormDialog
+          open={Boolean(reviewingItem)}
+          onOpenChange={(open) => !open && setReviewingItem(null)}
+          product={reviewingItem.product}
+          orderNumber={reviewingItem.orderNumber}
+          variantName={reviewingItem.variantName}
+          reviewerName={user?.user_metadata?.full_name || user?.email || 'Demo User'}
+          onSubmitted={() => setReviewsVersion((v) => v + 1)}
+        />
+      )}
     </div>
   )
 }
