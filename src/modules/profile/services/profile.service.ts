@@ -20,13 +20,6 @@ function toOrderWithItems(orders: DbOrder[], items: DbOrderItem[]): OrderWithIte
 
 export const profileService = {
   async getOrderHistory(email?: string): Promise<OrderWithItems[]> {
-    // Mock-first: seeded demo orders always render even when backend is offline.
-    const byEmail = (o: { user_id?: string }): boolean =>
-      !email || (o.user_id ?? '').toLowerCase() === email.toLowerCase()
-
-    const seeds = email ? generateUserOrders(email) : { orders: [], items: [] as DbOrderItem[] }
-    const seeded = toOrderWithItems(seeds.orders, seeds.items).filter(byEmail)
-
     let local: OrderWithItems[] = []
     try {
       local = await orderRepository.list()
@@ -34,12 +27,31 @@ export const profileService = {
       // Backend offline — ignore, seeded mock data still shows.
     }
 
-    return [...seeded, ...local]
-      .filter(byEmail)
-      .sort(
+    if (local.length > 0) {
+      const filteredLocal = local.filter((o) => {
+        if (!email) return true
+        if (o.email && o.email.toLowerCase() === email.toLowerCase()) return true
+        if (o.user_id && o.user_id.toLowerCase() === email.toLowerCase()) return true
+        return true
+      })
+      return filteredLocal.sort(
         (a: OrderWithItems, b: OrderWithItems) =>
-          Date.parse(b.placed_at ?? '') - Date.parse(a.placed_at ?? ''),
+          Date.parse(b.placed_at ?? b.created_at ?? '') - Date.parse(a.placed_at ?? a.created_at ?? ''),
       )
+    }
+
+    const byEmail = (o: { user_id?: string; email?: string }): boolean =>
+      !email ||
+      (o.user_id ?? '').toLowerCase() === email.toLowerCase() ||
+      (o.email ?? '').toLowerCase() === email.toLowerCase()
+
+    const seeds = email ? generateUserOrders(email) : { orders: [], items: [] as DbOrderItem[] }
+    const seeded = toOrderWithItems(seeds.orders, seeds.items).filter(byEmail)
+
+    return seeded.sort(
+      (a: OrderWithItems, b: OrderWithItems) =>
+        Date.parse(b.placed_at ?? b.created_at ?? '') - Date.parse(a.placed_at ?? a.created_at ?? ''),
+    )
   },
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for API parity with seed helper

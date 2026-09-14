@@ -1,4 +1,5 @@
 import api from '../../../shared/lib/api'
+import { formatPrice } from '../../../shared/utils/format'
 import type { Voucher } from '../types/voucher.type'
 
 export const VOUCHERS: Voucher[] = [
@@ -7,7 +8,7 @@ export const VOUCHERS: Voucher[] = [
     type: 'percent',
     value: 10,
     max_discount: 20,
-    description: '10% off, max $20',
+    description: 'Diskon 10% (maks. Rp 316.000 / $20)',
     active: true,
   },
   {
@@ -15,7 +16,7 @@ export const VOUCHERS: Voucher[] = [
     type: 'percent',
     value: 15,
     min_subtotal: 50,
-    description: '15% off orders over $50',
+    description: 'Diskon 15% min. belanja Rp 790.000 / $50',
     active: true,
   },
   {
@@ -23,19 +24,19 @@ export const VOUCHERS: Voucher[] = [
     type: 'fixed',
     value: 5,
     min_subtotal: 30,
-    description: '$5 off orders over $30',
+    description: 'Potongan Rp 79.000 / $5 min. belanja Rp 474.000',
     active: true,
   },
   {
     code: 'FREESHIP',
     type: 'fixed',
     value: 0,
-    description: 'Free shipping',
+    description: 'Gratis Ongkos Kirim',
     active: true,
   },
 ]
 
-const STORAGE_KEY = 'discounts-v1'
+const STORAGE_KEY = 'discounts-v2'
 
 function load(): Voucher[] {
   try {
@@ -126,13 +127,13 @@ export const voucherService = {
     }
 
     const voucher = findVoucher(normalized)
-    if (!voucher) throw new Error('Voucher not found')
-    if (voucher.active === false) throw new Error('Voucher inactive')
+    if (!voucher) throw new Error('Kode voucher tidak ditemukan')
+    if (voucher.active === false) throw new Error('Voucher tidak aktif')
     if (voucher.expires_at && new Date(voucher.expires_at).getTime() < Date.now()) {
-      throw new Error('Voucher expired')
+      throw new Error('Voucher sudah kedaluwarsa')
     }
     if (voucher.min_subtotal !== undefined && subtotal < voucher.min_subtotal) {
-      throw new Error(`Minimum order $${voucher.min_subtotal} required`)
+      throw new Error(`Minimal belanja ${formatPrice(voucher.min_subtotal)} diperlukan untuk voucher ini`)
     }
     return voucher
   },

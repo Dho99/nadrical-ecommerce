@@ -31,11 +31,19 @@ export const cartService = {
   },
 
   async apiAddToCart(productUUID: string, quantity: number, variantUUID?: string): Promise<void> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productUUID)
+    if (!isUuid) return
+
     try {
+      const validVariantUuid =
+        variantUUID &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantUUID)
+          ? variantUUID
+          : undefined
       await api.post('/ecommerce/cart', {
         product_uuid: productUUID,
         quantity,
-        ...(variantUUID ? { variant_uuid: variantUUID } : {}),
+        ...(validVariantUuid ? { variant_uuid: validVariantUuid } : {}),
       })
     } catch {
       // Gracefully ignore if offline or guest
@@ -43,6 +51,9 @@ export const cartService = {
   },
 
   async apiUpdateItem(itemUUID: string, quantity: number): Promise<void> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(itemUUID)
+    if (!isUuid) return
+
     try {
       await api.put(`/ecommerce/cart/items/${itemUUID}`, { quantity })
     } catch {
@@ -51,6 +62,9 @@ export const cartService = {
   },
 
   async apiRemoveItem(itemUUID: string): Promise<void> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(itemUUID)
+    if (!isUuid) return
+
     try {
       await api.delete(`/ecommerce/cart/items/${itemUUID}`)
     } catch {
