@@ -74,6 +74,7 @@ function build(order: OrderWithItems, email?: string): InvoiceData {
   const subtotal = convertBase(Number(order.subtotal ?? 0), code)
   const shipping = convertBase(Number(order.shipping_total ?? 0), code)
   const discount = convertBase(Number(order.discount_total ?? 0), code)
+  const tax = convertBase(Number(order.tax_total ?? 0), code)
 
   const addressLines = [
     order.shipping_address_line_1,
@@ -114,6 +115,7 @@ function build(order: OrderWithItems, email?: string): InvoiceData {
       subtotal,
       shipping,
       discount,
+      tax,
       total: convertBase(Number(order.grand_total ?? order.subtotal ?? 0), code),
     },
   }
@@ -273,6 +275,9 @@ async function renderAndSave(invoice: InvoiceData): Promise<void> {
     y += 15
   }
   row('Subtotal', m(invoice.summary.subtotal))
+  if (invoice.summary.tax && invoice.summary.tax > 0) {
+    row('Tax (PPN 11%)', m(invoice.summary.tax))
+  }
   row('Shipping', m(invoice.summary.shipping))
   row('Discount', invoice.summary.discount > 0 ? `-${m(invoice.summary.discount)}` : money(invoice.currency, 0))
   doc.setDrawColor(0x9c, 0xa3, 0xaf)

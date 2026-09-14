@@ -21,7 +21,8 @@ export function OrderSummary({ items }: OrderSummaryProps) {
   const quote = shippingService.quote(shippingMethod, subtotal)
   const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
   const paymentFee = paymentService.fee(paymentKind, subtotal)
-  const grandTotal = Math.max(0, subtotal - voucherDiscount + quote.cost + paymentFee)
+  const taxTotal = subtotal * 0.11
+  const grandTotal = Math.max(0, subtotal - voucherDiscount + quote.cost + paymentFee + taxTotal)
   const etaDays = shippingService.etaDays(shippingMethod)
   const method = shippingService.getMethod(shippingMethod)
 
@@ -57,6 +58,10 @@ export function OrderSummary({ items }: OrderSummaryProps) {
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Shipping · {method.label}</dt>
           <dd>{quote.cost === 0 ? 'FREE' : formatPrice(quote.cost)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-muted-foreground">Pajak (PPN 11%)</dt>
+          <dd>{formatPrice(taxTotal)}</dd>
         </div>
         {paymentFee > 0 && (
           <div className="flex justify-between">

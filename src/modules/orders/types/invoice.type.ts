@@ -31,6 +31,7 @@ export interface InvoiceSummaryData {
   subtotal: number
   shipping: number
   discount: number
+  tax?: number
   total: number
 }
 

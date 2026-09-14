@@ -115,9 +115,10 @@ export function useCheckout(
       const quote = shippingService.quote(shippingMethod, subtotal)
       const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
       const paymentFee = paymentService.fee(paymentKind, subtotal)
+      const taxTotal = subtotal * 0.11
       const grandTotal = Math.max(
         0,
-        subtotal - voucherDiscount + quote.cost + paymentFee,
+        subtotal - voucherDiscount + quote.cost + paymentFee + taxTotal,
       )
 
       const payment: PaymentDetail = {

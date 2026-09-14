@@ -2,15 +2,24 @@ import { api } from '../../../shared/lib/api'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
 import { orderRepository } from './order.repository'
 import { shippingService } from './shipping.service'
+import { productService } from '../../products/services/product.service'
 
 export const checkoutService = {
   async placeOrder(payload: OrderPayload): Promise<OrderConfirmation> {
     const now = new Date()
     const etaDays = shippingService.etaDays(payload.shipping_method)
 
+    const shippingCost = payload.totals.shipping_total < 500
+      ? Math.round(payload.totals.shipping_total * 15800)
+      : Math.round(payload.totals.shipping_total)
+    const discountAmount = payload.totals.discount < 500 && payload.totals.discount > 0
+      ? Math.round(payload.totals.discount * 15800)
+      : Math.round(payload.totals.discount ?? 0)
+
     try {
       const itemsInput = payload.items.map((i) => ({
         product_uuid: i.product_id,
+        variant_uuid: i.variant_id || undefined,
         quantity: i.quantity,
       }))
 
@@ -22,8 +31,8 @@ export const checkoutService = {
         postal_code: payload.customer.shipping_postal_code || undefined,
         city: payload.customer.shipping_city,
         shipping_courier: payload.shipping_method,
-        shipping_cost: payload.totals.shipping_total,
-        discount: payload.totals.discount ?? 0,
+        shipping_cost: shippingCost,
+        discount: discountAmount,
         voucher_code: payload.voucher_code || payload.totals.voucher_code || undefined,
         service_fee: payload.totals.payment_fee ?? 0,
         items: itemsInput,
@@ -43,6 +52,9 @@ export const checkoutService = {
           : (candidate as Record<string, unknown> | null)
       const orderNumber = typeof orderData?.order_number === 'string' ? orderData.order_number : undefined
       if (orderNumber) {
+        // Clear product cache so stock updates are immediately visible across app
+        productService.clearCache()
+
         const createdAt = typeof orderData?.created_at === 'string' ? orderData.created_at : undefined
         const totalRaw = orderData?.total
         return {
@@ -53,8 +65,16 @@ export const checkoutService = {
           grand_total: typeof totalRaw === 'number' || typeof totalRaw === 'string' ? Number(totalRaw) : payload.totals.grand_total,
         }
       }
-    } catch {
-      // Graceful fallback
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string }
+      if (axiosErr.response?.data?.message) {
+        throw new Error(axiosErr.response.data.message, { cause: err })
+      }
+      if (axiosErr.response?.status && axiosErr.response.status >= 400 && axiosErr.response.status < 500) {
+        throw new Error(axiosErr.message || 'Gagal memproses pesanan. Periksa data keranjang Anda.', { cause: err })
+      }
+      // Graceful fallback for offline / demo mode
+      console.warn('Backend order placement error, falling back to local storage:', err)
     }
 
     const orderNumber = `ORD-${Math.floor(100000 + Math.random() * 900000)}`
@@ -73,7 +93,7 @@ export const checkoutService = {
           shipping_postal_code: payload.customer.shipping_postal_code,
           shipping_method: payload.shipping_method,
           subtotal: payload.totals.subtotal,
-          shipping_total: payload.totals.shipping_total,
+          shipping_total: shippingCost,
           grand_total: payload.totals.grand_total,
           status: 'processing',
           placed_at: now.toISOString(),
