@@ -39,32 +39,35 @@ export const reviewService = {
     let reviews: Review[] = []
     let stats: ReviewStats | null = null
 
-    try {
-      type ReviewEnvelope = {
-        success: boolean
-        data?: { items?: Review[]; data?: Review[] }
-        meta?: { total?: number }
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)
+    if (isUuid) {
+      try {
+        type ReviewEnvelope = {
+          success: boolean
+          data?: { items?: Review[]; data?: Review[] }
+          meta?: { total?: number }
+        }
+        type ReviewListPayload = { items?: Review[]; data?: Review[] }
+        const res = await api.get<ReviewEnvelope>(`/ecommerce/products/${productId}/reviews`, {
+          params: { page, limit, sort },
+        })
+        const envelope: ReviewEnvelope = res.data
+        const rawPayload: unknown = envelope.data ?? (envelope as unknown as ReviewListPayload & ReviewEnvelope)
+        let items: Review[] = []
+        if (Array.isArray(rawPayload)) {
+          items = rawPayload as Review[]
+        } else if (rawPayload !== null && typeof rawPayload === 'object') {
+          const obj = rawPayload as ReviewListPayload
+          if (Array.isArray(obj.items)) items = obj.items
+          else if (Array.isArray(obj.data)) items = obj.data
+        }
+        if (items.length > 0) {
+          reviews = items
+          stats = reviewStats(reviews)
+        }
+      } catch {
+        // fall through to mock
       }
-      type ReviewListPayload = { items?: Review[]; data?: Review[] }
-      const res = await api.get<ReviewEnvelope>(`/ecommerce/products/${productId}/reviews`, {
-        params: { page, limit, sort },
-      })
-      const envelope: ReviewEnvelope = res.data
-      const rawPayload: unknown = envelope.data ?? (envelope as unknown as ReviewListPayload & ReviewEnvelope)
-      let items: Review[] = []
-      if (Array.isArray(rawPayload)) {
-        items = rawPayload as Review[]
-      } else if (rawPayload !== null && typeof rawPayload === 'object') {
-        const obj = rawPayload as ReviewListPayload
-        if (Array.isArray(obj.items)) items = obj.items
-        else if (Array.isArray(obj.data)) items = obj.data
-      }
-      if (items.length > 0) {
-        reviews = items
-        stats = reviewStats(reviews)
-      }
-    } catch {
-      // fall through to mock
     }
 
     const hintAvg = hints?.rating ?? 4.6

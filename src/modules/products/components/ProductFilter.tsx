@@ -1,5 +1,5 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Search, X, SlidersHorizontal, Tag, Percent } from 'lucide-react'
+import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { ChevronDown, Search, X, SlidersHorizontal, Tag, Percent } from "lucide-react"
 import {
   Button,
   Input,
@@ -20,7 +20,7 @@ import { cn } from '../../../shared/utils/cn'
 
 interface ProductFilterProps {
   filters: ProductFilters
-  onChange: (patch: Partial<ProductFilters>) => void
+  onChange: (filters: Partial<ProductFilters>) => void
   total: number
   products: Product[]
 }
@@ -28,31 +28,31 @@ interface ProductFilterProps {
 function getFilteredSpecOptions(products: Product[]) {
   const map = new Map<string, Set<string>>()
   for (const p of products) {
-    for (const s of p.specs) {
+    for (const s of (p.specs || [])) {
       const key = s.spec_name
-      if (['Sizes', 'Size', 'Material', 'Color', 'Capacity'].includes(key)) {
-        const vals = s.spec_value.split(/[,–—]/).map((v) => v.trim()).slice(0, 4)
-        if (!map.has(key)) map.set(key, new Set())
-        for (const v of vals) {
-          if (v.length > 1 && v.length < 20) map.get(key)?.add(v)
-        }
+      if (!key) continue
+      const vals = s.spec_value.split(/[,–—/]/).map((v) => v.trim()).filter(Boolean).slice(0, 4)
+      if (!map.has(key)) map.set(key, new Set())
+      for (const v of vals) {
+        if (v.length > 1 && v.length < 35) map.get(key)?.add(v)
       }
     }
-    if (p.variants) {
-      const key = 'Color'
+    if (p.variants && p.variants.length > 0) {
+      const key = 'Variants'
       if (!map.has(key)) map.set(key, new Set())
       for (const v of p.variants) {
-        const c = v.variant_name.split('/').pop()?.trim()
+        const c = v.variant_name.trim()
         if (c) map.get(key)?.add(c)
       }
     }
   }
-  return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set).slice(0, 6) }))
+  return Array.from(map.entries())
+    .filter(([, set]) => set.size > 0)
+    .map(([key, set]) => ({ key, values: Array.from(set).slice(0, 8) }))
 }
 
 export function ProductFilter({ filters, onChange, total, products }: ProductFilterProps) {
   const [query, setQuery] = useState(filters.query ?? '')
-  const deferredQuery = useDeferredValue(query)
   const currentQuery = filters.query ?? ''
   const [specsOpen, setSpecsOpen] = useState(false)
   const specOptions = useMemo(() => getFilteredSpecOptions(products), [products])
@@ -66,11 +66,13 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
   }
 
   useEffect(() => {
-    if (deferredQuery !== currentQuery) {
-      onChange({ query: deferredQuery || undefined })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deferredQuery])
+    const handler = setTimeout(() => {
+      if (query !== currentQuery) {
+        onChange({ query: query.trim() || undefined })
+      }
+    }, 250)
+    return () => clearTimeout(handler)
+  }, [query, currentQuery, onChange])
 
   const activeCategory = filters.category_id ?? 'all'
   const hasActiveFilters =
@@ -109,7 +111,10 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
               <button
                 type="button"
                 aria-label="Clear search"
-                onClick={() => setQuery('')}
+                onClick={() => {
+                  setQuery('')
+                  onChange({ query: undefined })
+                }}
                 className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
               >
                 <X className="size-3.5" />

@@ -29,6 +29,7 @@ export function ProductImage({ src, alt, className }: ProductImageProps) {
       src={src}
       alt={alt}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className={cn('object-cover', className)}
     />

@@ -12,12 +12,16 @@ interface InfiniteProductsState {
 }
 
 function filtersKey(filters: ProductFilters): string {
-  return [
-    filters.category_id ?? 'all',
-    filters.query ?? '',
-    filters.sort ?? 'featured',
-    String(Boolean(filters.in_stock_only)),
-  ].join('|')
+  return JSON.stringify({
+    category_id: filters.category_id ?? 'all',
+    query: filters.query ?? '',
+    sort: filters.sort ?? 'featured',
+    in_stock_only: Boolean(filters.in_stock_only),
+    discount_only: Boolean(filters.discount_only),
+    min_price: filters.min_price ?? null,
+    max_price: filters.max_price ?? null,
+    specs: filters.specs ?? {},
+  })
 }
 
 export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
@@ -30,7 +34,6 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
   })
   const [loadingMore, setLoadingMore] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const { category_id, query, sort, in_stock_only } = filters
 
   const key = filtersKey(filters)
   const status: AsyncStatus = state.error
@@ -41,10 +44,9 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
 
   useEffect(() => {
     let cancelled = false
-    const currentFilters: ProductFilters = { category_id, query, sort, in_stock_only }
 
     productService
-      .getProductPage(currentFilters, null, limit)
+      .getProductPage(filters, null, limit)
       .then((page: CursorPage<Product>) => {
         if (!cancelled) {
           setState({
@@ -71,14 +73,15 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
     return () => {
       cancelled = true
     }
-  }, [category_id, query, sort, in_stock_only, key, limit, attempt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, limit, attempt])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || state.nextCursor === null) return
     setLoadingMore(true)
     try {
       const page = await productService.getProductPage(
-        { category_id, query, sort, in_stock_only },
+        filters,
         state.nextCursor,
         limit,
       )
@@ -93,7 +96,7 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
     } finally {
       setLoadingMore(false)
     }
-  }, [loadingMore, state.nextCursor, category_id, query, sort, in_stock_only, limit])
+  }, [loadingMore, state.nextCursor, filters, limit])
 
   return {
     items: state.items,

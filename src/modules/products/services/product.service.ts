@@ -3,22 +3,13 @@ import type { CursorPage } from '../../../shared/types/common.type'
 import type {
   Product,
   ProductCategory,
-  ProductCategoryId,
   ProductFilters,
   ProductSpec,
   ProductVariant,
 } from '../types/product.type'
 import { CATEGORIES } from '../constants/product.constants'
 import { productRepository } from './product.repository'
-
-interface BackendCategory {
-  uuid?: string
-  id?: string
-  name: string
-  slug?: string
-  description?: string
-  is_active?: boolean
-}
+import { useCurrencyStore, type CurrencyCode } from '../../currency'
 
 interface BackendProduct {
   uuid?: string
@@ -33,12 +24,16 @@ interface BackendProduct {
   images?: string[]
   price?: number
   base_price?: number
+  original_price?: number
+  compare_price?: number
   stock?: number
   is_featured?: boolean
   is_preorder?: boolean
   preorder_eta?: string
   preorder_deposit?: number
   discount_percent?: number
+  average_rating?: number
+  rating_count?: number
   badge?: string
   category_uuid?: string
   category_id?: string
@@ -81,17 +76,34 @@ interface StandardApiResponse<T> {
   }
 }
 
-const VALID_CATEGORY_IDS: ReadonlySet<ProductCategoryId> = new Set(
-  CATEGORIES.map((c) => c.id),
-)
-
-function isProductCategoryId(value: string): value is ProductCategoryId {
-  return VALID_CATEGORY_IDS.has(value as ProductCategoryId)
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  apparel: ['apparel', 'physical-merchandise'],
+  accessories: ['accessories', 'physical-merchandise'],
+  home: ['home', 'home-living'],
+  outdoors: ['outdoors'],
+  electronics: [
+    'electronics',
+    'electronics-gear',
+    'teknologi-informasi',
+    'teknologi-mesin',
+    'services-hospitality',
+    'digital-products',
+    'keuangan',
+    'asuransi',
+  ],
 }
 
-function toProductCategoryId(slug: string): ProductCategoryId {
-  const normalized = slug.toLowerCase().replace(/\s+/g, '-')
-  return isProductCategoryId(normalized) ? normalized : 'electronics'
+function toProductCategoryId(slug: string): string {
+  const s = (slug || '').toLowerCase().replace(/\s+/g, '-')
+  if (s === 'home' || s === 'home-living') return 'home-living'
+  if (['electronics', 'apparel', 'accessories', 'outdoors'].includes(s)) {
+    return s
+  }
+  if (s.includes('appar') || s.includes('cloth') || s.includes('wear') || s.includes('fashion')) return 'apparel'
+  if (s.includes('home') || s.includes('furn') || s.includes('liv') || s.includes('kitchen')) return 'home-living'
+  if (s.includes('access') || s.includes('merchandise') || s.includes('leather') || s.includes('bag') || s.includes('mat')) return 'accessories'
+  if (s.includes('outdoor') || s.includes('camp') || s.includes('trail') || s.includes('sport')) return 'outdoors'
+  return 'electronics'
 }
 
 function mapBackendProduct(bp: BackendProduct): Product {
@@ -134,6 +146,8 @@ function mapBackendProduct(bp: BackendProduct): Product {
     bp.category_uuid ||
     'electronics'
 
+  const categoryName = bp.category?.name || bp.category?.slug || undefined
+
   // deterministic mock rating/review/discount when backend doesn't provide
   const hash = (bp.uuid || bp.id || bp.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
   const rating = 4.2 + ((hash % 7) * 0.1) // 4.2-4.8
@@ -144,8 +158,21 @@ function mapBackendProduct(bp: BackendProduct): Product {
     id: bp.uuid || bp.id || '',
     sku: bp.sku || `SKU-${bp.uuid || bp.id || ''}`,
     name: bp.name,
+    slug: bp.slug || (bp.uuid || bp.id || ''),
+    description: bp.description || bp.summary || '',
     category_id: toProductCategoryId(categorySlug),
-    base_price: Number(bp.price ?? bp.base_price ?? 0),
+    category_name: categoryName,
+    base_price: (() => {
+      const raw = Number(bp.price ?? bp.base_price ?? 0)
+      return raw >= 1000 ? raw / 15800 : raw
+    })(),
+    original_price: (() => {
+      const raw = Number(bp.original_price ?? bp.compare_price ?? 0)
+      if (raw > 0) {
+        return raw >= 1000 ? raw / 15800 : raw
+      }
+      return undefined
+    })(),
     stock: Number(bp.stock ?? 0),
     cover_image_url: bp.image || bp.cover_image_url || '',
     images: Array.isArray(bp.images) && bp.images.length > 0 ? bp.images : undefined,
@@ -156,9 +183,19 @@ function mapBackendProduct(bp: BackendProduct): Product {
     summary: bp.summary || bp.description?.slice(0, 120) || '',
     specs,
     variants: variants.length > 0 ? variants : undefined,
-    rating: Number(rating.toFixed(1)),
-    review_count,
-    discount_percent: bp.discount_percent !== undefined ? Number(bp.discount_percent) : hasDiscount ? 10 + (hash % 20) : undefined,
+    rating: bp.average_rating !== undefined ? Number(bp.average_rating) : Number(rating.toFixed(1)),
+    review_count: bp.rating_count !== undefined ? Number(bp.rating_count) : review_count,
+    discount_percent: (() => {
+      const orig = Number(bp.original_price ?? bp.compare_price ?? 0)
+      const cur = Number(bp.price ?? bp.base_price ?? 0)
+      if (bp.discount_percent !== undefined && Number(bp.discount_percent) > 0) {
+        return Number(bp.discount_percent)
+      }
+      if (orig > cur && cur > 0) {
+        return Math.round(((orig - cur) / orig) * 100)
+      }
+      return hasDiscount ? 10 + (hash % 20) : undefined
+    })(),
     badge: bp.badge as Product['badge'] | undefined,
   }
 }
@@ -178,7 +215,7 @@ function matchesSpecs(product: Product, specs?: Record<string, string[]>): boole
   return Object.entries(specs).every(([key, values]) => {
     if (values.length === 0) return true
     const productValues = product.specs
-      .filter((s) => s.spec_name.toLowerCase() === key.toLowerCase())
+      .filter((s) => s.spec_name.toLowerCase() === key.toLowerCase() || key.toLowerCase() === 'variants' || key.toLowerCase() === 'color')
       .map((s) => s.spec_value.toLowerCase())
     const variantNames = (product.variants ?? []).map((v) => v.variant_name.toLowerCase())
     const combined = [...productValues, ...variantNames].join(' ').toLowerCase()
@@ -186,25 +223,66 @@ function matchesSpecs(product: Product, specs?: Record<string, string[]>): boole
   })
 }
 
+function getProductDisplayPrice(p: Product, code: CurrencyCode): number {
+  if (code === 'IDR') {
+    return p.base_price >= 5000 ? p.base_price : Math.round(p.base_price * 15800)
+  }
+  return p.base_price >= 5000 ? p.base_price / 15800 : p.base_price
+}
+
+function hasDiscount(p: Product): boolean {
+  if (p.discount_percent !== undefined && p.discount_percent > 0) return true
+  if (p.original_price !== undefined && p.original_price > p.base_price) return true
+  return false
+}
+
 function filterAndSort(
   products: Product[],
   filters: ProductFilters,
 ): Product[] {
   const query = filters.query?.trim()
-  let result = products.filter(
-    (p) =>
-      matchesQuery(p, query) &&
-      (filters.category_id === undefined ||
-        filters.category_id === 'all' ||
-        p.category_id === filters.category_id) &&
-      (!filters.in_stock_only || p.stock > 0) &&
-      (filters.min_price === undefined || p.base_price >= filters.min_price) &&
-      (filters.max_price === undefined || p.base_price <= filters.max_price) &&
-      (!filters.discount_only || !!p.discount_percent) &&
-      matchesSpecs(p, filters.specs),
-  )
+  const filterCat = filters.category_id?.toLowerCase()
+  const allowedCats =
+    filterCat && filterCat !== 'all'
+      ? CATEGORY_ALIASES[filterCat] ?? [filterCat]
+      : null
+
+  const activeCurrency = useCurrencyStore.getState().code
+
+  let result = products.filter((p) => {
+    if (!matchesQuery(p, query)) return false
+    if (allowedCats && !allowedCats.includes(p.category_id.toLowerCase())) return false
+    if (filters.in_stock_only && p.stock <= 0) return false
+    if (filters.discount_only && !hasDiscount(p)) return false
+    if (filters.sort === 'featured-only' && !p.is_featured) return false
+    if (!matchesSpecs(p, filters.specs)) return false
+
+    // Price filtering in active currency
+    if (filters.min_price !== undefined || filters.max_price !== undefined) {
+      const price = getProductDisplayPrice(p, activeCurrency)
+
+      if (filters.min_price !== undefined) {
+        let min = filters.min_price
+        if (activeCurrency === 'IDR' && min < 1000) min = min * 15800
+        if (activeCurrency === 'USD' && min >= 1000) min = min / 15800
+        if (price < min) return false
+      }
+
+      if (filters.max_price !== undefined) {
+        let max = filters.max_price
+        if (activeCurrency === 'IDR' && max < 1000) max = max * 15800
+        if (activeCurrency === 'USD' && max >= 1000) max = max / 15800
+        if (price > max) return false
+      }
+    }
+
+    return true
+  })
 
   switch (filters.sort) {
+    case 'featured-only':
+      result = [...result].sort((a, b) => (a.sku || '').localeCompare(b.sku || ''))
+      break
     case 'price-asc':
       result = [...result].sort((a, b) => a.base_price - b.base_price)
       break
@@ -219,7 +297,7 @@ function filterAndSort(
         (a, b) =>
           Number(b.is_featured ?? false) -
             Number(a.is_featured ?? false) ||
-          a.sku.localeCompare(b.sku),
+          (a.sku || '').localeCompare(b.sku || ''),
       )
   }
   return result
@@ -243,8 +321,23 @@ function paginate<T>(
   }
 }
 
+let cachedProducts: Product[] | null = null
+let cacheTimestamp = 0
+const CACHE_TTL_MS = 60_000
+
 export const productService = {
+  clearCache(): void {
+    cachedProducts = null
+    cacheTimestamp = 0
+  },
+
   async getProducts(filters: ProductFilters = {}): Promise<Product[]> {
+    const now = Date.now()
+    if (!filters.query && cachedProducts && now - cacheTimestamp < CACHE_TTL_MS) {
+      return filterAndSort(cachedProducts, filters)
+    }
+
+    let allProducts: Product[] = []
     try {
       const params: Record<string, string | number> = {
         limit: 100,
@@ -255,14 +348,30 @@ export const productService = {
         '/ecommerce/products',
         { params },
       )
-      if (Array.isArray(res.data.data)) {
-        const mapped = res.data.data.map(mapBackendProduct)
-        return filterAndSort(mapped, filters)
+      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+        const backendMapped = res.data.data.map(mapBackendProduct)
+        const repoProducts = productRepository.list()
+        const backendSkus = new Set(backendMapped.map((p) => p.sku))
+        const backendIds = new Set(backendMapped.map((p) => p.id))
+        const complementary = repoProducts.filter(
+          (p) => !backendSkus.has(p.sku) && !backendIds.has(p.id),
+        )
+        allProducts = [...backendMapped, ...complementary]
       }
     } catch {
       // Graceful fallback to repository if offline
     }
-    return filterAndSort(productRepository.list(), filters)
+
+    if (allProducts.length === 0) {
+      allProducts = productRepository.list()
+    }
+
+    if (!filters.query) {
+      cachedProducts = allProducts
+      cacheTimestamp = Date.now()
+    }
+
+    return filterAndSort(allProducts, filters)
   },
 
   async getProductPage(
@@ -270,53 +379,27 @@ export const productService = {
     cursor: number | null = null,
     limit = 12,
   ): Promise<CursorPage<Product>> {
-    const offset = Math.max(0, cursor ?? 0)
-    const page = Math.floor(offset / limit) + 1
-
-    try {
-      const params: Record<string, string | number> = {
-        limit,
-        page,
-      }
-      if (filters.query) params.search = filters.query
-      const res = await api.get<StandardApiResponse<BackendProduct[]>>(
-        '/ecommerce/products',
-        { params },
-      )
-      if (Array.isArray(res.data.data)) {
-        const mapped = res.data.data.map(mapBackendProduct)
-        const total = res.data.meta?.total ?? mapped.length
-        const nextOffset = offset + limit
-        return {
-          items: mapped,
-          total: Number(total),
-          nextCursor: nextOffset < total ? nextOffset : null,
-          prevCursor: offset > 0 ? Math.max(0, offset - limit) : null,
-        }
-      }
-    } catch {
-      // Graceful fallback
-    }
-
-    return paginate(
-      filterAndSort(productRepository.list(), filters),
-      cursor,
-      limit,
-    )
+    const all = await this.getProducts(filters)
+    return paginate(all, cursor, limit)
   },
 
   async getProductById(id: string): Promise<Product | null> {
-    try {
-      const res = await api.get<StandardApiResponse<BackendProduct>>(
-        `/ecommerce/products/${id}`,
-      )
-      if (res.data.data) {
-        return mapBackendProduct(res.data.data)
+    const local = productRepository.list().find((p) => p.id === id || p.sku === id)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+    if (isUuid || !local) {
+      try {
+        const res = await api.get<StandardApiResponse<BackendProduct>>(
+          `/ecommerce/products/${id}`,
+        )
+        if (res.data.data) {
+          return mapBackendProduct(res.data.data)
+        }
+      } catch {
+        // Graceful fallback
       }
-    } catch {
-      // Graceful fallback
     }
-    return productRepository.list().find((p) => p.id === id) ?? null
+    return local ?? null
   },
 
   async getFeatured(limit = 4): Promise<Product[]> {
@@ -338,20 +421,6 @@ export const productService = {
   },
 
   async getCategories(): Promise<ProductCategory[]> {
-    try {
-      const res = await api.get<StandardApiResponse<BackendCategory[]>>(
-        '/ecommerce/categories',
-      )
-      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
-        return res.data.data.map((c: BackendCategory) => ({
-          id: toProductCategoryId(c.slug || c.name),
-          label: c.name,
-          tagline: c.description || '',
-        }))
-      }
-    } catch {
-      // Graceful fallback
-    }
     return CATEGORIES
   },
 

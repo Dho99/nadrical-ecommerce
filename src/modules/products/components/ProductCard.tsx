@@ -101,7 +101,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       <CardContent className="flex grow flex-col gap-1 px-3.5 py-3">
         <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-          {CATEGORY_LABEL[product.category_id]}
+          {CATEGORY_LABEL[product.category_id] || product.category_id}
         </p>
 
         <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug tracking-tight">
@@ -124,7 +124,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           </p>
           {product.discount_percent && (
             <p className="text-xs text-muted-foreground line-through">
-              {format(product.base_price / (1 - product.discount_percent / 100))}
+              {format(product.original_price ?? (product.base_price / (1 - product.discount_percent / 100)))}
             </p>
           )}
         </div>
