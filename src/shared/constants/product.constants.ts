@@ -1,4 +1,4 @@
-import type { ProductCategory, ProductCategoryId, ProductSort } from '../types/product.type'
+import type { ProductCategory, ProductSort } from '../types/product.type'
 
 export const CATEGORIES: ProductCategory[] = [
   { id: 'electronics', label: 'Electronics', tagline: 'Audio, cameras, wearables' },
@@ -7,15 +7,18 @@ export const CATEGORIES: ProductCategory[] = [
   { id: 'accessories', label: 'Accessories', tagline: 'Bags, sunglasses, leather' },
   { id: 'outdoors', label: 'Outdoors', tagline: 'Tents, bottles, camping gear' },
 ]
-/** @deprecated Categories are now fetched from the API via `productService.getCategories()` */
 
-export const CATEGORY_LABEL: Record<ProductCategoryId, string> = CATEGORIES.reduce(
-  (acc, cat) => ({ ...acc, [cat.id]: cat.label }),
-  {} as Record<ProductCategoryId, string>,
-)
+export const CATEGORY_LABEL: Record<string, string> = {
+  electronics: 'Electronics',
+  apparel: 'Apparel',
+  home: 'Home & Living',
+  accessories: 'Accessories',
+  outdoors: 'Outdoors',
+}
 
 export const SORT_OPTIONS: Array<{ id: ProductSort; label: string }> = [
   { id: 'featured', label: 'Featured' },
+  { id: 'featured-only', label: 'Featured Only' },
   { id: 'price-asc', label: 'Price: Low to High' },
   { id: 'price-desc', label: 'Price: High to Low' },
   { id: 'stock', label: 'Best stocked' },

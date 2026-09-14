@@ -10,7 +10,9 @@ export type DbOrderStatus =
     | "processing"
     | "shipped"
     | "completed"
+    | "COMPLETED"
     | "cancelled"
+    | "CANCELED"
     | "refunded";
 export type PaymentStatus =
     | "pending"
@@ -22,6 +24,8 @@ export type PaymentStatus =
     | "CANCELED";
 export type DbNotificationType = "order" | "promo" | "announcement" | "system";
 export type ChatSenderRole = "customer" | "agent" | "admin" | "bot";
+export type DbDiscountType = "percentage" | "nominal";
+export type DbChatMessageAttachmentType = "product" | "image";
 
 export interface DbUser {
     id: string;
@@ -126,9 +130,20 @@ export interface DbProduct {
     average_rating?: number;
     review_count?: number;
     published_at?: string;
+    discounts?: DbProductDiscount[];
     created_at?: string;
     updated_at?: string;
     deleted_at?: string;
+}
+
+export interface DbProductDiscount {
+    id: string;
+    product_id: string;
+    variant_id?: string;
+    discount_type: DbDiscountType;
+    discount: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface DbProductImage {
@@ -185,6 +200,7 @@ export interface DbOrder {
     id: string;
     order_number: string;
     user_id?: string;
+    email?: string;
     user_address_id?: string;
     recipient_name?: string;
     recipient_phone?: string;
@@ -195,6 +211,7 @@ export interface DbOrder {
     shipping_postal_code?: string;
     shipping_country_code?: string;
     shipping_method?: string;
+    shipping_method_id?: string;
     tracking_number?: string;
     status?: DbOrderStatus;
     currency_code?: string;
@@ -227,6 +244,7 @@ export interface DbOrderItem {
     discount_total?: number;
     tax_total?: number;
     line_total: number;
+    image_url?: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -284,7 +302,17 @@ export interface DbChatMessage {
     sender_user_id?: string;
     sender_role?: ChatSenderRole;
     message: string;
+    attachments?: DbChatMessageAttachment[];
     is_read?: boolean;
+    created_at?: string;
+}
+
+export interface DbChatMessageAttachment {
+    id: string;
+    chat_message_id: string;
+    type: DbChatMessageAttachmentType;
+    value: string;
+    metadata?: Record<string, unknown>;
     created_at?: string;
 }
 

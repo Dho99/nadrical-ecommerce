@@ -1,13 +1,8 @@
-export type ProductCategoryId =
-  | 'electronics'
-  | 'apparel'
-  | 'home'
-  | 'accessories'
-  | 'outdoors'
+export type ProductCategoryId = string
 
 export type ProductBadge = 'NEW' | 'SALE' | 'BEST SELLER'
 
-export type ProductSort = 'featured' | 'price-asc' | 'price-desc' | 'stock'
+export type ProductSort = 'featured' | 'featured-only' | 'price-asc' | 'price-desc' | 'stock'
 
 export interface ProductSpec {
   spec_name: string
@@ -25,8 +20,12 @@ export interface Product {
   id: string
   sku: string
   name: string
+  slug?: string
+  description?: string
   category_id: ProductCategoryId
+  category_name?: string
   base_price: number
+  original_price?: number
   stock: number
   cover_image_url: string
   images?: string[]

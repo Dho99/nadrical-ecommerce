@@ -4,7 +4,11 @@ import { CURRENCIES } from '../../modules/currency/constants/currency.constants'
 export function formatPrice(value: number): string {
   const code = useCurrencyStore.getState().code
   const config = CURRENCIES[code]
-  const converted = value * config.rate
+  const isAlreadyIdr = Math.abs(value) >= 5000
+  const converted =
+    code === 'IDR'
+      ? (isAlreadyIdr ? value : value * config.rate)
+      : (isAlreadyIdr ? value / 15800 : value)
   return new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.code,
