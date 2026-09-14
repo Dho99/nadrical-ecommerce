@@ -51,8 +51,10 @@ export const useAuthStore = create<AuthStore>()(
             },
 
             logout: () => {
+                setAuthToken(null);
                 localStorage.removeItem("token");
                 sessionStorage.removeItem("token");
+                localStorage.removeItem("store-auth");
                 set({ session: null });
             },
         }),

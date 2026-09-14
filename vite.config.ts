@@ -17,4 +17,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'pdf'
+            }
+            if (id.includes('react') || id.includes('zustand')) {
+              return 'vendor'
+            }
+          }
+        },
+      },
+    },
+  },
 })

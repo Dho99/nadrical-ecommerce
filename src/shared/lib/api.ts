@@ -60,6 +60,8 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem("token");
             sessionStorage.removeItem("token");
+            localStorage.removeItem("store-auth");
+            delete api.defaults.headers.common.Authorization;
         }
         return Promise.reject(error);
     },

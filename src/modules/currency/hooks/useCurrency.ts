@@ -23,8 +23,12 @@ export function useCurrency() {
   const set = useCurrencyStore((s) => s.set)
   const config = CURRENCIES[code]
 
-  const format = (usdValue: number): string => {
-    const converted = usdValue * config.rate
+  const format = (usdOrIdrValue: number): string => {
+    const isAlreadyIdr = Math.abs(usdOrIdrValue) >= 5000
+    const converted =
+      config.code === 'IDR'
+        ? (isAlreadyIdr ? usdOrIdrValue : usdOrIdrValue * config.rate)
+        : (isAlreadyIdr ? usdOrIdrValue / 15800 : usdOrIdrValue)
     return new Intl.NumberFormat(config.locale, {
       style: 'currency',
       currency: config.code,

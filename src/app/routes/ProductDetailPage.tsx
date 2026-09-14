@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Award, Clock, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
 import {
@@ -38,13 +39,19 @@ export function ProductDetailPage() {
   const { add } = useGuardedAdd()
   const { buyNow } = useBuyNow()
 
-  const relatedQuery = useProducts(product ? { category_id: product.category_id } : {})
+  const categoryId = product?.category_id
+  const relatedFilters = useMemo(
+    () => (categoryId ? { category_id: categoryId } : undefined),
+    [categoryId],
+  )
+  const relatedQuery = useProducts(relatedFilters)
   const related = relatedQuery.products.filter((p) => p.id !== product?.id).slice(0, 3)
 
   const handleAdd = (p: Product, qty: number, variant?: ProductVariant) =>
     add(
       {
         ...p,
+        base_price: p.base_price + (variant?.price_delta ?? 0),
         variant_id: variant?.id,
         variant_name: variant?.variant_name,
         variant_stock: variant?.stock,
@@ -56,6 +63,7 @@ export function ProductDetailPage() {
     buyNow(
       {
         ...p,
+        base_price: p.base_price + (variant?.price_delta ?? 0),
         variant_id: variant?.id,
         variant_name: variant?.variant_name,
         variant_stock: variant?.stock,
