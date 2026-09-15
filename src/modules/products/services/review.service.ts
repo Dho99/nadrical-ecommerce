@@ -37,7 +37,6 @@ export const reviewService = {
     const limit = Math.max(1, query.limit ?? 10)
 
     let reviews: Review[] = []
-    let stats: ReviewStats | null = null
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)
     if (isUuid) {
@@ -63,7 +62,6 @@ export const reviewService = {
         }
         if (items.length > 0) {
           reviews = items
-          stats = reviewStats(reviews)
         }
       } catch {
         // fall through to mock
@@ -82,15 +80,15 @@ export const reviewService = {
     const userRevs: Review[] = userReviewStorage.getReviewsForProduct(productId).map((ur) => ({
       id: ur.id,
       product_id: ur.productId,
-      reviewer_name: ur.reviewerName,
+      author: ur.reviewerName,
       rating: ur.rating,
       comment: ur.comment,
       created_at: ur.createdAt,
-      verified_purchase: true,
+      verified: true,
     }))
 
     const combined = [...userRevs, ...reviews]
-    stats = reviewStats(combined)
+    const stats = reviewStats(combined)
 
     const sorted = sortReviews(combined, sort)
     const filtered = rating === 'all' ? sorted : sorted.filter((r) => r.rating === rating)

@@ -2,7 +2,7 @@ import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom'
 import { Bookmark, LogOut, MapPin, ShieldCheck, ShoppingBag, User } from 'lucide-react'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { initialsOf } from '../../modules/profile/utils/profile.utils'
-import { Badge, Button, Card, Separator, Tabs, TabsList, TabsTrigger } from '../../shared/components/ui'
+import { Badge, Card, Separator, Tabs, TabsList, TabsTrigger } from '../../shared/components/ui'
 import { cn } from '../../shared/utils/cn'
 
 export function ProfileLayout() {

@@ -44,9 +44,10 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
 
   useEffect(() => {
     let cancelled = false
+    const controller = new AbortController()
 
     productService
-      .getProductPage(filters, null, limit)
+      .getProductPage(filters, null, limit, controller.signal)
       .then((page: CursorPage<Product>) => {
         if (!cancelled) {
           setState({
@@ -59,6 +60,7 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
         }
       })
       .catch((err: unknown) => {
+        if ((err as { name?: string })?.name === 'CanceledError') return
         if (!cancelled) {
           setState({
             items: [],
@@ -72,6 +74,7 @@ export function useInfiniteProducts(filters: ProductFilters = {}, limit = 12) {
 
     return () => {
       cancelled = true
+      controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, limit, attempt])

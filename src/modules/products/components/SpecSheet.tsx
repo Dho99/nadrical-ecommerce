@@ -299,14 +299,12 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
         <StockBadge stock={stock} isPreorder={isPreorder} />
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-baseline gap-2">
-            {product.discount_percent && (product.original_price || product.discount_percent > 0) ? (
+            {product.discount_percent ? (
               <>
                 <p className="font-display text-2xl font-bold tracking-tight">
-                  {format(price)}
+                  {format((price * (1 - product.discount_percent / 100)))}
                 </p>
-                <p className="text-sm text-muted-foreground line-through">
-                  {format(product.original_price ? (product.original_price + (selected?.price_delta ?? 0)) : (price / (1 - product.discount_percent / 100)))}
-                </p>
+                <p className="text-sm text-muted-foreground line-through">{format(price)}</p>
                 <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
                   -{product.discount_percent}%
                 </span>
@@ -324,7 +322,7 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
           </div>
           {product.discount_percent ? (
             <p className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              You save {format((product.original_price ? (product.original_price + (selected?.price_delta ?? 0)) : (price / (1 - product.discount_percent / 100))) - price)} ({product.discount_percent}% off)
+              You save {format(price * (product.discount_percent / 100))} ({product.discount_percent}% off)
             </p>
           ) : null}
         </div>

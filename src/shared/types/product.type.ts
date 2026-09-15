@@ -52,6 +52,8 @@ export interface ProductFilters {
   max_price?: number
   specs?: Record<string, string[]>
   discount_only?: boolean
+  limit?: number
+  page?: number
 }
 
 export interface ProductCategory {

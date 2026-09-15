@@ -6,11 +6,11 @@ export function parseProductFilters(params: URLSearchParams): ProductFilters {
     category_id: (params.get('category') ?? undefined) as ProductFilters['category_id'],
     query: params.get('q') ?? undefined,
     sort: (params.get('sort') ?? undefined) as ProductFilters['sort'],
-    in_stock_only: (params.get('inStock') ?? undefined) as 'true' | 'false' | undefined,
+    in_stock_only: (params.get('inStock') ?? params.get('in_stock_only') ?? params.get('in_stock') ?? undefined) as 'true' | 'false' | undefined,
     min_price: (params.get('minPrice') ?? undefined) as unknown as number | undefined,
     max_price: (params.get('maxPrice') ?? undefined) as unknown as number | undefined,
     specs: (params.get('specs') ?? undefined) as unknown as string | undefined,
-    discount_only: (params.get('discount') ?? undefined) as 'true' | 'false' | undefined,
+    discount_only: (params.get('discount') ?? params.get('discount_only') ?? undefined) as 'true' | 'false' | undefined,
   }
   const parsed = productFiltersSchema.safeParse(raw)
   if (!parsed.success) return {}

@@ -1,4 +1,4 @@
-import type { Product } from '../types/product.type'
+import type { Product, ProductBadge } from '../types/product.type'
 import { PRODUCT_CATALOG } from './mock-data'
 import type {
   DbProduct,
@@ -141,8 +141,15 @@ export const productRepository = {
         summary: p.summary || '',
         specs: pSpecs,
         variants: pVariants.length > 0 ? pVariants : undefined,
-        discount_percent: (p as unknown as { discount_percent?: number }).discount_percent ?? PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.discount_percent,
-        badge: (p as unknown as { badge?: string }).badge ?? PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.badge,
+        discount_percent: (() => {
+          const raw = (p as unknown as { discount_percent?: number }).discount_percent
+          if (raw !== undefined) {
+            return raw > 0 ? raw : undefined
+          }
+          const catDisc = PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.discount_percent
+          return catDisc && catDisc > 0 ? catDisc : undefined
+        })(),
+        badge: (p as unknown as { badge?: ProductBadge }).badge ?? PRODUCT_CATALOG.find((cat) => cat.id === p.id)?.badge,
         rating: 4.2 + ((hash % 7) * 0.1),
         review_count: 12 + (hash % 229),
       }

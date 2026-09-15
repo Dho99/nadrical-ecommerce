@@ -147,15 +147,11 @@ export function SiteHeader() {
             <img
               src="/logo.svg"
               alt="Nadrical"
-              width={111}
-              height={28}
               className="h-7 w-auto dark:hidden"
             />
             <img
               src="/logo-dark.svg"
               alt="Nadrical"
-              width={111}
-              height={28}
               className="hidden h-7 w-auto dark:block"
             />
           </Link>

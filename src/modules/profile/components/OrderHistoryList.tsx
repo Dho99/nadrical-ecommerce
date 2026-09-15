@@ -51,25 +51,10 @@ type TabKey = 'all' | 'processing' | 'shipped' | 'completed' | 'cancelled'
 
 const TAB_GROUPS: Record<TabKey, (s: DbOrderStatus) => boolean> = {
   all: () => true,
-  processing: (s) => {
-    const u = (s || '').toUpperCase()
-    return (
-      u === 'PENDING_PAYMENT' ||
-      u === 'PAID' ||
-      u === 'PROCESSING' ||
-      u === 'WAITING_CONFIRMATION' ||
-      u === 'WAITING_ONGKIR'
-    )
-  },
-  shipped: (s) => {
-    const u = (s || '').toUpperCase()
-    return u === 'SHIPPED' || u === 'DELIVERING'
-  },
-  completed: (s) => (s || '').toUpperCase() === 'COMPLETED',
-  cancelled: (s) => {
-    const u = (s || '').toUpperCase()
-    return u === 'CANCELLED' || u === 'CANCELED' || u === 'REFUNDED'
-  },
+  processing: (s) => s === 'pending_payment' || s === 'paid' || s === 'processing',
+  shipped: (s) => s === 'shipped',
+  completed: (s) => s === 'completed',
+  cancelled: (s) => s === 'cancelled' || s === 'refunded',
 }
 
 const TAB_EMPTY: Record<TabKey, { title: string; description: string }> = {
@@ -307,7 +292,7 @@ export function OrderHistoryList({
 
                   <ul className="space-y-2">
                     {order.order_items.map((line, i) => {
-                      const img = line.image_url || productImage(line.product_id)
+                      const img = productImage(line.product_id)
                       const existingReview = reviewsVersion >= 0 ? userReviewStorage.findReview(order.order_number, line.product_id, line.variant_name_snapshot) : undefined
                       const isCompleted = oStatus === 'completed'
                       return (

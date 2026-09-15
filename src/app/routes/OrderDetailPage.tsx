@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, PackageOpen, Repeat2, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
-import { orderRepository } from '../../modules/checkout/services/order.repository'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
 import { PRODUCT_CATALOG } from '../../modules/products/services/mock-data'
@@ -49,23 +48,15 @@ export function OrderDetailPage() {
   const email = user?.email ?? null
 
   const load = useCallback(async () => {
-    if (!id) {
+    if (!email || !id) {
       setStatus('error')
       return
     }
     setStatus('loading')
     try {
-      let found: OrderWithItems | null = null
-      try {
-        found = await orderRepository.get(id)
-      } catch {
-        // fallback
-      }
-      if (!found && email) {
-        const all = await profileService.getOrderHistory(email)
-        found =
-          all.find((o) => o.order_number === id || o.id === id) ?? null
-      }
+      const all = await profileService.getOrderHistory(email)
+      const found =
+        all.find((o) => o.order_number === id || o.id === id) ?? null
       setOrder(found)
       setStatus(found ? 'success' : 'error')
     } catch {
@@ -80,13 +71,9 @@ export function OrderDetailPage() {
 
   const normStatus = (order?.status ?? '').toLowerCase()
   const canCancel =
-    normStatus === 'pending_payment' ||
-    normStatus === 'paid' ||
-    normStatus === 'processing' ||
-    normStatus === 'waiting_confirmation' ||
-    normStatus === 'waiting_ongkir'
+    normStatus === 'pending_payment' || normStatus === 'paid' || normStatus === 'processing'
   const canReorder = normStatus === 'completed' || normStatus === 'delivering'
-  const canInvoice = ['paid', 'processing', 'shipped', 'completed', 'delivering', 'waiting_confirmation'].includes(normStatus)
+  const canInvoice = ['paid', 'processing', 'shipped', 'completed', 'delivering'].includes(normStatus)
   const canRefund = normStatus === 'completed' || normStatus === 'delivering'
 
   const cancelOrder = async () => {
@@ -205,8 +192,8 @@ export function OrderDetailPage() {
                   <li key={`${line.id}-${i}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="flex flex-1 items-center gap-3 min-w-[200px]">
                       <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted">
-                        {line.image_url || productImage(line.product_id) ? (
-                          <ProductImage src={(line.image_url || productImage(line.product_id))!} alt={line.product_name_snapshot} className="h-full w-full" />
+                        {productImage(line.product_id) ? (
+                          <ProductImage src={productImage(line.product_id)!} alt={line.product_name_snapshot} className="h-full w-full" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                             <PackageOpen className="size-4" />
@@ -331,24 +318,6 @@ export function OrderDetailPage() {
                 <dt className="text-muted-foreground">Shipping</dt>
                 <dd>{order.shipping_total ? formatPrice(order.shipping_total) : 'FREE'}</dd>
               </div>
-              {order.tax_total !== undefined && order.tax_total > 0 ? (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Pajak (PPN 11%)</dt>
-                  <dd>{formatPrice(order.tax_total)}</dd>
-                </div>
-              ) : null}
-              {order.service_fee_total !== undefined && order.service_fee_total > 0 ? (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Payment fee</dt>
-                  <dd>{formatPrice(order.service_fee_total)}</dd>
-                </div>
-              ) : null}
-              {order.discount_total !== undefined && order.discount_total > 0 ? (
-                <div className="flex justify-between text-emerald-600">
-                  <dt>Discount</dt>
-                  <dd>-{formatPrice(order.discount_total)}</dd>
-                </div>
-              ) : null}
               <div className="flex items-center justify-between border-t pt-2">
                 <dt className="font-semibold">Total</dt>
                 <dd className="font-display text-lg font-bold tracking-tight">{formatPrice(paidAmount)}</dd>
@@ -389,7 +358,7 @@ export function OrderDetailPage() {
           product={reviewingItem.product}
           orderNumber={reviewingItem.orderNumber}
           variantName={reviewingItem.variantName}
-          reviewerName={user?.user_metadata?.full_name || user?.email || 'Demo User'}
+          reviewerName={user?.full_name || user?.email || 'Demo User'}
           onSubmitted={() => setReviewsVersion((v) => v + 1)}
         />
       )}

@@ -148,11 +148,31 @@ function mapBackendProduct(bp: BackendProduct): Product {
 
   const categoryName = bp.category?.name || bp.category?.slug || undefined
 
-  // deterministic mock rating/review/discount when backend doesn't provide
+  // deterministic mock rating/review when backend doesn't provide
   const hash = (bp.uuid || bp.id || bp.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
   const rating = 4.2 + ((hash % 7) * 0.1) // 4.2-4.8
   const review_count = 12 + (hash % 229) // 12-240
-  const hasDiscount = bp.sku?.includes('SALE') || (bp as unknown as Record<string, unknown>).discount_percent !== undefined
+
+  const backendDiscount = bp.discount_percent !== undefined ? Number(bp.discount_percent) : undefined
+  const origPrice = Number(bp.original_price ?? bp.compare_price ?? 0)
+  const curPrice = Number(bp.price ?? bp.base_price ?? 0)
+
+  const resolvedDiscountPercent = (() => {
+    // 1. If backend explicitly provides discount_percent, respect it (0 means no discount)
+    if (backendDiscount !== undefined) {
+      return backendDiscount > 0 ? backendDiscount : undefined
+    }
+    // 2. If original price is higher than current price
+    if (origPrice > curPrice && curPrice > 0) {
+      const calculated = Math.round(((origPrice - curPrice) / origPrice) * 100)
+      return calculated > 0 ? calculated : undefined
+    }
+    // 3. Fallback only if SKU explicitly designates SALE
+    if (bp.sku?.includes('SALE')) {
+      return 10 + (hash % 20)
+    }
+    return undefined
+  })()
 
   return {
     id: bp.uuid || bp.id || '',
@@ -167,9 +187,9 @@ function mapBackendProduct(bp: BackendProduct): Product {
       return raw >= 1000 ? raw / 15800 : raw
     })(),
     original_price: (() => {
-      const raw = Number(bp.original_price ?? bp.compare_price ?? 0)
-      if (raw > 0) {
-        return raw >= 1000 ? raw / 15800 : raw
+      // Only return original_price if there is an active discount > 0 and original price is higher
+      if (resolvedDiscountPercent && origPrice > curPrice && origPrice > 0) {
+        return origPrice >= 1000 ? origPrice / 15800 : origPrice
       }
       return undefined
     })(),
@@ -185,18 +205,12 @@ function mapBackendProduct(bp: BackendProduct): Product {
     variants: variants.length > 0 ? variants : undefined,
     rating: bp.average_rating !== undefined ? Number(bp.average_rating) : Number(rating.toFixed(1)),
     review_count: bp.rating_count !== undefined ? Number(bp.rating_count) : review_count,
-    discount_percent: (() => {
-      const orig = Number(bp.original_price ?? bp.compare_price ?? 0)
-      const cur = Number(bp.price ?? bp.base_price ?? 0)
-      if (bp.discount_percent !== undefined && Number(bp.discount_percent) > 0) {
-        return Number(bp.discount_percent)
-      }
-      if (orig > cur && cur > 0) {
-        return Math.round(((orig - cur) / orig) * 100)
-      }
-      return hasDiscount ? 10 + (hash % 20) : undefined
+    discount_percent: resolvedDiscountPercent,
+    badge: (() => {
+      if (bp.badge) return bp.badge as Product['badge']
+      if (resolvedDiscountPercent) return 'SALE'
+      return undefined
     })(),
-    badge: bp.badge as Product['badge'] | undefined,
   }
 }
 
@@ -323,7 +337,7 @@ function paginate<T>(
 
 let cachedProducts: Product[] | null = null
 let cacheTimestamp = 0
-const CACHE_TTL_MS = 60_000
+const CACHE_TTL_MS = 2_000
 
 export const productService = {
   clearCache(): void {
@@ -333,22 +347,51 @@ export const productService = {
 
   async getProducts(filters: ProductFilters = {}): Promise<Product[]> {
     const now = Date.now()
-    if (!filters.query && cachedProducts && now - cacheTimestamp < CACHE_TTL_MS) {
+    const hasFilter = Boolean(
+      filters.query ||
+      filters.sort ||
+      filters.discount_only ||
+      filters.in_stock_only ||
+      filters.category_id ||
+      filters.min_price !== undefined ||
+      filters.max_price !== undefined,
+    )
+
+    if (!hasFilter && cachedProducts && now - cacheTimestamp < CACHE_TTL_MS) {
       return filterAndSort(cachedProducts, filters)
     }
 
     let allProducts: Product[] = []
     try {
-      const params: Record<string, string | number> = {
-        limit: 100,
-        page: 1,
+      const params: Record<string, string | number | boolean> = {
+        limit: filters.limit ?? 100,
+        page: filters.page ?? 1,
       }
-      if (filters.query) params.search = filters.query
+      if (filters.query?.trim()) params.search = filters.query.trim()
+      if (filters.sort) params.sort = filters.sort
+      if (filters.discount_only) params.discount_only = true
+      if (filters.in_stock_only) params.in_stock_only = true
+      if (typeof filters.min_price === 'number' && filters.min_price > 0) {
+        params.min_price = filters.min_price
+      }
+      if (typeof filters.max_price === 'number' && filters.max_price > 0) {
+        params.max_price = filters.max_price
+      }
+      if (filters.category_id && filters.category_id !== 'all') {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          filters.category_id,
+        )
+        if (isUuid) {
+          params.category_uuid = filters.category_id
+        } else {
+          params.category = filters.category_id
+        }
+      }
       const res = await api.get<StandardApiResponse<BackendProduct[]>>(
         '/ecommerce/products',
         { params },
       )
-      if (Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (Array.isArray(res.data?.data) && res.data.data.length > 0) {
         const backendMapped = res.data.data.map(mapBackendProduct)
         const repoProducts = productRepository.list()
         const backendSkus = new Set(backendMapped.map((p) => p.sku))
@@ -366,7 +409,7 @@ export const productService = {
       allProducts = productRepository.list()
     }
 
-    if (!filters.query) {
+    if (!hasFilter) {
       cachedProducts = allProducts
       cacheTimestamp = Date.now()
     }
@@ -378,27 +421,103 @@ export const productService = {
     filters: ProductFilters = {},
     cursor: number | null = null,
     limit = 12,
+    signal?: AbortSignal,
   ): Promise<CursorPage<Product>> {
+    const offset = Math.max(0, cursor ?? 0)
+    const page = Math.floor(offset / limit) + 1
+
+    try {
+      const params: Record<string, string | number | boolean> = {
+        page,
+        limit,
+      }
+      if (filters.query?.trim()) params.search = filters.query.trim()
+      if (typeof filters.min_price === 'number' && filters.min_price > 0) {
+        params.min_price = filters.min_price
+      }
+      if (typeof filters.max_price === 'number' && filters.max_price > 0) {
+        params.max_price = filters.max_price
+      }
+      if (filters.category_id && filters.category_id !== 'all') {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          filters.category_id,
+        )
+        if (isUuid) {
+          params.category_uuid = filters.category_id
+        } else {
+          params.category = filters.category_id
+        }
+      }
+      if (filters.sort) {
+        params.sort = filters.sort
+      }
+      if (filters.discount_only) {
+        params.discount_only = true
+      }
+      if (filters.in_stock_only) {
+        params.in_stock_only = true
+      }
+
+      type PaginatedResponse = {
+        data: BackendProduct[]
+        meta?: {
+          total?: number
+          total_pages?: number
+          current_page?: number
+          per_page?: number
+        }
+      }
+
+      const res = await api.get<StandardApiResponse<BackendProduct[]> & PaginatedResponse>(
+        '/ecommerce/products',
+        { params, signal },
+      )
+
+      const rawItems = res.data?.data
+      if (Array.isArray(rawItems)) {
+        let backendMapped = rawItems.map(mapBackendProduct)
+        if (filters.discount_only) {
+          backendMapped = backendMapped.filter(hasDiscount)
+        }
+        if (filters.in_stock_only) {
+          backendMapped = backendMapped.filter((p) => p.stock > 0)
+        }
+        if (filters.sort === 'featured-only') {
+          backendMapped = backendMapped.filter((p) => p.is_featured)
+        }
+        const total = Number(res.data?.meta?.total ?? backendMapped.length)
+        const nextOffset = offset + backendMapped.length
+        return {
+          items: backendMapped,
+          total,
+          nextCursor: nextOffset < total ? nextOffset : null,
+          prevCursor: offset > 0 ? Math.max(0, offset - limit) : null,
+        }
+      }
+    } catch (err: unknown) {
+      if ((err as { name?: string })?.name === 'CanceledError') {
+        throw err
+      }
+      // Fallback to local repository if offline
+    }
+
     const all = await this.getProducts(filters)
     return paginate(all, cursor, limit)
   },
 
   async getProductById(id: string): Promise<Product | null> {
-    const local = productRepository.list().find((p) => p.id === id || p.sku === id)
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-
-    if (isUuid || !local) {
-      try {
-        const res = await api.get<StandardApiResponse<BackendProduct>>(
-          `/ecommerce/products/${id}`,
-        )
-        if (res.data.data) {
-          return mapBackendProduct(res.data.data)
-        }
-      } catch {
-        // Graceful fallback
+    try {
+      const res = await api.get<StandardApiResponse<BackendProduct>>(
+        `/ecommerce/products/${id}`,
+      )
+      if (res.data?.data) {
+        return mapBackendProduct(res.data.data)
       }
+    } catch {
+      // Graceful fallback to local repository if offline or not found on server
     }
+
+    const local = productRepository.list().find((p) => p.id === id || p.sku === id)
     return local ?? null
   },
 
@@ -421,6 +540,21 @@ export const productService = {
   },
 
   async getCategories(): Promise<ProductCategory[]> {
+    try {
+      const res = await api.get<StandardApiResponse<Array<{ uuid: string; name: string; slug?: string; description?: string; is_active?: boolean }>>>('/ecommerce/categories')
+      const items = res.data?.data
+      if (Array.isArray(items) && items.length > 0) {
+        return items
+          .filter((cat) => cat.is_active !== false)
+          .map((cat) => ({
+            id: cat.slug || cat.uuid,
+            label: cat.name,
+            tagline: cat.description || '',
+          }))
+      }
+    } catch {
+      // Fallback to static CATEGORIES
+    }
     return CATEGORIES
   },
 
