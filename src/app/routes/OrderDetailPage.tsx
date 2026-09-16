@@ -17,6 +17,8 @@ import type { OrderWithItems } from '../../modules/orders/types/order.type'
 import { ProductImage } from '../../shared/components/ProductImage'
 import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../shared/components/ui'
+import { useCurrency, CURRENCIES, type CurrencyCode } from '../../modules/currency'
+import { cn } from '../../shared/utils/cn'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +47,7 @@ export function OrderDetailPage() {
   } | null>(null)
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const { record } = useRefund(order)
+  const { code: currencyCode, set: setCurrency } = useCurrency()
   const email = user?.email ?? null
 
   const load = useCallback(async () => {
@@ -93,7 +96,21 @@ export function OrderDetailPage() {
     if (!order) return
     for (const line of order.order_items) {
       const prod = PRODUCT_CATALOG.find((p) => p.id === line.product_id)
-      if (prod) add({ ...prod, variant_name: line.variant_name_snapshot ?? undefined }, line.quantity)
+      if (prod) {
+        const variant = line.variant_name_snapshot
+          ? prod.variants?.find((v) => v.variant_name === line.variant_name_snapshot)
+          : undefined
+        add(
+          {
+            ...prod,
+            variant_id: variant?.id,
+            variant_name: line.variant_name_snapshot ?? undefined,
+            variant_stock: variant?.stock,
+            variant_price_delta: variant?.price_delta,
+          },
+          line.quantity,
+        )
+      }
     }
     toast.success('Items added to cart', { position: 'top-center', style: { marginTop: '72px' }, closeButton: true })
     navigate('/cart')
@@ -309,7 +326,27 @@ export function OrderDetailPage() {
           </Card>
 
           <Card className="p-5">
-            <dl className="space-y-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-display text-sm font-bold tracking-tight">Currency</h3>
+              <div className="flex gap-1">
+                {(Object.keys(CURRENCIES) as CurrencyCode[]).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCurrency(c)}
+                    className={cn(
+                      'rounded px-2 py-1 text-xs font-semibold transition-colors',
+                      currencyCode === c
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
                 <dd>{formatPrice(order.subtotal ?? 0)}</dd>
@@ -319,7 +356,7 @@ export function OrderDetailPage() {
                 <dd>{order.shipping_total ? formatPrice(order.shipping_total) : 'FREE'}</dd>
               </div>
               <div className="flex items-center justify-between border-t pt-2">
-                <dt className="font-semibold">Total</dt>
+                <dt className="font-semibold">Total ({currencyCode})</dt>
                 <dd className="font-display text-lg font-bold tracking-tight">{formatPrice(paidAmount)}</dd>
               </div>
             </dl>
