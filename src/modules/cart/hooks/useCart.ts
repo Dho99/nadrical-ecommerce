@@ -28,6 +28,10 @@ export const useCartStore = create<CartStore>()(
         const clamped = isPreorder ? Math.min(qty, 99) : Math.min(qty, stock)
         if (clamped <= 0) return
         cartService.apiAddToCart(product.id, clamped, product.variant_id)
+        const variantDelta = (product as ProductBrief).variant_price_delta ?? 0
+        const baseWithVariant = product.base_price + variantDelta
+        const discount = product.discount_percent ?? 0
+        const discountedPrice = discount > 0 ? baseWithVariant * (1 - discount / 100) : baseWithVariant
         set((state) => {
           const existing = state.items.find(
             (i) => i.product_id === product.id && i.variant_id === product.variant_id,
@@ -48,7 +52,7 @@ export const useCartStore = create<CartStore>()(
                 product_id: product.id,
                 sku: product.sku,
                 product_name: product.name,
-                unit_price: product.base_price,
+                unit_price: discountedPrice,
                 quantity: clamped,
                 stock: product.variant_stock ?? product.stock,
                 cover_image_url: product.cover_image_url,
@@ -89,7 +93,7 @@ export const useCartStore = create<CartStore>()(
       qtyOf: (product_id, variant_id) =>
         get().items.find((i) => matches(i, product_id, variant_id))?.quantity ?? 0,
     }),
-    { name: 'store-cart-v3' },
+    { name: 'store-cart-v4' },
   ),
 )
 

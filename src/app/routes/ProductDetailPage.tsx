@@ -43,6 +43,7 @@ export function ProductDetailPage() {
         variant_id: variant?.id,
         variant_name: variant?.variant_name,
         variant_stock: variant?.stock,
+        variant_price_delta: variant?.price_delta,
       },
       qty,
     )
@@ -54,6 +55,7 @@ export function ProductDetailPage() {
         variant_id: variant?.id,
         variant_name: variant?.variant_name,
         variant_stock: variant?.stock,
+        variant_price_delta: variant?.price_delta,
       },
       qty,
     )

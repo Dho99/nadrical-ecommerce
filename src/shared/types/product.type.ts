@@ -66,4 +66,5 @@ export interface ProductBrief extends Product {
   variant_id?: string
   variant_name?: string
   variant_stock?: number
+  variant_price_delta?: number
 }

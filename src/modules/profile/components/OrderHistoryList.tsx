@@ -419,7 +419,21 @@ export function OrderHistoryList({
                         onClick={() => {
                           for (const line of order.order_items) {
                             const prod = PRODUCT_CATALOG.find((p) => p.id === line.product_id)
-                            if (prod) add({ ...prod, variant_name: line.variant_name_snapshot ?? undefined }, line.quantity)
+                            if (prod) {
+                              const variant = line.variant_name_snapshot
+                                ? prod.variants?.find((v) => v.variant_name === line.variant_name_snapshot)
+                                : undefined
+                              add(
+                                {
+                                  ...prod,
+                                  variant_id: variant?.id,
+                                  variant_name: line.variant_name_snapshot ?? undefined,
+                                  variant_stock: variant?.stock,
+                                  variant_price_delta: variant?.price_delta,
+                                },
+                                line.quantity,
+                              )
+                            }
                           }
                           toast.success('Items added to cart', { position: 'top-center', style: { marginTop: '72px' }, closeButton: true })
                           navigate('/cart')
