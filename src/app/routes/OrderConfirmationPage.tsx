@@ -127,17 +127,17 @@ export function OrderConfirmationPage() {
             <ShieldCheck className="size-3.5" /> Ringkasan Pesanan
           </div>
           <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
+            <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
               <dt className="text-muted-foreground">Order number</dt>
-              <dd className="font-mono font-semibold">{confirmation.order_number}</dd>
+              <dd className="min-w-0 break-all font-mono text-xs font-semibold sm:text-sm">{confirmation.order_number}</dd>
             </div>
-            <div className="flex justify-between gap-4">
+            <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
               <dt className="text-muted-foreground">Email</dt>
-              <dd className="font-medium">{confirmation.email}</dd>
+              <dd className="min-w-0 break-all text-xs font-medium sm:text-sm">{confirmation.email}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Total dibayar</dt>
-              <dd className="font-semibold">{formatPrice(confirmation.grand_total)}</dd>
+              <dd className="break-words font-semibold">{formatPrice(confirmation.grand_total)}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Estimasi pengiriman</dt>
@@ -145,9 +145,9 @@ export function OrderConfirmationPage() {
                 {confirmation.eta_days} hari{confirmation.eta_days === 1 ? '' : ''}
               </dd>
             </div>
-            <div className="flex justify-between gap-4">
+            <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
               <dt className="text-muted-foreground">Ditempatkan</dt>
-              <dd className="text-xs">{confirmation.placed_at.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+              <dd className="min-w-0 break-words text-xs">{confirmation.placed_at.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
             </div>
           </dl>
         </div>

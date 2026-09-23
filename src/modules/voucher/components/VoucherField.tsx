@@ -43,8 +43,8 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
           <BadgePercent className="size-4 text-emerald-600" />
           <span className="font-mono text-xs font-bold tracking-wide">{applied.code}</span>
           <span className="text-xs text-muted-foreground">{applied.description}</span>
-          <Button type="button" variant="ghost" size="icon-sm" className="ml-auto size-7" onClick={handleRemove} aria-label="Remove voucher">
-            <X className="size-3.5" />
+          <Button type="button" variant="ghost" size="icon" className="ml-auto size-10" onClick={handleRemove} aria-label="Remove voucher">
+            <X className="size-4" />
           </Button>
         </div>
       ) : (
@@ -54,17 +54,17 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="NADRICAL10"
             aria-label="Voucher code"
-            className="h-9 font-mono text-sm uppercase"
+            className="h-10 font-mono text-sm uppercase"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApply())}
           />
-          <Button type="button" onClick={handleApply} disabled={loading || !code.trim()} className="shrink-0">
+          <Button type="button" onClick={handleApply} disabled={loading || !code.trim()} className="h-10 shrink-0 px-4">
             {loading ? <LoaderCircle className="size-4 animate-spin" /> : 'Apply'}
           </Button>
         </div>
       )}
 
       {error && !applied && (
-        <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>
+        <p role="alert" className="mt-2 break-words text-xs text-destructive">{error}</p>
       )}
 
       {!applied && (
@@ -74,7 +74,7 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
               key={v.code}
               type="button"
               onClick={() => setCode(v.code)}
-              className="rounded-full border bg-muted px-2.5 py-1 font-mono text-[11px] font-medium tracking-wide hover:bg-accent"
+              className="inline-flex min-h-10 items-center rounded-full border bg-muted px-3 py-1.5 font-mono text-xs font-medium tracking-wide hover:bg-accent"
             >
               {v.code}
             </button>

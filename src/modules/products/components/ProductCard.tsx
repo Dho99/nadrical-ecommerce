@@ -62,8 +62,8 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       <WishlistButton
         productId={product.id}
         productName={product.name}
-        size="icon-sm"
-        className="absolute top-2.5 right-2.5 z-10 bg-background/90 shadow-sm backdrop-blur"
+        size="icon"
+        className="absolute top-2.5 right-2.5 z-10 size-10 bg-background/90 shadow-sm backdrop-blur"
       />
       <Link
         to={`/products/${product.id}`}
@@ -99,13 +99,13 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         )}
       </Link>
 
-      <CardContent className="flex grow flex-col gap-1 px-3.5 py-3">
-        <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+      <CardContent className="flex min-w-0 grow flex-col gap-1 px-3.5 py-3">
+        <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
           {CATEGORY_LABEL[product.category_id]}
         </p>
 
-        <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug tracking-tight">
-          <Link to={`/products/${product.id}`} className="transition-colors hover:text-primary">
+        <h3 className="line-clamp-2 break-words font-display text-[15px] font-semibold leading-snug tracking-tight">
+          <Link to={`/products/${product.id}`} className="break-words transition-colors hover:text-primary">
             {product.name}
           </Link>
         </h3>

@@ -135,14 +135,14 @@ export function ProductRatingsPage() {
                 aria-selected={rating === f.id}
                 onClick={() => setRating(f.id)}
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                  'inline-flex min-h-10 items-center rounded-full border px-3.5 py-2 text-sm font-medium transition-colors',
                   rating === f.id
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-background hover:border-foreground/50',
                 )}
               >
                 {f.label}
-                <span className="ml-1 font-mono text-[11px] opacity-70">
+                <span className="ml-1 font-mono text-xs opacity-70">
                   {countsFor(f.id)}
                 </span>
               </button>

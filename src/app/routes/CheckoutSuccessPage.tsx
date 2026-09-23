@@ -137,19 +137,19 @@ export function CheckoutSuccessPage() {
         <Separator className="my-5" />
 
         <p className="font-mono text-xs tracking-[0.14em] text-muted-foreground uppercase">Order number</p>
-        <p className="mt-1 font-display text-4xl font-bold tracking-tight">{confirmation.order_number}</p>
+        <p className="mt-1 break-all font-display text-2xl font-bold tracking-tight sm:text-4xl">{confirmation.order_number}</p>
 
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Konfirmasi akan dikirim ke <span className="font-semibold text-foreground">{confirmation.email}</span>. Estimasi pengiriman{' '}
+        <p className="mt-4 break-words text-sm leading-relaxed text-muted-foreground">
+          Konfirmasi akan dikirim ke <span className="break-all font-semibold text-foreground">{confirmation.email}</span>. Estimasi pengiriman{' '}
           <span className="font-semibold text-foreground">
             {confirmation.eta_days} hari{confirmation.eta_days === 1 ? '' : ''}
           </span>
           .
         </p>
-        <p className="mt-2 font-mono text-sm">
+        <p className="mt-2 break-words font-mono text-sm">
           Total dibayar: <span className="font-semibold">{formatPrice(confirmation.grand_total)}</span>
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 break-words text-xs text-muted-foreground">
           Ditempatkan: {confirmation.placed_at.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
 

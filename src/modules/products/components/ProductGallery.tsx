@@ -79,7 +79,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           alt={slides[active].label ? `${product.name} — ${slides[active].label}` : product.name}
           className="h-full w-full object-cover transition-opacity duration-300"
         />
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-md bg-background/90 px-2 py-1.5 font-mono text-[11px] text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+        <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-md bg-background/90 px-2 py-1.5 font-mono text-xs text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-active:opacity-100 group-focus-within:opacity-100">
           <Expand className="size-4" />
           {count > 1 ? `${active + 1}/${count}` : 'FULLSCREEN'}
         </span>
@@ -128,7 +128,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           side="bottom"
           showCloseButton={false}
           onKeyDown={handleKeyDown}
-          className="z-[60] h-screen w-screen max-w-none border-none bg-black/95 p-0 ring-0 data-[side=bottom]:h-screen"
+          className="z-[60] h-[100dvh] w-full max-w-none border-none bg-black/95 p-0 ring-0 data-[side=bottom]:h-[100dvh]"
         >
           <SheetTitle className="sr-only">
             {product.name} — image {lightboxIndex + 1} of {count}

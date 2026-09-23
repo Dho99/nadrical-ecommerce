@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  Bell,
   Bookmark,
   LogOut,
   Menu,
@@ -14,7 +15,7 @@ import {
 import { useTheme } from "next-themes";
 import { useCart } from "../../modules/cart/hooks/useCart";
 import { useAuth } from "../../modules/auth/hooks/useAuth";
-import { NotificationBell } from "../../modules/notifications";
+import { NotificationBell, useNotifications } from "../../modules/notifications";
 import { useWishlist } from "../../modules/wishlist";
 import {
   useCurrency,
@@ -46,6 +47,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { count: wishlistCount } = useWishlist();
+  const { unreadCount } = useNotifications();
   const { code: currencyCode, set: setCurrency } = useCurrency();
 
   const dark = resolvedTheme === "dark";
@@ -141,7 +143,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="shrink-0 flex items-center gap-2">
             <img
@@ -164,55 +166,56 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Search"
-              onClick={handleOpenSearch}
-              className="size-9 sm:size-10"
-            >
-              <Search className="size-5" />
-            </Button>
-
-            {isAuthed && <NotificationBell />}
-
-            <Button variant="ghost" size="icon" className="size-9 sm:size-10" asChild>
-              <Link
-                to="/profile/wishlist"
-                className="relative"
-                aria-label={`Wishlist, ${wishlistCount} items`}
+            <div className="hidden items-center gap-1.5 sm:gap-2 md:flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Search"
+                onClick={handleOpenSearch}
+                className="size-10"
               >
-                <Bookmark className="size-5" />
-                {wishlistCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 size-4 justify-center rounded-full p-0 text-[10px]">
-                    {wishlistCount}
-                  </Badge>
-                )}
-              </Link>
-            </Button>
+                <Search className="size-5" />
+              </Button>
 
-            <Button variant="ghost" size="icon" className="size-9 sm:size-10" asChild>
-              <Link
-                to="/cart"
-                className="relative"
-                aria-label={`Cart with ${totalQty} items`}
-              >
-                <ShoppingCart className="size-5" />
-                {totalQty > 0 && (
-                  <Badge className="absolute -top-1 -right-1 size-4 justify-center rounded-full p-0 text-[10px]">
-                    {totalQty}
-                  </Badge>
-                )}
-              </Link>
-            </Button>
+              {isAuthed && <NotificationBell />}
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex size-10" aria-label="User menu">
-                  <UserRound className="size-5" />
-                </Button>
-              </PopoverTrigger>
+              <Button variant="ghost" size="icon" className="size-10" asChild>
+                <Link
+                  to="/profile/wishlist"
+                  className="relative"
+                  aria-label={`Wishlist, ${wishlistCount} items`}
+                >
+                  <Bookmark className="size-5" />
+                  {wishlistCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 size-4 justify-center rounded-full p-0 text-xs">
+                      {wishlistCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              <Button variant="ghost" size="icon" className="size-10" asChild>
+                <Link
+                  to="/cart"
+                  className="relative"
+                  aria-label={`Cart with ${totalQty} items`}
+                >
+                  <ShoppingCart className="size-5" />
+                  {totalQty > 0 && (
+                    <Badge className="absolute -top-1 -right-1 size-4 justify-center rounded-full p-0 text-xs">
+                      {totalQty}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-10" aria-label="User menu">
+                    <UserRound className="size-5" />
+                  </Button>
+                </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-2">
                 {isAuthed ? (
                   <>
@@ -268,6 +271,7 @@ export function SiteHeader() {
                 )}
               </PopoverContent>
             </Popover>
+            </div>
 
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
@@ -275,12 +279,12 @@ export function SiteHeader() {
                   variant="ghost"
                   size="icon"
                   aria-label="Open mobile navigation menu"
-                  className="lg:hidden size-9 sm:size-10"
+                  className="lg:hidden size-10"
                 >
                   <Menu className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="flex flex-col w-80 p-0 sm:max-w-xs">
+              <SheetContent side="right" className="flex flex-col w-[85vw] max-w-sm p-0">
                 <div className="p-5 border-b">
                   <SheetTitle className="font-display text-xl font-bold tracking-tight">
                     <img
@@ -302,6 +306,63 @@ export function SiteHeader() {
                     >
                       <Search className="size-4" /> Search products…
                     </Button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 md:hidden">
+                    <Link
+                      to="/cart"
+                      onClick={() => setMenuOpen(false)}
+                      className="relative flex flex-col items-center gap-1 rounded-lg border bg-card px-2 py-3 text-xs font-medium hover:bg-accent"
+                    >
+                      <span className="relative">
+                        <ShoppingCart className="size-5" />
+                        {totalQty > 0 && (
+                          <Badge className="absolute -top-2 -right-3 size-4 justify-center rounded-full p-0 text-[10px]">
+                            {totalQty > 9 ? '9+' : totalQty}
+                          </Badge>
+                        )}
+                      </span>
+                      Cart
+                      {totalQty > 0 && <span className="font-mono text-[11px] text-muted-foreground">{totalQty}</span>}
+                    </Link>
+                    <Link
+                      to="/profile/wishlist"
+                      onClick={() => setMenuOpen(false)}
+                      className="relative flex flex-col items-center gap-1 rounded-lg border bg-card px-2 py-3 text-xs font-medium hover:bg-accent"
+                    >
+                      <span className="relative">
+                        <Bookmark className="size-5" />
+                        {wishlistCount > 0 && (
+                          <Badge className="absolute -top-2 -right-3 size-4 justify-center rounded-full p-0 text-[10px]">
+                            {wishlistCount > 9 ? '9+' : wishlistCount}
+                          </Badge>
+                        )}
+                      </span>
+                      Wishlist
+                      {wishlistCount > 0 && <span className="font-mono text-[11px] text-muted-foreground">{wishlistCount}</span>}
+                    </Link>
+                    {isAuthed ? (
+                      <div className="relative flex flex-col items-center gap-1 rounded-lg border bg-card px-2 py-3 text-xs font-medium">
+                        <span className="relative">
+                          <Bell className="size-5" />
+                          {unreadCount > 0 && (
+                            <Badge className="absolute -top-2 -right-3 size-4 justify-center rounded-full p-0 text-[10px]">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </Badge>
+                          )}
+                        </span>
+                        Alerts
+                        <span className="font-mono text-[11px] text-muted-foreground">{unreadCount} new</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleOpenSearch}
+                        className="flex flex-col items-center gap-1 rounded-lg border bg-card px-2 py-3 text-xs font-medium hover:bg-accent"
+                      >
+                        <Search className="size-5" />
+                        Search
+                      </button>
+                    )}
                   </div>
                 </div>
 

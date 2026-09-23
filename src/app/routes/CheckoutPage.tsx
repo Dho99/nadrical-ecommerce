@@ -55,15 +55,15 @@ export function CheckoutPage() {
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight sm:text-5xl">Checkout</h1>
       </header>
 
-      <div className="grid items-start gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-7">
+      <div className="grid items-start gap-8 md:gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-7">
           <CheckoutForm
             payloadBase={{ items, totals }}
             initialValues={{ recipient_name: user?.full_name, email: user?.email }}
             onOrderPlaced={handleOrderPlaced}
           />
         </div>
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-auto">
           <OrderSummary items={items} />
         </div>
       </div>

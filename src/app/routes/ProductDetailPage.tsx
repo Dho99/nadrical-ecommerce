@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Award, Clock, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
 import {
@@ -30,6 +31,8 @@ import type { Product, ProductVariant } from '../../modules/products/types/produ
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { product, status, error } = useProduct(id)
+  const [selectedStock, setSelectedStock] = useState<number | null>(null)
+  const handleStockChange = useCallback((stock: number) => setSelectedStock(stock), [])
   const { add } = useGuardedAdd()
   const { buyNow } = useBuyNow()
 
@@ -62,8 +65,8 @@ export function ProductDetailPage() {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-10 sm:px-8 lg:grid-cols-2">
-        <Skeleton className="aspect-square w-full" />
+      <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-10 sm:px-8 md:grid-cols-2">
+        <Skeleton className="aspect-[4/3] w-full" />
         <div className="flex flex-col gap-4">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-10 w-2/3" />
@@ -110,26 +113,29 @@ export function ProductDetailPage() {
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{product.name}</BreadcrumbPage>
+          <BreadcrumbItem className="min-w-0">
+            <BreadcrumbPage className="truncate break-words">{product.name}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6 md:items-start">
         <ProductGallery product={product} />
 
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
             {product.is_preorder ? (
               <Badge className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-bold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
                 <Clock className="size-3.5" />
                 <span>Pre-order</span>
               </Badge>
-            ) : product.stock === 0 ? (
+            ) : (selectedStock ?? product.stock) === 0 ? (
               <Badge variant="destructive">Out of stock</Badge>
-            ) : product.stock < 20 ? (
-              <Badge variant="secondary">Low stock · {product.stock} left</Badge>
+            ) : (selectedStock ?? product.stock) > 0 && (selectedStock ?? product.stock) < 20 ? (
+              <>
+                <Badge variant="outline">In stock</Badge>
+                <Badge variant="secondary">Low stock · {selectedStock ?? product.stock} left</Badge>
+              </>
             ) : (
               <Badge variant="outline">In stock</Badge>
             )}
@@ -162,14 +168,14 @@ export function ProductDetailPage() {
             )}
           </div>
           <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
-            <h1 className="font-display text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
+            <h1 className="font-display min-w-0 flex-1 break-words text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
               {product.name}
             </h1>
             <WishlistButton
               productId={product.id}
               productName={product.name}
               variant="outline"
-              className="mt-1"
+              className="mt-1 size-10 shrink-0"
             />
           </div>
 
@@ -177,7 +183,7 @@ export function ProductDetailPage() {
             <button
               type="button"
               onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-1.5 text-sm transition-opacity hover:opacity-80"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 text-sm transition-colors hover:bg-muted"
               aria-label={`${product.rating} out of 5 rating, ${product.review_count} reviews`}
             >
               <StarRating rating={product.rating} />
@@ -189,7 +195,7 @@ export function ProductDetailPage() {
             <button
               type="button"
               onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' })}
-              className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              className="inline-flex min-h-10 items-center rounded-md px-2 font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline hover:bg-muted"
             >
               Lihat ulasan
             </button>
@@ -210,7 +216,7 @@ export function ProductDetailPage() {
           </div>
 
           <div className="mt-5">
-            <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} />
+            <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} onStockChange={handleStockChange} />
           </div>
         </div>
       </div>
@@ -220,12 +226,12 @@ export function ProductDetailPage() {
       </div>
 
       {related.length > 0 && (
-        <section className="mt-16">
+        <section className="mt-10 sm:mt-16">
           <header className="mb-5">
             <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
               You might also like
             </p>
-            <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">
               More in {CATEGORY_LABEL[product.category_id]}
             </h2>
           </header>

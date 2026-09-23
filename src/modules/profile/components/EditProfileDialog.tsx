@@ -31,7 +31,7 @@ function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-export function EditProfileDialog() {
+export function EditProfileDialog({ size = 'sm' }: { size?: 'sm' | 'xs' } = {}) {
   const { user, updateProfile } = useAuth()
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -99,7 +99,7 @@ export function EditProfileDialog() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="outline" size={size} onClick={() => setOpen(true)}>
         <Pencil /> Edit profile
       </Button>
       <Dialog

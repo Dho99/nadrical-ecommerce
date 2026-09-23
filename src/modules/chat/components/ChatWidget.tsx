@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, LoaderCircle, Pencil } from 'lucide-react'
 import { cn } from '../../../shared/utils/cn'
 import { Button } from '../../../shared/components/ui'
-import { CHAT_OPEN_EVENT, type ChatOpenDetail, type ProductChatContext } from '../../../shared/constants/chat.constants'
+import {
+  CHAT_OPEN_EVENT,
+  CHAT_PRODUCT_CONTEXTS_KEY,
+  type ChatOpenDetail,
+  type ProductChatContext,
+} from '../../../shared/constants/chat.constants'
 import { useChat } from '../hooks/useChat'
 import type { ChatIdentity } from '../types/chat.type'
 import type { GuestProfileInput } from '../schemas/guest.schema'
@@ -32,10 +37,26 @@ function loadProfile(): GuestProfileInput | null {
   }
 }
 
+function loadContexts(): ProductChatContext[] {
+  try {
+    const raw = localStorage.getItem(CHAT_PRODUCT_CONTEXTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    const now = new Date().toISOString()
+    return parsed
+      .filter((p): p is ProductChatContext => Boolean(p && typeof (p as ProductChatContext).id === 'string'))
+      .map((p) => ({ ...p, added_at: p.added_at ?? now }))
+      .slice(-5)
+  } catch {
+    return []
+  }
+}
+
 export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const [productCtx, setProductCtx] = useState<ProductChatContext | null>(null)
+  const [productCtxs, setProductCtxs] = useState<ProductChatContext[]>(() => loadContexts())
   const [sendFailed, setSendFailed] = useState(false)
   const [guestProfile, setGuestProfile] = useState<GuestProfileInput | null>(() => loadProfile())
   const [editingProfile, setEditingProfile] = useState(false)
@@ -58,18 +79,45 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
   const { messages, status, sending, send, markRead } = useChat(effectiveIdentity)
   const showConversation = !needsIdentity
 
+  const timeline = useMemo(() => {
+    const products = productCtxs.map((ctx) => ({
+      kind: 'product' as const,
+      ts: ctx.added_at ?? '',
+      key: `product-${ctx.id}-${ctx.added_at}`,
+      ctx,
+    }))
+    const chats = messages.map((m) => ({
+      kind: 'message' as const,
+      ts: m.created_at ?? '',
+      key: `msg-${m.id}`,
+      m,
+    }))
+    return [...products, ...chats].sort((a, b) => a.ts.localeCompare(b.ts))
+  }, [productCtxs, messages])
+
   useEffect(() => {
     if (open) void markRead()
   }, [open, markRead, showConversation])
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [open, messages.length, showConversation])
+  }, [open, timeline.length, showConversation])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_PRODUCT_CONTEXTS_KEY, JSON.stringify(productCtxs))
+    } catch {
+      // ignore
+    }
+  }, [productCtxs])
 
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<ChatOpenDetail>).detail
-      if (detail?.product) setProductCtx(detail.product)
+      if (detail?.product) {
+        const incoming: ProductChatContext = { ...detail.product, added_at: new Date().toISOString() }
+        setProductCtxs((prev) => [...prev, incoming].slice(-5))
+      }
       if (detail?.message) setDraft(detail.message)
       setOpen(true)
     }
@@ -90,9 +138,14 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
   const doSend = (text: string) => {
     if (needsIdentity) return
     setSendFailed(false)
-    void send(text)
+    const active = productCtxs.length > 0 ? [productCtxs[productCtxs.length - 1]] : undefined
+    void send(text, active)
       .then(() => setDraft(''))
       .catch(() => setSendFailed(true))
+  }
+
+  const removeCtx = (addedAt: string | undefined, id: string) => {
+    setProductCtxs((prev) => prev.filter((p) => !(p.id === id && p.added_at === addedAt)))
   }
 
   return (
@@ -108,12 +161,6 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
       }
       className={cn(guest && needsIdentity ? 'max-h-[80vh]' : guest && guestProfile ? 'h-[70vh] max-h-[70vh]' : 'h-[75vh] max-h-[75vh]')}
     >
-      {productCtx && (
-        <div className="border-b p-3">
-          <ProductContextPreview product={productCtx} onClear={() => setProductCtx(null)} />
-        </div>
-      )}
-
       {guest && needsIdentity && (
         <GuestIdentityForm
           initialValues={guestProfile ?? undefined}
@@ -149,45 +196,85 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
           )}
 
           <div className="flex-1 space-y-3 overflow-y-auto bg-muted/40 p-4">
-            {status === 'loading' && messages.length === 0 && (
+            {status === 'loading' && messages.length === 0 && timeline.length === 0 && (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" /> Connecting…
               </p>
             )}
-            {messages.length === 0 && status !== 'loading' && (
+            {timeline.length === 0 && status !== 'loading' && (
               <p className="text-center text-sm text-muted-foreground">
                 Start the conversation — we typically reply within minutes.
               </p>
             )}
-            {messages.map((m) => {
-              const isCustomer = m.sender_role === 'customer'
-              return (
-                <div key={m.id} className={cn('flex', isCustomer && 'justify-end')}>
+            {timeline.map((item) =>
+              item.kind === 'product' ? (
+                <div key={item.key}>
+                  <ProductContextPreview product={item.ctx} onClear={() => removeCtx(item.ctx.added_at, item.ctx.id)} />
+                  <p className="mt-1 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+                    {item.ctx.added_at ? formatTime(new Date(item.ctx.added_at)) : ''} · Membahas produk ini
+                  </p>
+                </div>
+              ) : (
+                <div key={item.key} className={cn('flex', item.m.sender_role === 'customer' && 'justify-end')}>
                   <div
                     className={cn(
                       'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
-                      isCustomer
+                      item.m.sender_role === 'customer'
                         ? 'rounded-br-sm bg-primary text-primary-foreground'
                         : 'rounded-bl-sm border bg-card text-card-foreground',
                     )}
                   >
-                    <p className="leading-relaxed">{m.message}</p>
+                    <p className="leading-relaxed">{item.m.message}</p>
+                    {item.m.attachments?.some((a) => a.type === 'product') && (
+                      <p className="mt-1.5 flex flex-wrap gap-1">
+                        {item.m.attachments
+                          .filter((a) => a.type === 'product')
+                          .map((a) => {
+                            const meta = a.metadata as unknown as ProductChatContext | undefined
+                            return (
+                              <span
+                                key={a.id}
+                                className={cn(
+                                  'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                                  item.m.sender_role === 'customer'
+                                    ? 'border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground'
+                                    : 'border-border bg-muted text-muted-foreground',
+                                )}
+                              >
+                                {meta?.name ?? a.value}
+                              </span>
+                            )
+                          })}
+                      </p>
+                    )}
                     <p
                       className={cn(
                         'mt-1 font-mono text-[10px]',
-                        isCustomer ? 'text-primary-foreground/70' : 'text-muted-foreground',
+                        item.m.sender_role === 'customer' ? 'text-primary-foreground/70' : 'text-muted-foreground',
                       )}
                     >
-                      {m.created_at ? formatTime(new Date(m.created_at)) : 'now'}
-                      {m.sender_role === 'bot' && ' · bot'}
+                      {item.m.created_at ? formatTime(new Date(item.m.created_at)) : 'now'}
+                      {item.m.sender_role === 'bot' && ' · bot'}
                     </p>
                   </div>
                 </div>
-              )
-            })}
+              ),
+            )}
             {sending && <p className="text-xs text-muted-foreground italic">Sending…</p>}
             <div ref={bottomRef} />
           </div>
+
+          {productCtxs.length > 1 && (
+            <div className="border-t bg-background px-3 py-1.5">
+              <button
+                type="button"
+                onClick={() => setProductCtxs([])}
+                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Clear all products
+              </button>
+            </div>
+          )}
 
           {sendFailed && (
             <div className="border-t bg-destructive/10 px-4 py-2">

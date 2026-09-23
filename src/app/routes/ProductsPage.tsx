@@ -38,7 +38,7 @@ export function ProductsPage() {
           status={status}
           error={error}
           onRetry={refetch}
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:gap-5"
+          className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 md:gap-5"
         footer={
           <div ref={sentinelRef} aria-hidden="true">
             {loadingMore && (

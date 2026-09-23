@@ -24,7 +24,7 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
   const toFreeShip = Math.max(0, FREE_SHIPPING_THRESHOLD - totals.subtotal)
 
   return (
-    <Card className="h-fit p-5">
+    <Card className="h-fit p-5 sm:p-6 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-auto">
       <h2 className="font-display text-xl font-bold tracking-tight">Order summary</h2>
 
       <div className="mt-4">
@@ -69,7 +69,7 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
           Checkout <ArrowRight />
         </Button>
       </Link>
-      <p className="mt-3 text-center font-mono text-[11px] text-muted-foreground">
+      <p className="mt-3 text-center font-mono text-xs text-muted-foreground">
         Checkout guarantee: 256-bit encryption + 30-day free returns.
       </p>
       <Link

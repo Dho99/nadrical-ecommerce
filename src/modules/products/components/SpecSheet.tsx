@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, MessageCircle, ShoppingCart } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import {
@@ -32,16 +32,23 @@ interface SpecSheetProps {
   product: Product
   onAdd: (product: Product, qty: number, variant?: ProductVariant) => void
   onBuyNow?: (product: Product, qty: number, variant?: ProductVariant) => void
+  onStockChange?: (stock: number) => void
 }
 
 function StockBadge({ stock, isPreorder }: { stock: number; isPreorder?: boolean }) {
   if (isPreorder) return <Badge className="bg-amber-500 text-white">Pre-order</Badge>
   if (stock === 0) return <Badge variant="destructive">Out of stock</Badge>
-  if (stock < 20) return <Badge variant="secondary">Low stock · {stock} left</Badge>
+  if (stock > 0 && stock < 20)
+    return (
+      <>
+        <Badge variant="outline">In stock</Badge>
+        <Badge variant="secondary">Low stock · {stock} left</Badge>
+      </>
+    )
   return <Badge variant="outline">In stock</Badge>
 }
 
-export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
+export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheetProps) {
   const variants = product.variants ?? []
   const isMultiVariant = variants.length > 0 && variants[0].variant_name.includes(' / ')
   const { format, code } = useCurrency()
@@ -114,6 +121,10 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const price = product.base_price + (selected?.price_delta ?? 0)
   const stock = selected ? selected.stock : (variants.length > 0 ? 0 : product.stock)
   const isPreorder = Boolean(product.is_preorder)
+
+  useEffect(() => {
+    onStockChange?.(stock)
+  }, [stock, onStockChange])
   const soldOut = stock === 0 && !isPreorder
 
   const handleSelectSingle = (variant: ProductVariant) => {
@@ -296,7 +307,9 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <StockBadge stock={stock} isPreorder={isPreorder} />
+        <span className="flex flex-wrap items-center gap-1.5 md:gap-2">
+          <StockBadge stock={stock} isPreorder={isPreorder} />
+        </span>
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-baseline gap-2">
             {product.discount_percent ? (

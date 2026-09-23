@@ -32,7 +32,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
   const loyaltyPoints = Math.floor(grandTotal / 10)
 
   return (
-    <Card className="h-fit p-5">
+    <Card className="h-fit p-5 sm:p-6">
       <h2 className="font-display text-lg font-bold tracking-tight">Your order</h2>
 
       <ul className="mt-4 divide-y">
@@ -86,7 +86,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
         <p className="mt-1 text-muted-foreground">Shipping within 24 hours upon confirmation of payment</p>
       </div>
 
-      <p className="mt-2 text-center font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+      <p className="mt-2 text-center font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
         100% Buyer Protection · 30-Day Money-Back Guarantee
       </p>
 

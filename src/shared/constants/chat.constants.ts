@@ -1,5 +1,7 @@
 export const CHAT_OPEN_EVENT = 'nadrical:open-chat'
 
+export const CHAT_PRODUCT_CONTEXTS_KEY = 'nadrical:chat-product-contexts'
+
 export interface ProductChatContext {
   id: string
   name: string
@@ -9,6 +11,7 @@ export interface ProductChatContext {
   availability: string
   description: string
   image: string
+  added_at?: string
 }
 
 export interface ChatOpenDetail {

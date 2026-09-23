@@ -17,9 +17,9 @@ export function SiteFooter() {
           <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
             Shop
           </p>
-          <ul className="mt-3 space-y-1.5">
+          <ul className="mt-3 space-y-1">
             <li>
-              <Link to="/products" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Link to="/products" className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground">
                 All products
               </Link>
             </li>
@@ -27,7 +27,7 @@ export function SiteFooter() {
               <li key={cat.id}>
                 <Link
                   to={`/products?category=${cat.id}`}
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {cat.label}
                 </Link>

@@ -36,14 +36,14 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
       <div className="min-w-0 flex-1">
         <Link
           to={`/products/${line.product_id}`}
-          className="block truncate text-sm font-medium hover:underline"
+          className="block truncate break-words text-sm font-medium hover:underline"
         >
           {line.product_name}
         </Link>
         {line.variant_name && (
-          <p className="truncate text-xs text-muted-foreground">{line.variant_name}</p>
+          <p className="truncate break-words text-xs text-muted-foreground">{line.variant_name}</p>
         )}
-        <p className="mt-0.5 font-mono text-[10px] text-muted-foreground uppercase">
+        <p className="mt-0.5 break-words font-mono text-xs text-muted-foreground uppercase">
           {line.sku} · ×{line.quantity}
         </p>
       </div>
@@ -52,7 +52,7 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
         <Button
           type="button"
           variant="outline"
-          size="icon-sm"
+          size="icon"
           onClick={decrement}
           disabled={line.quantity <= 1}
           aria-label={`Decrease quantity of ${line.product_name}`}
@@ -63,7 +63,7 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
         <Button
           type="button"
           variant="outline"
-          size="icon-sm"
+          size="icon"
           onClick={increment}
           aria-label={`Increase quantity of ${line.product_name}`}
         >
@@ -72,10 +72,10 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
       </div>
 
       <div className="w-24 shrink-0 text-right">
-        <p className="font-mono text-sm font-semibold">
+        <p className="break-words font-mono text-sm font-semibold">
           {formatPrice(line.unit_price * line.quantity)}
         </p>
-        <p className="font-mono text-[10px] text-muted-foreground">subtotal</p>
+        <p className="font-mono text-xs text-muted-foreground">subtotal</p>
       </div>
     </div>
   )

@@ -26,13 +26,13 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
         />
       </Link>
 
-      <div className="col-span-9 sm:col-span-5">
-        <div className="flex items-center gap-2">
-          <p className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+      <div className="col-span-9 min-w-0 sm:col-span-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
             {CATEGORY_LABEL[item.category_id]}
           </p>
           {item.is_preorder ? (
-            <Badge className="bg-amber-500 text-white text-[10px]">Pre-order</Badge>
+            <Badge className="bg-amber-500 text-white text-xs">Pre-order</Badge>
           ) : item.stock === 0 ? (
             <Badge variant="destructive">Out of stock</Badge>
           ) : item.stock < 20 ? (
@@ -43,14 +43,14 @@ export function CartLineItem({ item, onSetQty, onRemove }: CartLineItemProps) {
         </div>
         <Link
           to={`/products/${item.product_id}`}
-          className="font-display text-lg font-semibold leading-tight tracking-tight transition-colors hover:text-primary"
+          className="block break-words font-display text-lg font-semibold leading-tight tracking-tight transition-colors hover:text-primary"
         >
           {item.product_name}
         </Link>
         {item.variant_name && (
-          <p className="mt-0.5 text-sm text-muted-foreground">Spec: {item.variant_name}</p>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">Spec: {item.variant_name}</p>
         )}
-        <p className="mt-1 font-mono text-xs text-muted-foreground">
+        <p className="mt-1 break-words font-mono text-xs text-muted-foreground">
           {formatPrice(item.unit_price)} / unit
         </p>
       </div>

@@ -33,7 +33,7 @@ export function QtyStepper({
       >
         <Minus />
       </Button>
-      <output className="flex h-9 min-w-12 items-center justify-center px-1 font-mono text-sm font-semibold">
+      <output className="flex h-10 min-w-12 items-center justify-center px-1 font-mono text-sm font-semibold">
         {value}
       </output>
       <Button

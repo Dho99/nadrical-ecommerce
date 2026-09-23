@@ -25,8 +25,8 @@ export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
   const wishlistCount = wishlistProducts.length
   return (
     <Card className="p-6 sm:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           {user.avatar_url ? (
             <img src={user.avatar_url} alt={user.full_name ?? 'Avatar'} className="size-14 shrink-0 rounded-full border object-cover" />
           ) : (
@@ -44,14 +44,19 @@ export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
             <p className="truncate text-sm text-muted-foreground">{user.email}</p>
             {user.phone && <p className="truncate font-mono text-sm text-muted-foreground">{user.phone}</p>}
             <p className="mt-1 text-xs text-muted-foreground">Joined since {JOINED_LABEL}</p>
+            <div className="mt-3 md:hidden">
+              <EditProfileDialog size="xs" />
+            </div>
           </div>
         </div>
-        <EditProfileDialog />
+        <div className="hidden shrink-0 md:block">
+          <EditProfileDialog size="sm" />
+        </div>
       </div>
 
-      <Separator className="my-6" />
+      <Separator className="my-3" />
 
-      <dl className="grid gap-6 sm:grid-cols-3">
+      <dl className="grid grid-cols-3 gap-2 md:gap-6">
         <div>
           <dt className="flex items-center gap-1 font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
             <Star className="size-3" /> Orders placed

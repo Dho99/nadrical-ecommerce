@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AsyncStatus } from '../../../shared/types/common.type'
+import type { ProductChatContext } from '../../../shared/constants/chat.constants'
 import type { ChatConversation, ChatIdentity, ChatMessage } from '../types/chat.type'
 import { chatService } from '../services/chat.service'
 import { chatRepository } from '../services/chat.repository'
@@ -10,7 +11,7 @@ interface UseChatResult {
   messages: ChatMessage[]
   status: AsyncStatus
   sending: boolean
-  send: (text: string) => Promise<void>
+  send: (text: string, productContexts?: ProductChatContext[]) => Promise<void>
   markRead: () => Promise<void>
 }
 
@@ -64,7 +65,6 @@ export function useChat(identity: ChatIdentity): UseChatResult {
     const unsubscribe = websocketService.on('chat_message', (payload: unknown) => {
       if (isChatMessagePayload(payload)) {
         const currentConv = conversationRef.current
-        // If message is for this conversation or matching customer
         if (currentConv && currentConv.id === payload.conversation_id) {
           const fallback = 'conversation' in payload ? (payload.conversation as Partial<ChatConversation>) : undefined
           chatRepository.insertMessage(payload.conversation_id, payload.message, fallback)
@@ -80,7 +80,7 @@ export function useChat(identity: ChatIdentity): UseChatResult {
     }
   }, [loadConversation])
 
-  const send = async (text: string) => {
+  const send = async (text: string, productContexts?: ProductChatContext[]) => {
     const trimmed = text.trim()
     if (!trimmed) return
     setSending(true)
@@ -88,6 +88,7 @@ export function useChat(identity: ChatIdentity): UseChatResult {
       const updated = await chatService.sendCustomerMessage(
         { customer_user_id, customer_name, customer_email },
         trimmed,
+        productContexts,
       )
       setConversation(updated)
     } finally {

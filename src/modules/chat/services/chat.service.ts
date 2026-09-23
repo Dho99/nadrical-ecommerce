@@ -1,16 +1,34 @@
 import type { ChatConversation, ChatIdentity, ChatMessage } from '../types/chat.type'
+import type { ProductChatContext } from '../../../shared/constants/chat.constants'
 import { BOT_REPLIES, BOT_REPLY_DELAY_MS, GUEST_ID_KEY } from '../constants/chat.constants'
 import { chatRepository } from './chat.repository'
 import { websocketService } from '../../../shared/lib/websocket'
 
-function makeMessage(conversation_id: string, sender_role: ChatMessage['sender_role'], message: string): ChatMessage {
+function makeMessage(
+  conversation_id: string,
+  sender_role: ChatMessage['sender_role'],
+  message: string,
+  attachments?: ChatMessage['attachments'],
+): ChatMessage {
   return {
     id: `msg-${Math.random().toString(36).slice(2, 12)}`,
     conversation_id,
     sender_role,
     message,
+    attachments,
     created_at: new Date().toISOString(),
   }
+}
+
+function toProductAttachments(products: ProductChatContext[]): ChatMessage['attachments'] {
+  if (products.length === 0) return undefined
+  return products.map((p) => ({
+    id: `att-${p.id}-${Math.random().toString(36).slice(2, 6)}`,
+    chat_message_id: '',
+    type: 'product' as const,
+    value: p.id,
+    metadata: p as unknown as Record<string, unknown>,
+  }))
 }
 
 function pickBotReply(conversation: ChatConversation): string {
@@ -35,9 +53,17 @@ export const chatService = {
     return chatRepository.ensureConversation(identity)
   },
 
-  async sendCustomerMessage(identity: ChatIdentity, text: string): Promise<ChatConversation> {
+  async sendCustomerMessage(
+    identity: ChatIdentity,
+    text: string,
+    productContexts?: ProductChatContext[],
+  ): Promise<ChatConversation> {
     const conversation = chatRepository.ensureConversation(identity)
-    const message = makeMessage(conversation.id, 'customer', text)
+    const attachments = productContexts ? toProductAttachments(productContexts) : undefined
+    const message = makeMessage(conversation.id, 'customer', text, attachments)
+    if (message.attachments) {
+      for (const a of message.attachments) a.chat_message_id = message.id
+    }
     const updated = chatRepository.insertMessage(conversation.id, message)
 
     websocketService.send({
