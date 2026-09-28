@@ -55,23 +55,23 @@ export const voucherService = {
     const voucher = await this.get(normalized)
     if (!voucher) throw new Error('Kode voucher tidak ditemukan')
     if (voucher.active === false) throw new Error('Voucher tidak aktif')
-    if ((voucher as Record<string, unknown>).expires_at && new Date((voucher as Record<string, unknown>).expires_at as string).getTime() < Date.now()) {
+    if (voucher.expires_at && new Date(voucher.expires_at).getTime() < Date.now()) {
       throw new Error('Voucher sudah kedaluwarsa')
     }
-    if ((voucher as Record<string, unknown>).min_subtotal !== undefined && subtotal < (voucher as Record<string, unknown>).min_subtotal as number) {
-      throw new Error(`Minimal belanja ${formatPrice((voucher as Record<string, unknown>).min_subtotal as number)} diperlukan untuk voucher ini`)
+    if (voucher.min_subtotal !== undefined && subtotal < voucher.min_subtotal) {
+      throw new Error(`Minimal belanja ${formatPrice(voucher.min_subtotal)} diperlukan untuk voucher ini`)
     }
     return voucher
   },
 
   calcDiscount(voucher: Voucher, subtotal: number, shipping: number): number {
     if (voucher.active === false) return 0
-    if ((voucher as Record<string, unknown>).min_subtotal !== undefined && subtotal < (voucher as Record<string, unknown>).min_subtotal as number) return 0
-    if ((voucher as Record<string, unknown>).expires_at && new Date((voucher as Record<string, unknown>).expires_at as string).getTime() < Date.now()) return 0
+    if (voucher.min_subtotal !== undefined && subtotal < voucher.min_subtotal) return 0
+    if (voucher.expires_at && new Date(voucher.expires_at).getTime() < Date.now()) return 0
     if (voucher.code === 'FREESHIP') return shipping
     if (voucher.type === 'percent') {
       let discount = (subtotal * voucher.value) / 100
-      if ((voucher as Record<string, unknown>).max_discount !== undefined) discount = Math.min(discount, (voucher as Record<string, unknown>).max_discount as number)
+      if (voucher.max_discount !== undefined) discount = Math.min(discount, voucher.max_discount)
       return Math.min(discount, subtotal)
     }
     return Math.min(voucher.value, subtotal)
