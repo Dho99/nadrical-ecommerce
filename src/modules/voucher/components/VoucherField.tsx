@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BadgePercent, LoaderCircle, Tag, X } from 'lucide-react'
 import { Button, Input } from '../../../shared/components/ui'
 import { formatPrice } from '../../../shared/utils/format'
 import { useVoucher } from '../hooks/useVoucher'
 import { voucherService } from '../services/voucher.service'
+import type { Voucher } from '../types/voucher.type'
 
 interface VoucherFieldProps {
   subtotal: number
@@ -11,10 +12,26 @@ interface VoucherFieldProps {
 }
 
 export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
-  const { applied, error, loading, apply, remove, discount: calcDiscount } = useVoucher()
+  const { applied, error, loading, apply, remove, discount: getDiscount } = useVoucher()
   const [code, setCode] = useState('')
+  const [suggestions, setSuggestions] = useState<Voucher[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true)
 
-  const discount = applied ? calcDiscount(subtotal, shipping) : 0
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const list = await voucherService.list()
+        setSuggestions(list)
+      } catch {
+        setSuggestions([])
+      } finally {
+        setLoadingSuggestions(false)
+      }
+    }
+    fetchSuggestions()
+  }, [])
+
+  const discount = applied ? getDiscount(subtotal, shipping) : 0
 
   const handleApply = async () => {
     const ok = await apply(code, subtotal)
@@ -67,9 +84,9 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
         <p role="alert" className="mt-2 break-words text-xs text-destructive">{error}</p>
       )}
 
-      {!applied && (
+      {!applied && !loadingSuggestions && suggestions.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {voucherService.list().map((v) => (
+          {suggestions.map((v) => (
             <button
               key={v.code}
               type="button"

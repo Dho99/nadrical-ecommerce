@@ -16,7 +16,6 @@ import { ProductImage } from '../../shared/components/ProductImage'
 import { useDebounce } from '../../shared/hooks/useDebounce'
 import { productService } from '../../modules/products/services/product.service'
 import { useCurrency } from '../../modules/currency'
-import type { Product } from '../../modules/products/types/product.type'
 
 interface SearchDialogProps {
   open: boolean
@@ -31,7 +30,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const debounced = useDebounce(query, 300)
 
   const [results, setResults] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
-  const [recommended, setRecommended] = useState<Product[]>([])
+  const [recommended, setRecommended] = useState<Awaited<ReturnType<typeof productService.getFeatured>>>([])
   const [recLoading, setRecLoading] = useState(false)
 
   useEffect(() => {
@@ -55,25 +54,25 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     }
   }, [debounced, open])
 
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    setTimeout(() => setRecLoading(true), 0)
-    void productService
-      .getFeatured(6)
-      .then((products) => {
-        if (cancelled) return
-        setTimeout(() => setProducts(products), 0)
-        setTimeout(() => setRecLoading(false), 0)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setTimeout(() => setRecLoading(false), 0)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [open])
+   useEffect(() => {
+     if (!open) return
+     let cancelled = false
+     setTimeout(() => setRecLoading(true), 0)
+     void productService
+       .getFeatured(6)
+       .then((products) => {
+         if (cancelled) return
+         setTimeout(() => setRecommended(products), 0)
+         setTimeout(() => setRecLoading(false), 0)
+       })
+       .catch(() => {
+         if (cancelled) return
+         setTimeout(() => setRecLoading(false), 0)
+       })
+     return () => {
+       cancelled = true
+     }
+   }, [open])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()

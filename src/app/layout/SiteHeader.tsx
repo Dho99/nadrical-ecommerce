@@ -17,6 +17,7 @@ import { useCart } from "../../modules/cart/hooks/useCart";
 import { useAuth } from "../../modules/auth/hooks/useAuth";
 import { NotificationBell, useNotifications } from "../../modules/notifications";
 import { useWishlist } from "../../modules/wishlist";
+import { LoyaltyDisplay } from "../../modules/loyalty";
 import {
   useCurrency,
   CURRENCIES,
@@ -66,6 +67,8 @@ export function SiteHeader() {
   const onProducts = pathname === "/products" && !searchParams.get("category");
   const activeCategory =
     pathname === "/products" ? searchParams.get("category") : null;
+  const onNews = pathname.startsWith("/news");
+  const onFAQ = pathname === "/faq";
 
   const getItemClass = (active: boolean) =>
     cn(
@@ -99,6 +102,21 @@ export function SiteHeader() {
           </Link>
         );
       })}
+      <Separator orientation="vertical" className="h-6 mx-1" />
+      <Link
+        to="/news"
+        aria-current={onNews ? "page" : undefined}
+        className={getItemClass(onNews)}
+      >
+        News
+      </Link>
+      <Link
+        to="/faq"
+        aria-current={onFAQ ? "page" : undefined}
+        className={getItemClass(onFAQ)}
+      >
+        FAQ
+      </Link>
     </>
   );
 
@@ -229,60 +247,63 @@ export function SiteHeader() {
                     <UserRound className="size-5" />
                   </Button>
                 </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-2">
-                {isAuthed ? (
-                  <>
-                    <p className="truncate px-2 py-1 text-sm font-bold">
-                      {user?.full_name}
-                    </p>
-                    <p className="truncate px-2 pb-2 text-xs text-muted-foreground">
-                      {user?.email}
-                    </p>
-                    <Separator />
-                    <Link
-                      to="/profile"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-                    >
-                      <UserRound className="size-4" /> Profile
-                    </Link>
-                    <Link
-                      to="/profile/orders"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-                    >
-                      <ShoppingBag className="size-4" /> Order history
-                    </Link>
-                    <Link
-                      to="/profile/wishlist"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-                    >
-                      <Bookmark className="size-4" /> Wishlist
-                    </Link>
-                    <Separator className="my-1" />
-                    {themeToggle}
-                    {currencySwitch}
-                    <Separator className="my-1" />
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-accent"
-                    >
-                      <LogOut className="size-4" /> Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {themeToggle}
-                    {currencySwitch}
-                    <Separator className="my-1" />
-                    <Link
-                      to="/login"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent"
-                    >
-                      <UserRound className="size-4" /> Sign in
-                    </Link>
-                  </>
-                )}
-              </PopoverContent>
+               <PopoverContent align="end" className="w-56 p-2">
+                 {isAuthed ? (
+                   <>
+                     <p className="truncate px-2 py-1 text-sm font-bold">
+                       {user?.full_name}
+                     </p>
+                     <p className="truncate px-2 pb-2 text-xs text-muted-foreground">
+                       {user?.email}
+                     </p>
+                     <div className="px-2 py-2">
+                       <LoyaltyDisplay />
+                     </div>
+                     <Separator />
+                     <Link
+                       to="/profile"
+                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                     >
+                       <UserRound className="size-4" /> Profile
+                     </Link>
+                     <Link
+                       to="/profile/orders"
+                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                     >
+                       <ShoppingBag className="size-4" /> Order history
+                     </Link>
+                     <Link
+                       to="/profile/wishlist"
+                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                     >
+                       <Bookmark className="size-4" /> Wishlist
+                     </Link>
+                     <Separator className="my-1" />
+                     {themeToggle}
+                     {currencySwitch}
+                     <Separator className="my-1" />
+                     <button
+                       type="button"
+                       onClick={handleLogout}
+                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+                     >
+                       <LogOut className="size-4" /> Logout
+                     </button>
+                   </>
+                 ) : (
+                   <>
+                     {themeToggle}
+                     {currencySwitch}
+                     <Separator className="my-1" />
+                     <Link
+                       to="/login"
+                       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-accent"
+                     >
+                       <UserRound className="size-4" /> Sign in
+                     </Link>
+                   </>
+                 )}
+               </PopoverContent>
             </Popover>
             </div>
 
@@ -383,38 +404,59 @@ export function SiteHeader() {
                   <p className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-3">
                     Categories
                   </p>
-                  <nav className="flex flex-col gap-1" aria-label="Catalog mobile">
-                    <Link
-                      to="/products"
-                      onClick={() => setMenuOpen(false)}
-                      className={cn(
-                        "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                        onProducts
-                          ? "bg-primary text-primary-foreground font-bold"
-                          : "hover:bg-accent text-foreground",
-                      )}
-                    >
-                      <span>All Products</span>
-                    </Link>
-                    {CATEGORIES.map((cat) => {
-                      const isActive = activeCategory === cat.id;
-                      return (
-                        <Link
-                          key={cat.id}
-                          to={`/products?category=${cat.id}`}
-                          onClick={() => setMenuOpen(false)}
-                          className={cn(
-                            "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                            isActive
-                              ? "bg-primary text-primary-foreground font-bold"
-                              : "hover:bg-accent text-foreground",
-                          )}
-                        >
-                          <span>{cat.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </nav>
+                   <nav className="flex flex-col gap-1" aria-label="Catalog mobile">
+                     <Link
+                       to="/products"
+                       onClick={() => setMenuOpen(false)}
+                       className={cn(
+                         "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                         onProducts
+                           ? "bg-primary text-primary-foreground font-bold"
+                           : "hover:bg-accent text-foreground",
+                       )}
+                     >
+                       <span>All Products</span>
+                     </Link>
+                     {CATEGORIES.map((cat) => {
+                       const isActive = activeCategory === cat.id;
+                       return (
+                         <Link
+                           key={cat.id}
+                           to={`/products?category=${cat.id}`}
+                           onClick={() => setMenuOpen(false)}
+                           className={cn(
+                             "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                             isActive
+                               ? "bg-primary text-primary-foreground font-bold"
+                               : "hover:bg-accent text-foreground",
+                           )}
+                         >
+                           <span>{cat.label}</span>
+                         </Link>
+                       );
+                     })}
+                     <Link
+                       to="/news"
+                       onClick={() => setMenuOpen(false)}
+                       className={cn(
+                         "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                         onNews ? "bg-primary text-primary-foreground font-bold" : "hover:bg-accent text-foreground",
+                       )}
+                     >
+                       News
+                     </Link>
+                     <Link
+                       to="/faq"
+                       onClick={() => setMenuOpen(false)}
+                       className={cn(
+                         "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                         onFAQ ? "bg-primary text-primary-foreground font-bold" : "hover:bg-accent text-foreground",
+                       )}
+                     >
+                       FAQ
+                     </Link>
+                   </nav>
+
 
                   <Separator className="my-5" />
 

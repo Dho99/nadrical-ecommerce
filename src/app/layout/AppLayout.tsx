@@ -2,11 +2,12 @@ import { Outlet, ScrollRestoration } from 'react-router-dom'
 import { SiteHeader } from './SiteHeader'
 import { SiteFooter } from './SiteFooter'
 import { ChatWidget } from '../../modules/chat'
-import { useAuth } from '../../modules/auth/hooks/useAuth'
+import { useAuth, useInitializeAuth } from '../../modules/auth/hooks/useAuth'
 import { chatService } from '../../modules/chat/services/chat.service'
 import type { ChatIdentity } from '../../modules/chat/types/chat.type'
 
 export function AppLayout() {
+  useInitializeAuth()
   const { user, isAuthed } = useAuth()
   const identity: ChatIdentity = user
     ? { customer_user_id: user.id, customer_name: user.full_name ?? 'Guest', customer_email: user.email }

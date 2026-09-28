@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { useNavigate } from 'react-router-dom'
 import { useFormContext } from 'react-hook-form'
 import { Home, MapPinPlus } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
@@ -146,11 +147,9 @@ export function StepContact({ email }: StepContactProps) {
       ) : (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed bg-muted/40 p-3 sm:col-span-2">
           <p className="text-sm text-muted-foreground">Belum ada alamat tersimpan. Simpan alamat untuk checkout lebih cepat.</p>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/profile/addresses">
-              <MapPinPlus /> Kelola alamat
-            </Link>
-          </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => navigate('/profile/addresses')}>
+          <MapPinPlus /> Kelola alamat
+        </Button>
         </div>
       )}
 
@@ -175,13 +174,14 @@ export function StepContact({ email }: StepContactProps) {
         autoComplete="email"
         readOnly
       />
-      <CheckoutField
-        name="recipient_phone"
-        label="Phone"
-        type="tel"
-        autoComplete="tel"
-        placeholder="+62 812 3456 7890"
-      />
+        <CheckoutField
+          name="recipient_phone"
+          label="Phone"
+          type="tel"
+          autoComplete="tel"
+          placeholder="+62 812 3456 7890"
+          mask="phone"
+        />
       <CheckoutField
         name="shipping_address_line_1"
         label="Street address"
