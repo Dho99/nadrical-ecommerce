@@ -1,8 +1,24 @@
+import { useState } from 'react'
 import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom'
 import { Bookmark, LogOut, MapPin, ShieldCheck, ShoppingBag, User } from 'lucide-react'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { initialsOf } from '../../modules/profile/utils/profile.utils'
-import { Badge, Card, Separator, Tabs, TabsList, TabsTrigger } from '../../shared/components/ui'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Badge,
+  Card,
+  Separator,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '../../shared/components/ui'
 import { cn } from '../../shared/utils/cn'
 
 export function ProfileLayout() {
@@ -20,11 +36,16 @@ export function ProfileLayout() {
           ? '/profile/wishlist'
           : '/profile'
 
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
+
   const handleTabChange = (val: string) => {
     navigate(val)
   }
 
-  const handleLogout = () => {
+  const handleLogout = () => setLogoutConfirmOpen(true)
+
+  const confirmLogout = () => {
+    setLogoutConfirmOpen(false)
     logout()
     navigate('/login')
   }
@@ -144,6 +165,20 @@ export function ProfileLayout() {
           <Outlet />
         </main>
       </div>
+      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
+            <AlertDialogDescription>Anda akan keluar dan perlu login kembali untuk akses pesanan &amp; wishlist.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

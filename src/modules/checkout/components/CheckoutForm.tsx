@@ -1,7 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FormProvider } from 'react-hook-form'
+import { useBlocker, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, LoaderCircle } from 'lucide-react'
-import { Button, Separator } from '../../../shared/components/ui'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Separator,
+} from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { CHECKOUT_STEPS, useCheckout, type CheckoutStepIndex } from '../hooks/useCheckout'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
@@ -21,6 +33,15 @@ interface CheckoutFormProps {
 export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: CheckoutFormProps) {
   const { step, isFirstStep, isLastStep, isSubmitting, error, confirmation, form, next, back, goTo, submit } =
     useCheckout(payloadBase, initialValues)
+
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [pendingStep, setPendingStep] = useState<CheckoutStepIndex | null>(null)
+  const [confirmPayOpen, setConfirmPayOpen] = useState(false)
+  const [leaveCheckoutOpen, setLeaveCheckoutOpen] = useState(false)
+  const navigate = useNavigate()
+  const shouldBlockCheckout = !confirmation && !isSubmitting
+
+  const blocker = useBlocker(shouldBlockCheckout)
 
   useEffect(() => {
     if (!confirmation) return
@@ -44,8 +65,53 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
   })
 
   const goToStep = (index: CheckoutStepIndex) => {
+    if (index === step) return
+    if (step === 1 && index !== 1) {
+      setPendingStep(index)
+      setLeaveOpen(true)
+      return
+    }
     if (index < step) goTo(index)
   }
+
+  const handleLeaveConfirm = () => {
+    if (pendingStep !== null) goTo(pendingStep)
+    setLeaveOpen(false)
+    setPendingStep(null)
+  }
+
+  const isBlocked = blocker.state === 'blocked'
+  const isLeaveDialogOpen = leaveCheckoutOpen || isBlocked
+
+  useEffect(() => {
+    if (!shouldBlockCheckout) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        // Intentionally no auto-dialog; in-app navigation is guarded by useBlocker above.
+      }
+    }
+    const onBlur = () => {
+      if (shouldBlockCheckout) {
+        // Defer to next tick so click inside dialog isn't treated as blur
+        setTimeout(() => {
+          if (document.hasFocus()) return
+          setLeaveCheckoutOpen(true)
+        }, 300)
+      }
+    }
+    window.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [shouldBlockCheckout])
 
   return (
     <FormProvider {...form}>
@@ -95,7 +161,7 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
               <span />
             )}
             {isLastStep ? (
-              <Button type="submit" size="lg" disabled={isSubmitting}>
+              <Button type="button" size="lg" disabled={isSubmitting} onClick={() => setConfirmPayOpen(true)}>
                 {isSubmitting ? (
                   <>
                     <LoaderCircle className="animate-spin" /> Placing order…
@@ -121,6 +187,74 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
           SECURE DEMO CHECKOUT · NO CARD IS CHARGED
         </p>
       </div>
+
+      <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari proses transaksi?</AlertDialogTitle>
+            <AlertDialogDescription>Apakah anda ingin keluar dari proses transaksi? Progress pengisian shipping akan hilang jika anda keluar.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingStep(null)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveConfirm}>Keluar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isLeaveDialogOpen}
+        onOpenChange={(open) => {
+          setLeaveCheckoutOpen(open)
+          if (!open && blocker.state === 'blocked') blocker.reset?.()
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apakah anda ingin mengakhiri proses checkout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Proses checkout akan dihentikan dan data yang sudah diisi tidak akan disimpan. Yakin ingin keluar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                if (blocker.state === 'blocked') blocker.reset?.()
+              }}
+            >
+              Lanjutkan checkout
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (blocker.state === 'blocked') blocker.proceed?.()
+                setLeaveCheckoutOpen(false)
+                navigate('/products', { replace: true })
+              }}
+            >
+              Ya, Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmPayOpen} onOpenChange={setConfirmPayOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi pembayaran?</AlertDialogTitle>
+            <AlertDialogDescription>Apakah anda yakin akan melanjutkan ke proses pembayaran? Pesanan akan dibuat dan tidak dapat dibatalkan dari form ini.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmPayOpen(false)
+                void handleSubmit()
+              }}
+            >
+              Ya, lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormProvider>
   )
 }

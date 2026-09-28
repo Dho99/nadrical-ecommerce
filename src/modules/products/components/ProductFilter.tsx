@@ -73,7 +73,17 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deferredQuery])
 
-  const activeCategory = filters.category_id ?? 'all'
+  const normalizeCategory = (v: string | undefined) => {
+    if (!v || v === 'all') return 'all'
+    const lower = v.toLowerCase().trim()
+    if (lower === 'home' || lower === 'home-living' || lower === 'home & living' || lower === 'homeliving') return 'home'
+    if (lower === 'electronics' || lower === 'electronic') return 'electronics'
+    if (lower === 'apparel' || lower === 'clothing') return 'apparel'
+    if (lower === 'accessories' || lower === 'accessory') return 'accessories'
+    if (lower === 'outdoors' || lower === 'outdoor') return 'outdoors'
+    return lower
+  }
+  const activeCategory = normalizeCategory(filters.category_id)
   const hasActiveFilters =
     !!filters.query ||
     !!filters.category_id ||

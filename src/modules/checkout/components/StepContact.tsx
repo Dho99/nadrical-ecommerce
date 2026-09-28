@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFormContext } from 'react-hook-form'
 import { Home, MapPinPlus } from 'lucide-react'
@@ -52,28 +52,6 @@ export function StepContact({ email }: StepContactProps) {
     setSelectedId(address.id)
     applyAddress(address)
   }
-
-  useEffect(() => {
-    if (addresses.length === 0) return
-    if (selectedId && addresses.some((a) => a.id === selectedId)) return
-    const primary = addresses.find((a) => a.is_primary) ?? addresses[0]
-    if (!primary) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync selected address from loaded book
-    setSelectedId(primary.id)
-  }, [addresses, selectedId])
-
-  useEffect(() => {
-    if (addresses.length === 0) return
-    const v = form.getValues()
-    const isEmpty = !v.recipient_name && !v.shipping_address_line_1 && !v.shipping_city
-    if (!isEmpty || form.formState.isDirty) return
-    const primary = addresses.find((a) => a.is_primary) ?? addresses[0]
-    if (!primary) return
-    applyAddress(primary)
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill checkout from primary address on first load
-    setSelectedId(primary.id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addresses])
 
   const handleSaveToggle = (checked: boolean) => {
     if (!checked) {

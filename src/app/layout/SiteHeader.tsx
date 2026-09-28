@@ -24,6 +24,14 @@ import {
 } from "../../modules/currency";
 import { CATEGORIES } from "../../modules/products/constants/product.constants";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Badge,
   Button,
   Popover,
@@ -46,6 +54,7 @@ export function SiteHeader() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const { count: wishlistCount } = useWishlist();
   const { unreadCount } = useNotifications();
   const { code: currencyCode, set: setCurrency } = useCurrency();
@@ -93,7 +102,11 @@ export function SiteHeader() {
     </>
   );
 
-  const handleLogout = () => {
+  const handleLogout = () => setLogoutConfirmOpen(true);
+
+  const confirmLogout = () => {
+    setLogoutConfirmOpen(false);
+    setMenuOpen(false);
     logout();
     navigate("/login");
   };
@@ -466,6 +479,20 @@ export function SiteHeader() {
       </div>
 
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
+            <AlertDialogDescription>Anda akan keluar dan perlu login kembali untuk akses pesanan &amp; wishlist.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

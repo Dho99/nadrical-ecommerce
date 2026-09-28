@@ -38,8 +38,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     if (!open) return
     const q = debounced.trim()
     if (!q) {
-      setResults([])
-      setLoading(false)
+      setTimeout(() => setResults([]), 0)
+      setTimeout(() => setLoading(false), 0)
       return
     }
     let cancelled = false
@@ -58,16 +58,17 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    setRecLoading(true)
+    setTimeout(() => setRecLoading(true), 0)
     void productService
       .getFeatured(6)
       .then((products) => {
         if (cancelled) return
-        setRecommended(products.slice(0, 6))
-        setRecLoading(false)
+        setTimeout(() => setProducts(products), 0)
+        setTimeout(() => setRecLoading(false), 0)
       })
       .catch(() => {
-        if (!cancelled) setRecLoading(false)
+        if (cancelled) return
+        setTimeout(() => setRecLoading(false), 0)
       })
     return () => {
       cancelled = true
@@ -113,7 +114,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Try “Nike Air Max” or “SKU-1001”…"
+              placeholder="Try “Wireless Headphones”…"
               aria-label="Search products"
               className="pl-9"
             />
@@ -227,7 +228,6 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     />
                     <span className="min-w-0 grow">
                       <span className="block truncate text-sm font-medium">{product.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">{product.sku}</span>
                     </span>
                   </button>
                 </li>

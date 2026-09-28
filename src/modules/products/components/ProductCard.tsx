@@ -56,7 +56,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
   return (
     <Card
-      className="group relative flex flex-col overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-xl hover:border-primary/30"
+      className="group relative flex flex-col gap-0 overflow-hidden rounded-xl border py-0 transition-all duration-200 hover:shadow-xl hover:border-primary/30"
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
       <WishlistButton
@@ -99,7 +99,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         )}
       </Link>
 
-      <CardContent className="flex min-w-0 grow flex-col gap-1 px-3.5 py-3">
+      <CardContent className="flex min-w-0 grow flex-col gap-0.5 px-3.5 pt-2 pb-3">
         <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
           {CATEGORY_LABEL[product.category_id]}
         </p>
