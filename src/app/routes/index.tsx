@@ -20,6 +20,7 @@ import { RefundPage } from './RefundPage'
 import { AddressBookPage } from './AddressBookPage'
 import { EditProfilePage } from './EditProfilePage'
 import { ProfileWishlistPage } from './ProfileWishlistPage'
+import { SiteSettingsPage } from '../../modules/settings/pages/SiteSettingsPage'
 
 export const router = createBrowserRouter([
   {
@@ -64,6 +65,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/admin/settings',
+        element: (
+          <RequireAuth>
+            <SiteSettingsPage />
+          </RequireAuth>
+        ),
+      },
+      {
         path: '/profile',
         element: (
           <RequireAuth>
@@ -78,6 +87,7 @@ export const router = createBrowserRouter([
           { path: 'orders/:id/refund', element: <RefundPage /> },
           { path: 'wishlist', element: <ProfileWishlistPage /> },
           { path: 'addresses', element: <AddressBookPage /> },
+          { path: 'settings', element: <SiteSettingsPage /> },
         ],
       },
       { path: '/login', element: <LoginPage /> },

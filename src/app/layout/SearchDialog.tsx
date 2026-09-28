@@ -16,7 +16,6 @@ import { ProductImage } from '../../shared/components/ProductImage'
 import { useDebounce } from '../../shared/hooks/useDebounce'
 import { productService } from '../../modules/products/services/product.service'
 import { useCurrency } from '../../modules/currency'
-import type { Product } from '../../modules/products/types/product.type'
 
 interface SearchDialogProps {
   open: boolean
@@ -30,9 +29,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [loading, setLoading] = useState(false)
   const debounced = useDebounce(query, 300)
 
-  const [results, setResults] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
-  const [recommended, setRecommended] = useState<Product[]>([])
-  const [recLoading, setRecLoading] = useState(false)
+   const [results, setResults] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
+   const [recLoading, setRecLoading] = useState(false)
 
   useEffect(() => {
     if (!open) return
