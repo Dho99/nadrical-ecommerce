@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Voucher } from '../types/voucher.type'
-import { calcDiscount, voucherService } from '../services/voucher.service'
+import { voucherService } from '../services/voucher.service'
 
 interface VoucherStore {
   applied: Voucher | null
@@ -47,9 +47,8 @@ export function useVoucher() {
 
   const discount = (subtotal: number, shipping: number): number => {
     if (!applied) return 0
-    // revalidate min_subtotal on the fly
     if (applied.min_subtotal !== undefined && subtotal < applied.min_subtotal) return 0
-    return calcDiscount(applied, subtotal, shipping)
+    return voucherService.calcDiscount(applied, subtotal, shipping)
   }
 
   return { applied, error, loading, apply, remove, discount, setError }

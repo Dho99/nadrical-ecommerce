@@ -11,10 +11,10 @@ interface VoucherFieldProps {
 }
 
 export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
-  const { applied, error, loading, apply, remove, discount: calcDiscount } = useVoucher()
+  const { applied, error, loading, apply, remove, discount: getDiscount } = useVoucher()
   const [code, setCode] = useState('')
 
-  const discount = applied ? calcDiscount(subtotal, shipping) : 0
+  const discount = applied ? getDiscount(subtotal, shipping) : 0
 
   const handleApply = async () => {
     const ok = await apply(code, subtotal)
