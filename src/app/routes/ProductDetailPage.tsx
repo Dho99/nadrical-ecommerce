@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Award, Clock, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
+import { Award, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
 import {
   ProductGallery,
   SpecSheet,
@@ -31,8 +30,6 @@ import type { Product, ProductVariant } from '../../modules/products/types/produ
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { product, status, error } = useProduct(id)
-  const [selectedStock, setSelectedStock] = useState<number | null>(null)
-  const handleStockChange = useCallback((stock: number) => setSelectedStock(stock), [])
   const { add } = useGuardedAdd()
   const { buyNow } = useBuyNow()
 
@@ -124,21 +121,6 @@ export function ProductDetailPage() {
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-            {product.is_preorder ? (
-              <Badge className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-bold text-xs shadow-xs border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
-                <Clock className="size-3.5" />
-                <span>Pre-order</span>
-              </Badge>
-            ) : (selectedStock ?? product.stock) === 0 ? (
-              <Badge variant="destructive">Out of stock</Badge>
-            ) : (selectedStock ?? product.stock) > 0 && (selectedStock ?? product.stock) < 20 ? (
-              <>
-                <Badge variant="outline">In stock</Badge>
-                <Badge variant="secondary">Low stock · {selectedStock ?? product.stock} left</Badge>
-              </>
-            ) : (
-              <Badge variant="outline">In stock</Badge>
-            )}
             <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
               {CATEGORY_LABEL[product.category_id]}
             </p>
@@ -216,7 +198,7 @@ export function ProductDetailPage() {
           </div>
 
           <div className="mt-5">
-            <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} onStockChange={handleStockChange} />
+            <SpecSheet product={product} onAdd={handleAdd} onBuyNow={handleBuyNow} />
           </div>
         </div>
       </div>

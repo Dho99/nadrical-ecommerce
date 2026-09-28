@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
-  Label,
+    MaskedInput,
   Select,
   SelectContent,
   SelectItem,
@@ -24,6 +24,7 @@ import {
   SelectValue,
   Switch,
   Textarea,
+  Label
 } from '../../../shared/components/ui'
 import { ADDRESS_LABELS, COUNTRY_OPTIONS, DEFAULT_COUNTRY } from '../constants/address.constants'
 import { addressSchema, type AddressSchema } from '../schemas/address.schema'
@@ -94,9 +95,7 @@ export function AddressFormDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Saved addresses are used to pre-fill checkout for this account.
-          </DialogDescription>
+          <DialogDescription>Saved addresses are used to pre-fill checkout for this account.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -144,7 +143,7 @@ export function AddressFormDialog({
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input type="tel" autoComplete="tel" placeholder="+62 812 3456 7890" {...field} />
+                      <MaskedInput type="tel" mask="phone" placeholder="+62 812 3456 7890" autoComplete="tel" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -167,12 +166,7 @@ export function AddressFormDialog({
                 <FormItem>
                   <FormLabel>Street address</FormLabel>
                   <FormControl>
-                    <Textarea
-                      autoComplete="street-address"
-                      placeholder="Jl. Contoh No. 12"
-                      rows={2}
-                      {...field}
-                    />
+                    <Textarea autoComplete="street-address" placeholder="Jl. Contoh No. 12" rows={2} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -262,12 +256,7 @@ export function AddressFormDialog({
                 <FormItem>
                   <div className="flex items-center gap-2">
                     <FormControl>
-                      <Switch
-                        id="is_primary"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        aria-label="Set as primary address"
-                      />
+                      <Switch id="is_primary" checked={field.value} onCheckedChange={field.onChange} aria-label="Set as primary address" />
                     </FormControl>
                     <Label htmlFor="is_primary" className="text-sm text-muted-foreground">
                       Set as primary address

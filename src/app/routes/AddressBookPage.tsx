@@ -18,8 +18,8 @@ import {
 export function AddressBookPage() {
   const { user } = useAuth()
   const { addresses, addAddress, updateAddress, removeAddress } = useAddressBook(user?.email)
-  const [editing, setEditing] = useState<UserAddress | null>(null)
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<UserAddress | null>(null)
   const [deleting, setDeleting] = useState<UserAddress | null>(null)
 
   const handleCreate = (values: AddressSchema) => {
@@ -55,10 +55,9 @@ export function AddressBookPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {addresses.length} saved {addresses.length === 1 ? 'address' : 'addresses'} — used to
-          pre-fill checkout.
+          {addresses.length} saved {addresses.length === 1 ? 'address' : 'addresses'} — used to pre-fill checkout.
         </p>
-        <Button onClick={() => setCreating(true)}>
+        <Button type="button" onClick={() => setCreating(true)}>
           <MapPinPlus /> Add address
         </Button>
       </div>
@@ -126,10 +125,11 @@ export function AddressBookPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(null)}>
+            <Button type="button" variant="outline" onClick={() => setDeleting(null)}>
               Cancel
             </Button>
             <Button
+              type="button"
               variant="destructive"
               onClick={() => {
                 if (deleting) {

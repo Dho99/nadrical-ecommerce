@@ -98,13 +98,16 @@ export function PostalCodeField({
                 if (!a || !b) return a === b
                 return a.postal_code === b.postal_code && a.village === b.village
               }}
-              onInputValueChange={(value: string) => {
-                setQuery(value)
-                field.onChange(value)
-              }}
-              onValueChange={(value: PostalPlace | null) => {
-                if (value) handleSelect(value)
-              }}
+               onInputValueChange={(value: string) => {
+                 setQuery(value)
+               }}
+               onValueChange={(value: PostalPlace | null) => {
+                 if (value) {
+                   handleSelect(value)
+                 } else {
+                   field.onChange('')
+                 }
+               }}
             >
               <ComboboxInput placeholder="Ketik kode pos..." />
               <ComboboxContent>

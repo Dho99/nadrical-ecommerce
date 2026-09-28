@@ -61,7 +61,17 @@ export const useAuthStore = create<AuthStore>()(
         {
             name: "store-auth",
             onRehydrateStorage: () => (state) => {
-                if (state?.session?.token) setAuthToken(state.session.token);
+              if (state?.session?.token) {
+                setAuthToken(state.session.token);
+                // If user data missing, fetch profile
+                if (!state.session.user) {
+                  authService.getProfile().then((user) => {
+                    if (user) {
+                      set({ session: { ...state.session, user } });
+                    }
+                  });
+                }
+              }
             },
         },
     ),
@@ -78,4 +88,8 @@ export function useAuth() {
         updateProfile: useAuthStore((s) => s.updateProfile),
         logout: useAuthStore((s) => s.logout),
     };
+}
+
+export function useInitializeAuth() {
+    useAuthStore.persist.rehydrate();
 }

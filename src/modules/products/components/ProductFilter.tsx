@@ -239,7 +239,7 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
             value={activeCategory}
             onValueChange={(v) => onChange({ category_id: v === 'all' ? undefined : (v as ProductFilters['category_id']) })}
           >
-            <TabsList className="flex w-fit max-w-full flex-wrap justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
+            <TabsList className="flex w-fit max-w-full flex-wrap justify-center overflow-x-auto overflow-y-hidden scrollbar-none">
               <TabsTrigger value="all" className="min-h-10">
                 All
               </TabsTrigger>

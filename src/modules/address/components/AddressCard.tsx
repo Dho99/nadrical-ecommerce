@@ -42,14 +42,14 @@ export function AddressCard({ address, onEdit, onDelete, onSetPrimary }: Address
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
         {!address.is_primary && (
-          <Button variant="default" size="sm" onClick={() => onSetPrimary(address)} className="bg-primary text-primary-foreground">
-            <Star /> Set as primary address
-          </Button>
+        <Button type="button" variant="default" size="sm" onClick={() => onSetPrimary(address)} className="bg-primary text-primary-foreground">
+          <Star /> Set as primary address
+        </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => onEdit(address)}>
+        <Button type="button" variant="outline" size="sm" onClick={() => onEdit(address)}>
           <Pencil /> Edit
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onDelete(address)}>
+        <Button type="button" variant="outline" size="sm" onClick={() => onDelete(address)}>
           <Trash2 /> Delete
         </Button>
       </div>

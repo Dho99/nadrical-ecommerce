@@ -5,6 +5,7 @@ import {
     ProductGrid,
     useProducts,
 } from "../../modules/products";
+import { PromoDialog } from "../../modules/promo";
 import { SectionHead } from "../../shared/components/ui";
 
 export function HomePage() {
@@ -15,6 +16,7 @@ export function HomePage() {
 
     return (
         <>
+            <PromoDialog />
             <HomeBanner />
 
             <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8 py-10">
@@ -42,28 +44,29 @@ export function HomePage() {
             </section>
 
             {/* <section className="bg-primary text-primary-foreground">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-5 py-14 text-center sm:px-8">
-          <p className="font-mono text-xs font-medium tracking-[0.14em] uppercase opacity-80">
-            The full catalog
-          </p>
-          <h2 className="max-w-2xl font-display text-4xl leading-[0.95] font-bold tracking-tight sm:text-5xl">
-            No browsing required. Everything is one click away.
-          </h2>
-          <p className="max-w-lg text-sm leading-relaxed text-primary-foreground/80">
-            18 curated products with real specs and live stock. Filter by category,
-            sort by price, or search by name and SKU.
-          </p>
-          <Link to="/products" className="mt-2">
-            <Button
-              size="lg"
-              variant="secondary"
-              className="bg-background text-foreground hover:bg-background/90"
-            >
-              Browse catalog <ArrowRight />
-            </Button>
-          </Link>
-        </div>
-      </section> */}
+                <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-5 py-14 text-center sm:px-8">
+                    <p className="font-mono text-xs font-medium tracking-[0.14em] uppercase opacity-80">
+                        The full catalog
+                    </p>
+                    <h2 className="max-w-2xl font-display text-4xl leading-[0.95] font-bold tracking-tight sm:text-5xl">
+                        No browsing required. Everything is one click away.
+                    </h2>
+                    <p className="max-w-lg text-sm leading-relaxed text-primary-foreground/80">
+                        18 curated products with real specs and live stock. Filter by category,
+                        sort by price, or search by name and SKU.
+                    </p>
+                    <Link to="/products" className="mt-2">
+                        <Button
+                            size="lg"
+                            variant="secondary"
+                            className="bg-background text-foreground hover:bg-background/90"
+                        >
+                            Browse catalog <ArrowRight />
+                        </Button>
+                    </Link>
+                </div>
+            </section> */}
         </>
     );
 }
+

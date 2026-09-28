@@ -1,19 +1,19 @@
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  Input,
-} from '../../../shared/components/ui'
+import { Input } from '../../../shared/components/ui'
+import { useRef } from 'react'
+import { useInputMask, type MaskType } from '../../../shared/hooks/useInputMask'
 import type { CheckoutInput } from '../schemas/checkout.schema'
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '../../../shared/components/ui'
 
 interface CheckoutFieldProps extends React.ComponentProps<typeof Input> {
   name: keyof CheckoutInput
   label: string
+  mask?: MaskType
 }
 
-export function CheckoutField({ name, label, className, ...inputProps }: CheckoutFieldProps) {
+export function CheckoutField({ name, label, className, mask, ...inputProps }: CheckoutFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  useInputMask(inputRef, mask ?? null)
+
   return (
     <FormField
       name={name}
@@ -21,7 +21,16 @@ export function CheckoutField({ name, label, className, ...inputProps }: Checkou
         <FormItem className={className}>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <Input {...inputProps} {...field} />
+            <Input
+              {...inputProps}
+              {...field}
+              ref={(el) => {
+                inputRef.current = el as HTMLInputElement
+                // forward to RHF ref
+                if (typeof field.ref === 'function') field.ref(el)
+                else if (field.ref) ;(field.ref as React.MutableRefObject<HTMLInputElement | null>).current = el as HTMLInputElement
+              }}
+            />
           </FormControl>
           <FormMessage />
         </FormItem>

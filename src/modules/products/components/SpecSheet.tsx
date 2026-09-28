@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Check, MessageCircle, ShoppingCart } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -32,33 +31,17 @@ interface SpecSheetProps {
   product: Product
   onAdd: (product: Product, qty: number, variant?: ProductVariant) => void
   onBuyNow?: (product: Product, qty: number, variant?: ProductVariant) => void
-  onStockChange?: (stock: number) => void
 }
 
-function StockBadge({ stock, isPreorder }: { stock: number; isPreorder?: boolean }) {
-  if (isPreorder) return <Badge className="bg-amber-500 text-white">Pre-order</Badge>
-  if (stock === 0) return <Badge variant="destructive">Out of stock</Badge>
-  if (stock > 0 && stock < 20)
-    return (
-      <>
-        <Badge variant="outline">In stock</Badge>
-        <Badge variant="secondary">Low stock · {stock} left</Badge>
-      </>
-    )
-  return <Badge variant="outline">In stock</Badge>
-}
-
-export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheetProps) {
+export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const variants = product.variants ?? []
   const isMultiVariant = variants.length > 0 && variants[0].variant_name.includes(' / ')
   const { format, code } = useCurrency()
 
-  // Single variant states
   const [selectedSingle, setSelectedSingle] = useState<ProductVariant | null>(
     () => (isMultiVariant ? null : variants.find((v) => v.stock > 0) ?? variants[0] ?? null),
   )
 
-  // Multi variant helper parsing
   const dim1Values = isMultiVariant
     ? Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[0])))
     : []
@@ -108,7 +91,6 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
   const [selectedDim1, setSelectedDim1] = useState(defaultDim1)
   const [selectedDim2, setSelectedDim2] = useState(defaultDim2)
 
-  // Active selected variant
   const selected = isMultiVariant
     ? variants.find((v) => v.variant_name === `${selectedDim1} / ${selectedDim2}`) ?? null
     : selectedSingle
@@ -121,10 +103,6 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
   const price = product.base_price + (selected?.price_delta ?? 0)
   const stock = selected ? selected.stock : (variants.length > 0 ? 0 : product.stock)
   const isPreorder = Boolean(product.is_preorder)
-
-  useEffect(() => {
-    onStockChange?.(stock)
-  }, [stock, onStockChange])
   const soldOut = stock === 0 && !isPreorder
 
   const handleSelectSingle = (variant: ProductVariant) => {
@@ -161,15 +139,10 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
       price,
       currency: code,
       category: product.category_id,
-      availability: isPreorder
-        ? 'Pre-order'
-        : stock > 0
-          ? 'In stock'
-          : 'Out of stock',
+      availability: isPreorder ? 'Pre-order' : stock > 0 ? 'In stock' : 'Out of stock',
       description: product.summary || product.name,
       image: product.cover_image_url,
     }
-    // fire custom event to open floating chat with product context
     window.dispatchEvent(
       new CustomEvent(CHAT_OPEN_EVENT, {
         detail: { message: messageText, productId: product.id, product: context },
@@ -306,16 +279,19 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <span className="flex flex-wrap items-center gap-1.5 md:gap-2">
-          <StockBadge stock={stock} isPreorder={isPreorder} />
-        </span>
-        <div className="flex flex-col items-end gap-0.5">
+      <div className="flex items-center gap-5">
+        <QtyStepper
+          value={qty}
+          max={isPreorder ? 99 : Math.max(stock, 1)}
+          onChange={setQty}
+          label={`quantity of ${product.name}`}
+        />
+        <div className="flex flex-1 flex-col items-end gap-0.5">
           <div className="flex items-baseline gap-2">
             {product.discount_percent ? (
               <>
                 <p className="font-display text-2xl font-bold tracking-tight">
-                  {format((price * (1 - product.discount_percent / 100)))}
+                  {format(price * (1 - product.discount_percent / 100))}
                 </p>
                 <p className="text-sm text-muted-foreground line-through">{format(price)}</p>
                 <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
@@ -340,20 +316,22 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
           ) : null}
         </div>
       </div>
+
       {isPreorder && (
         <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs dark:bg-amber-950/20">
-          <p className="font-medium text-amber-800 dark:text-amber-400">Pre-order{product.preorder_eta ? ` · ETA ${new Date(product.preorder_eta).toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</p>
-          {product.preorder_deposit !== undefined && <p className="text-muted-foreground">Deposit {format(product.preorder_deposit)} required</p>}
+          <p className="font-medium text-amber-800 dark:text-amber-400">
+            Pre-order
+            {product.preorder_eta
+              ? ` · ETA ${new Date(product.preorder_eta).toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+              : ''}
+          </p>
+          {product.preorder_deposit !== undefined && (
+            <p className="text-muted-foreground">Deposit {format(product.preorder_deposit)} required</p>
+          )}
         </div>
       )}
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <QtyStepper
-          value={qty}
-          max={isPreorder ? 99 : Math.max(stock, 1)}
-          onChange={setQty}
-          label={`quantity of ${product.name}`}
-        />
         <Button
           variant="outline"
           size="default"
@@ -390,9 +368,7 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
       {soldOut && (
         <Alert variant="destructive" className="mt-4">
           <AlertTitle>Out of stock</AlertTitle>
-          <AlertDescription>
-            This product is currently sold out. Sign in to get restock alerts.
-          </AlertDescription>
+          <AlertDescription>This product is currently sold out. Sign in to get restock alerts.</AlertDescription>
         </Alert>
       )}
 
@@ -404,17 +380,8 @@ export function SpecSheet({ product, onAdd, onBuyNow, onStockChange }: SpecSheet
           </DialogHeader>
           <div className="grid gap-3">
             <Label htmlFor="msg">Message</Label>
-            <Textarea
-              id="msg"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              rows={4}
-            />
-            <Input
-              placeholder="Your name (optional)"
-              aria-label="Name"
-              className="hidden"
-            />
+            <Textarea id="msg" value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
+            <Input placeholder="Your name (optional)" aria-label="Name" className="hidden" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMessageOpen(false)}>

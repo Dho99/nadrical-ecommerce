@@ -21,6 +21,10 @@ import { AddressBookPage } from './AddressBookPage'
 import { EditProfilePage } from './EditProfilePage'
 import { ProfileWishlistPage } from './ProfileWishlistPage'
 import { SiteSettingsPage } from '../../modules/settings/pages/SiteSettingsPage'
+import { FAQPage } from '../../modules/faq'
+import { NewsListPage, NewsDetailPage } from '../../modules/news'
+import { TaxAdminPage } from '../../modules/tax'
+import { DashboardPage } from '../../modules/dashboard'
 
 export const router = createBrowserRouter([
   {
@@ -92,6 +96,25 @@ export const router = createBrowserRouter([
       },
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
+      { path: '/faq', element: <FAQPage /> },
+      { path: '/news', element: <NewsListPage /> },
+      { path: '/news/:slug', element: <NewsDetailPage /> },
+      {
+        path: '/admin/dashboard',
+        element: (
+          <RequireAuth>
+            <DashboardPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/admin/tax',
+        element: (
+          <RequireAuth>
+            <TaxAdminPage />
+          </RequireAuth>
+        ),
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
