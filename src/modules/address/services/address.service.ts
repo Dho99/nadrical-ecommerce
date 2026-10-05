@@ -1,8 +1,5 @@
-import api from '../../../shared/lib/api'
-import type { DbUserAddress } from '../../../shared/types/database.type'
+import api, { unwrapData, getErrorMessage } from '../../../shared/lib/api'
 import type { AddressInput, UserAddress } from '../types/address.type'
-
-const STORAGE_KEY = 'db-user-addresses'
 
 interface BackendAddress {
   uuid?: string
@@ -44,48 +41,21 @@ function mapBackendAddress(ba: BackendAddress): UserAddress {
   }
 }
 
-function loadAll(): UserAddress[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw !== null) {
-      const parsed = JSON.parse(raw) as UserAddress[]
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    // fall through
-  }
-  return []
-}
-
-function saveAll(addresses: UserAddress[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(addresses))
-}
-
 export const addressService = {
   async fetchAddresses(): Promise<UserAddress[]> {
-    try {
-      const res = await api.get<{ success: boolean; data: BackendAddress[] }>('/core/addresses')
-      if (Array.isArray(res.data?.data)) {
-        const mapped = res.data.data.map(mapBackendAddress)
-        saveAll(mapped)
-        return mapped
-      }
-    } catch {
-      // fallback
-    }
-    return loadAll()
+    const res = await api.get<{ success: boolean; message: string; data?: BackendAddress[] }>('/core/addresses')
+    const data = unwrapData<BackendAddress[]>(res.data as unknown as { success: boolean; message: string; data?: BackendAddress[] }) ?? res.data.data
+    if (!Array.isArray(data)) throw new Error(res.data.message || 'Failed to fetch addresses')
+    return data.map(mapBackendAddress)
   },
 
-  listByEmail(email: string): UserAddress[] {
-    return loadAll()
-      .filter((a) => (a.user_id || '').toLowerCase() === email.trim().toLowerCase() || a.user_id === '')
-      .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+  listByEmail(_email: string): UserAddress[] {
+    throw new Error('listByEmail deprecated — gunakan fetchAddresses()')
   },
 
-  async add(email: string, input: AddressInput): Promise<UserAddress> {
-    const user_id = email.trim().toLowerCase()
+  async add(_email: string, input: AddressInput): Promise<UserAddress> {
     try {
-      const res = await api.post<{ success: boolean; data: BackendAddress }>('/core/addresses', {
+      const res = await api.post<{ success: boolean; message: string; data?: BackendAddress }>('/core/addresses', {
         label: input.label,
         recipient_name: input.recipient_name,
         recipient_phone: input.recipient_phone,
@@ -98,31 +68,17 @@ export const addressService = {
         country_code: input.country_code,
         is_primary: input.is_primary ?? false,
       })
-      if (res.data?.data) {
-        const record = mapBackendAddress(res.data.data)
-        const all = [...loadAll().filter((a) => a.id !== record.id), record]
-        saveAll(all)
-        return record
-      }
-    } catch {
-      // fallback to local
+      const data = unwrapData<BackendAddress>(res.data as unknown as { success: boolean; message: string; data?: BackendAddress }) ?? res.data.data
+      if (!data) throw new Error(res.data.message || 'Failed to create address')
+      return mapBackendAddress(data)
+    } catch (e) {
+      throw new Error(getErrorMessage(e, 'Gagal tambah alamat'), { cause: e })
     }
-
-    const record: UserAddress = {
-      id: `adr-${Math.random().toString(36).slice(2, 10)}`,
-      user_id,
-      ...input,
-      is_primary: input.is_primary === true,
-      created_at: new Date().toISOString(),
-    }
-    const all = [...loadAll(), record]
-    saveAll(all)
-    return record
   },
 
   async update(id: string, input: AddressInput): Promise<UserAddress | null> {
     try {
-      const res = await api.put<{ success: boolean; data: BackendAddress }>(`/core/addresses/${id}`, {
+      const res = await api.put<{ success: boolean; message: string; data?: BackendAddress }>(`/core/addresses/${id}`, {
         label: input.label,
         recipient_name: input.recipient_name,
         recipient_phone: input.recipient_phone,
@@ -135,37 +91,25 @@ export const addressService = {
         country_code: input.country_code,
         is_primary: input.is_primary ?? false,
       })
-      if (res.data?.data) {
-        const updated = mapBackendAddress(res.data.data)
-        const all = loadAll().map((a) => (a.id === id ? updated : a))
-        saveAll(all)
-        return updated
-      }
-    } catch {
-      // fallback
+      const data = unwrapData<BackendAddress>(res.data as unknown as { success: boolean; message: string; data?: BackendAddress }) ?? res.data.data
+      if (!data) throw new Error(res.data.message || 'Failed to update address')
+      return mapBackendAddress(data)
+    } catch (e) {
+      throw new Error(getErrorMessage(e, 'Gagal update alamat'), { cause: e })
     }
-
-    const all = loadAll()
-    const idx = all.findIndex((a) => a.id === id)
-    if (idx === -1) return null
-    const updated: UserAddress = {
-      ...all[idx],
-      ...input,
-      updated_at: new Date().toISOString(),
-    }
-    all[idx] = updated
-    saveAll(all)
-    return updated
   },
 
   async remove(id: string): Promise<void> {
     try {
       await api.delete(`/core/addresses/${id}`)
-    } catch {
-      // fallback
+    } catch (e) {
+      throw new Error(getErrorMessage(e, 'Gagal hapus alamat'), { cause: e })
     }
-    saveAll(loadAll().filter((a) => a.id !== id))
+  },
+
+  async setPrimary(id: string): Promise<void> {
+    await api.patch(`/core/addresses/${id}/primary`)
   },
 }
 
-export type { DbUserAddress }
+export type { UserAddress }

@@ -140,7 +140,7 @@ export function DashboardPage() {
                   <TableRow key={String(p.uuid)}>
                     <TableCell>{String(p.name)}</TableCell>
                     <TableCell>Rp {Number(p.base_price || p.price).toLocaleString('id-ID')}</TableCell>
-                    <TableCell>{p.stock}</TableCell>
+                    <TableCell>{String(p.stock ?? '')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

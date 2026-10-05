@@ -12,3 +12,16 @@ export interface PaginationMeta {
   total: number
   total_pages: number
 }
+
+export interface ApiErrorBody {
+  success: false
+  message: string
+  errors?: unknown
+}
+
+export type ApiError = {
+  status?: number
+  message: string
+  errors?: unknown
+  raw?: unknown
+}

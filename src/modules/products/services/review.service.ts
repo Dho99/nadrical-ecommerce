@@ -1,11 +1,6 @@
-import api from '../../../shared/lib/api'
+import api, { unwrapData } from '../../../shared/lib/api'
 import type { Review, ReviewQuery, ReviewRating, ReviewStats } from '../types/review.type'
-import {
-  generateMockReviews,
-  reviewStats,
-  sortReviews,
-  type ReviewSeedHints,
-} from './review.mock'
+import { reviewStats, sortReviews } from './review.mock'
 import { userReviewStorage } from './userReview.storage'
 
 export interface ReviewPage {
@@ -16,11 +11,7 @@ export interface ReviewPage {
 
 function normalizeStats(stats: ReviewStats, hintAvg: number): ReviewStats {
   if (stats.count === 0) {
-    return {
-      avg: hintAvg,
-      count: 0,
-      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    }
+    return { avg: hintAvg, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }
   }
   return stats
 }
@@ -29,53 +20,34 @@ export const reviewService = {
   async getReviews(
     productId: string,
     query: ReviewQuery = {},
-    hints?: ReviewSeedHints,
+    hints?: { rating?: number; reviewCount?: number },
   ): Promise<ReviewPage> {
     const sort = query.sort ?? 'rating-desc'
     const rating = query.rating ?? 'all'
     const page = Math.max(1, query.page ?? 1)
     const limit = Math.max(1, query.limit ?? 10)
 
-    let reviews: Review[] = []
-
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)
+    let backendReviews: Review[] = []
+
     if (isUuid) {
       try {
-        type ReviewEnvelope = {
-          success: boolean
-          data?: { items?: Review[]; data?: Review[] }
-          meta?: { total?: number }
-        }
-        type ReviewListPayload = { items?: Review[]; data?: Review[] }
-        const res = await api.get<ReviewEnvelope>(`/ecommerce/products/${productId}/reviews`, {
+        const res = await api.get<{ success: boolean; message: string; data?: Review[] | { items?: Review[]; data?: Review[] } }>(`/ecommerce/products/${productId}/reviews`, {
           params: { page, limit, sort },
         })
-        const envelope: ReviewEnvelope = res.data
-        const rawPayload: unknown = envelope.data ?? (envelope as unknown as ReviewListPayload & ReviewEnvelope)
-        let items: Review[] = []
-        if (Array.isArray(rawPayload)) {
-          items = rawPayload as Review[]
-        } else if (rawPayload !== null && typeof rawPayload === 'object') {
-          const obj = rawPayload as ReviewListPayload
-          if (Array.isArray(obj.items)) items = obj.items
-          else if (Array.isArray(obj.data)) items = obj.data
-        }
-        if (items.length > 0) {
-          reviews = items
+        const data = unwrapData<Review[] | { items?: Review[]; data?: Review[] }>(res.data as unknown as { success: boolean; message: string; data?: Review[] }) ?? res.data.data
+        if (Array.isArray(data)) backendReviews = data as Review[]
+        else if (data && typeof data === 'object') {
+          const obj = data as { items?: Review[]; data?: Review[] }
+          if (Array.isArray(obj.items)) backendReviews = obj.items
+          else if (Array.isArray(obj.data)) backendReviews = obj.data
         }
       } catch {
-        // fall through to mock
+        // keep empty -> fallback below still shows user reviews
       }
     }
 
     const hintAvg = hints?.rating ?? 4.6
-    if (reviews.length === 0) {
-      const mockAll = generateMockReviews(productId, {
-        rating: hintAvg,
-        reviewCount: hints?.reviewCount ?? 18,
-      })
-      reviews = mockAll
-    }
 
     const userRevs: Review[] = userReviewStorage.getReviewsForProduct(productId).map((ur) => ({
       id: ur.id,
@@ -87,19 +59,35 @@ export const reviewService = {
       verified: true,
     }))
 
-    const combined = [...userRevs, ...reviews]
-    const stats = reviewStats(combined)
+    const combined = [...userRevs, ...backendReviews]
+    if (combined.length === 0) {
+      return {
+        items: [],
+        stats: normalizeStats({ avg: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }, hintAvg),
+        total: 0,
+      }
+    }
 
+    const stats = reviewStats(combined)
     const sorted = sortReviews(combined, sort)
     const filtered = rating === 'all' ? sorted : sorted.filter((r) => r.rating === rating)
-
     const finalStats = normalizeStats(stats, hintAvg)
     const start = (page - 1) * limit
-    return {
-      items: filtered.slice(start, start + limit),
-      stats: finalStats,
-      total: filtered.length,
-    }
+    return { items: filtered.slice(start, start + limit), stats: finalStats, total: filtered.length }
+  },
+
+  async createReview(productId: string, input: { rating: ReviewRating; comment: string }): Promise<Review> {
+    const res = await api.post<{ success: boolean; message: string; data?: Review }>(`/ecommerce/products/${productId}/reviews`, {
+      rating: input.rating,
+      comment: input.comment,
+    })
+    const data = unwrapData<Review>(res.data as unknown as { success: boolean; message: string; data?: Review }) ?? res.data.data
+    if (!data) throw new Error(res.data.message || 'Gagal membuat review')
+    return data
+  },
+
+  async deleteReview(productId: string, reviewId: string): Promise<void> {
+    await api.delete(`/ecommerce/products/${productId}/reviews/${reviewId}`)
   },
 }
 

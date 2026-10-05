@@ -60,14 +60,15 @@ export const useAuthStore = create<AuthStore>()(
         }),
         {
             name: "store-auth",
-            onRehydrateStorage: () => (state) => {
+            onRehydrateStorage: () => (state, _error) => {
+              void _error;
               if (state?.session?.token) {
                 setAuthToken(state.session.token);
-                // If user data missing, fetch profile
                 if (!state.session.user) {
                   authService.getProfile().then((user) => {
                     if (user) {
-                      set({ session: { ...state.session, user } });
+                      const current = useAuthStore.getState().session;
+                      if (current) useAuthStore.setState({ session: { ...current, user } });
                     }
                   });
                 }

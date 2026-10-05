@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+// @ts-expect-error no types for inputmask
 import Inputmask from 'inputmask'
 
 export type MaskType = 'phone' | 'currency'

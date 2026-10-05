@@ -8,7 +8,7 @@ export const MaskedInput = React.forwardRef<
 >((props, ref) => {
   const { mask, ...rest } = props
   const innerRef = React.useRef<HTMLInputElement>(null)
-  useInputMask(innerRef, mask ?? null)
+  useInputMask(innerRef as React.RefObject<HTMLInputElement>, mask ?? null)
 
   const setRef = (el: HTMLInputElement | null) => {
     innerRef.current = el

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useNavigate } from 'react-router-dom'
 import { useFormContext } from 'react-hook-form'
 import { Home, MapPinPlus } from 'lucide-react'
@@ -17,6 +16,7 @@ interface StepContactProps {
 }
 
 export function StepContact({ email }: StepContactProps) {
+  const navigate = useNavigate()
   const form = useFormContext<CheckoutInput>()
   const { addresses, addAddress } = useAddressBook(email)
   const [saveToBook, setSaveToBook] = useState(false)

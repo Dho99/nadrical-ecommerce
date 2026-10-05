@@ -12,7 +12,7 @@ interface CheckoutFieldProps extends React.ComponentProps<typeof Input> {
 
 export function CheckoutField({ name, label, className, mask, ...inputProps }: CheckoutFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  useInputMask(inputRef, mask ?? null)
+  useInputMask(inputRef as React.RefObject<HTMLInputElement>, mask ?? null)
 
   return (
     <FormField
@@ -26,9 +26,10 @@ export function CheckoutField({ name, label, className, mask, ...inputProps }: C
               {...field}
               ref={(el) => {
                 inputRef.current = el as HTMLInputElement
-                // forward to RHF ref
                 if (typeof field.ref === 'function') field.ref(el)
-                else if (field.ref) ;(field.ref as React.MutableRefObject<HTMLInputElement | null>).current = el as HTMLInputElement
+                else if (field.ref && typeof field.ref === 'object' && 'current' in field.ref) {
+                  (field.ref as React.MutableRefObject<HTMLInputElement | null>).current = el as HTMLInputElement
+                }
               }}
             />
           </FormControl>

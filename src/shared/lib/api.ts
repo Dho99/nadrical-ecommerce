@@ -3,6 +3,7 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
+import type { ApiError, PaginationMeta } from "../types/api.response";
 
 export const api = axios.create({
     baseURL:
@@ -26,6 +27,47 @@ export function setAuthToken(token: string | null): void {
 
 export function getAuthToken(): string | null {
     return localStorage.getItem("token") || sessionStorage.getItem("token");
+}
+
+export function unwrapData<T>(body: unknown): T | undefined {
+    if (!body || typeof body !== 'object') return undefined;
+    const b = body as Record<string, unknown>;
+    if ('data' in b) return b.data as T | undefined;
+    return body as T;
+}
+
+export function unwrapMeta(body: unknown): PaginationMeta | undefined {
+    if (!body || typeof body !== 'object') return undefined;
+    const b = body as Record<string, unknown>;
+    if ('meta' in b) return b.meta as PaginationMeta | undefined;
+    return undefined;
+}
+
+export function extractData<T>(payload: unknown): T | undefined {
+    if (payload === null || payload === undefined) return undefined;
+    if (typeof payload === "object" && payload !== null && "data" in (payload as Record<string, unknown>)) {
+        const inner = (payload as { data?: unknown }).data;
+        if (inner !== undefined) return inner as T;
+    }
+    return payload as T;
+}
+
+export function parseApiError(error: unknown): ApiError {
+    const ax = error as AxiosError<{ message?: string; errors?: unknown; success?: boolean }>;
+    const status = ax.response?.status;
+    const body = ax.response?.data;
+    if (body?.message) return { status, message: body.message, errors: body.errors, raw: body };
+    if (body?.errors) {
+        const msg = typeof body.errors === "string" ? body.errors : Array.isArray(body.errors) ? body.errors.join(", ") : JSON.stringify(body.errors);
+        return { status, message: msg, errors: body.errors, raw: body };
+    }
+    if (ax.message) return { status, message: ax.message, raw: error };
+    if (error instanceof Error) return { message: error.message, raw: error };
+    return { message: "Unexpected error", raw: error };
+}
+
+export function getErrorMessage(error: unknown, fallback = "Request failed"): string {
+    return parseApiError(error).message || fallback;
 }
 
 api.interceptors.request.use(

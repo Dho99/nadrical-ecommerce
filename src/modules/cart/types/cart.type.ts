@@ -1,6 +1,7 @@
 import type { ProductCategoryId } from '../../../shared/types/product.type'
 
 export interface CartItem {
+  cart_item_id?: string
   product_id: string
   sku: string
   product_name: string

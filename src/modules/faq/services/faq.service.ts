@@ -1,4 +1,4 @@
-import api from '../../../shared/lib/api'
+import api, { unwrapData } from '../../../shared/lib/api'
 
 export interface FAQ {
   uuid: string
@@ -13,21 +13,21 @@ export interface FAQ {
 
 export const faqService = {
   async list(): Promise<FAQ[]> {
-    const res = await api.get<FAQ[]>('/cms/faqs')
-    return (res.data as unknown as FAQ[]) ?? []
+    const res = await api.get<{ success: boolean; message: string; data?: FAQ[] }>('/cms/faqs')
+    return unwrapData<FAQ[]>(res.data as unknown as { success: boolean; message: string; data?: FAQ[] }) ?? res.data.data ?? []
   },
 
   async getById(id: string): Promise<FAQ | null> {
     try {
-      const res = await api.get<FAQ>(`/cms/faqs/${id}`)
-      return (res.data as unknown as FAQ) ?? null
+      const res = await api.get<{ success: boolean; message: string; data?: FAQ }>(`/cms/faqs/${id}`)
+      return unwrapData<FAQ>(res.data as unknown as { success: boolean; message: string; data?: FAQ }) ?? res.data.data ?? null
     } catch {
       return null
     }
   },
 
   async getByCategory(category: string): Promise<FAQ[]> {
-    const res = await api.get<FAQ[]>(`/cms/faqs/category/${category}`)
-    return (res.data as unknown as FAQ[]) ?? []
+    const res = await api.get<{ success: boolean; message: string; data?: FAQ[] }>('/cms/faqs', { params: { category } })
+    return unwrapData<FAQ[]>(res.data as unknown as { success: boolean; message: string; data?: FAQ[] }) ?? res.data.data ?? []
   },
 }

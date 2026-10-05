@@ -1,5 +1,4 @@
-import { api } from '../../../shared/lib/api'
-import { resetMockOrders } from '../../../shared/lib/mockApi'
+import api, { unwrapData } from '../../../shared/lib/api'
 import type { OrderWithItems } from '../../../shared/types/order.type'
 import type { DbOrder, DbOrderItem } from '../../../shared/types/database.type'
 
@@ -8,11 +7,6 @@ function toOrderWithItems(order: ApiOrder): OrderWithItems {
     ...toDbOrder(order),
     order_items: (order.order_items ?? []).map(toDbOrderItem),
   }
-}
-
-const normalizePrice = (val: number | string | undefined): number => {
-  const num = Number(val || 0)
-  return num >= 1000 ? num / 15800 : num
 }
 
 function toDbOrder(order: ApiOrder): DbOrder {
@@ -28,12 +22,12 @@ function toDbOrder(order: ApiOrder): DbOrder {
     shipping_method: order.shipping_courier,
     shipping_method_id: order.shipping_method_id,
     status: order.order_status as DbOrder['status'],
-    subtotal: normalizePrice(order.subtotal),
-    discount_total: normalizePrice(order.discount_total),
-    shipping_total: normalizePrice(order.shipping_cost),
-    service_fee_total: normalizePrice(order.service_fee),
-    tax_total: normalizePrice(order.tax_total),
-    grand_total: normalizePrice(order.total),
+    subtotal: Number(order.subtotal ?? 0),
+    discount_total: Number(order.discount_total ?? 0),
+    shipping_total: Number(order.shipping_cost ?? 0),
+    service_fee_total: Number(order.service_fee ?? 0),
+    tax_total: Number(order.tax_total ?? 0),
+    grand_total: Number(order.total ?? 0),
     placed_at: order.created_at,
     created_at: order.created_at,
   }
@@ -49,8 +43,8 @@ function toDbOrderItem(item: ApiOrderItem): DbOrderItem {
     sku_snapshot: item.sku_snapshot || item.sku || item.product?.sku || '',
     variant_name_snapshot: item.variant_name_snapshot,
     quantity: item.quantity,
-    unit_price: normalizePrice(item.price),
-    line_total: normalizePrice(item.line_total ?? item.total ?? (Number(item.price || 0) * item.quantity)),
+    unit_price: Number(item.price ?? 0),
+    line_total: Number(item.line_total ?? item.total ?? (Number(item.price || 0) * item.quantity)),
     image_url: item.product?.image || item.image_url,
     created_at: item.created_at,
     updated_at: item.updated_at,
@@ -99,122 +93,70 @@ interface ApiOrderItem {
   updated_at: string
 }
 
-const LOCAL_ORDERS_KEY = 'nadrical_local_orders'
-
 export const orderRepository = {
   async list(): Promise<OrderWithItems[]> {
-    let remoteList: OrderWithItems[] = []
-    try {
-      const res = await api.get<{ data?: ApiOrder[]; items?: ApiOrder[]; meta?: { total: number } }>('/ecommerce/orders')
-      const list = res.data?.data || res.data?.items || []
-      remoteList = list.map(toOrderWithItems)
-    } catch {
-      // Remote failed, fallback to local
-    }
-
-    try {
-      const localOrders: OrderWithItems[] = JSON.parse(localStorage.getItem(LOCAL_ORDERS_KEY) || '[]')
-      const knownIds = new Set(remoteList.map((o) => o.order_number || o.id))
-      const extra = localOrders.filter((o) => !knownIds.has(o.order_number || o.id))
-      return [...remoteList, ...extra]
-    } catch {
-      return remoteList
-    }
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number } }>('/ecommerce/orders')
+    const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
+    return list.map(toOrderWithItems)
   },
 
   async listPage(cursor: number | null, limit: number): Promise<{ items: OrderWithItems[]; total: number; nextCursor: number | null; prevCursor: number | null }> {
     const params: Record<string, string> = { limit: String(limit) }
     if (cursor !== null) params.page = String(Math.floor(cursor / limit) + 1)
-    try {
-      const res = await api.get<{ data?: ApiOrder[]; items?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', { params })
-      const list = res.data?.data || res.data?.items || []
-      const total = res.data?.meta?.total ?? list.length
-      const currentPage = res.data?.meta?.current_page ?? 1
-      const perPage = res.data?.meta?.per_page ?? limit
-      const nextCursor = currentPage * perPage < total ? currentPage * perPage : null
-      const prevCursor = currentPage > 1 ? (currentPage - 2) * perPage : null
-      return {
-        items: list.map(toOrderWithItems),
-        total,
-        nextCursor,
-        prevCursor,
-      }
-    } catch {
-      const all = await this.list()
-      const start = cursor ?? 0
-      const slice = all.slice(start, start + limit)
-      return {
-        items: slice,
-        total: all.length,
-        nextCursor: start + limit < all.length ? start + limit : null,
-        prevCursor: start > 0 ? Math.max(0, start - limit) : null,
-      }
-    }
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', { params })
+    const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
+    const meta = (res.data as { meta?: { total: number; per_page: number; current_page: number } }).meta
+    const total = meta?.total ?? list.length
+    const currentPage = meta?.current_page ?? 1
+    const perPage = meta?.per_page ?? limit
+    const nextCursor = currentPage * perPage < total ? currentPage * perPage : null
+    const prevCursor = currentPage > 1 ? (currentPage - 2) * perPage : null
+    return { items: list.map(toOrderWithItems), total, nextCursor, prevCursor }
   },
 
-  async insert(order: DbOrder, items: DbOrderItem[]): Promise<void> {
-    try {
-      await api.post('/ecommerce/orders', {
-        recipient_name: order.recipient_name,
-        phone: order.recipient_phone,
-        address: order.shipping_address_line_1,
-        city: order.shipping_city,
-        shipping_courier: order.shipping_method || "standard",
-        shipping_method_id: order.shipping_method_id || order.shipping_method || "standard",
-        shipping_cost: (order.shipping_total || 0) < 500 ? Math.round((order.shipping_total || 0) * 15800) : Math.round(order.shipping_total || 0),
-        service_fee: order.service_fee_total || 0,
-        items: items.map((i) => ({
-          product_uuid: i.product_id,
-          quantity: i.quantity,
-        })),
-      })
-    } catch {
-      try {
-        const stored: OrderWithItems[] = JSON.parse(localStorage.getItem(LOCAL_ORDERS_KEY) || '[]')
-        stored.unshift({
-          ...order,
-          order_items: items,
-        })
-      } catch {
-        // ignore localStorage quota or access errors
-      }
-    }
+  async get(id: string): Promise<OrderWithItems | null> {
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder }>('/ecommerce/orders/' + id)
+    const order = unwrapData<ApiOrder>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder }) ?? res.data.data
+    return order ? toOrderWithItems(order) : null
   },
 
   async updateStatus(id: string, patch: Partial<DbOrder>): Promise<OrderWithItems | null> {
     const status = patch.status as string
-    try {
-      const res = await api.patch<{ data?: ApiOrder; order?: ApiOrder }>(`/ecommerce/orders/${id}/status`, { status })
-      const order = res.data?.data || res.data?.order
-      return order ? toOrderWithItems(order) : null
-    } catch {
-      return null
-    }
+    const normalized = status?.toUpperCase() === 'CANCELLED' ? 'CANCELED' : status?.toUpperCase()
+    const res = await api.patch<{ success: boolean; message: string; data?: ApiOrder }>(`/ecommerce/orders/${id}/status`, { status: normalized })
+    const order = unwrapData<ApiOrder>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder }) ?? res.data.data
+    return order ? toOrderWithItems(order) : null
   },
 
-  async get(id: string): Promise<OrderWithItems | null> {
-    try {
-      const res = await api.get<{ data?: ApiOrder; order?: ApiOrder }>(`/ecommerce/orders/${id}`)
-      const order = res.data?.data || res.data?.order
-      if (order) return toOrderWithItems(order)
-    } catch {
-      // ignore
-    }
+  async submitPayment(id: string, input: { sender_name: string; sender_bank: string; amount_paid: number; reference_number?: string; payment_date?: string }): Promise<void> {
+    await api.post(`/ecommerce/orders/${id}/payments`, {
+      sender_name: input.sender_name,
+      sender_bank: input.sender_bank,
+      amount_paid: input.amount_paid,
+      reference_number: input.reference_number || undefined,
+      payment_date: input.payment_date || new Date().toISOString(),
+    })
+  },
 
-    try {
-      const localOrders: OrderWithItems[] = JSON.parse(localStorage.getItem(LOCAL_ORDERS_KEY) || '[]')
-      const found = localOrders.find((o) => o.id === id || o.order_number === id)
-      return found || null
-    } catch {
-      return null
-    }
+  async submitPaymentWithProof(id: string, form: FormData): Promise<void> {
+    await api.post(`/ecommerce/orders/${id}/payments`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+
+  async updateShipping(id: string, tracking_number: string, courier?: string): Promise<OrderWithItems | null> {
+    const res = await api.patch<{ success: boolean; message: string; data?: ApiOrder }>(`/ecommerce/orders/${id}/shipping`, { tracking_number, shipping_courier: courier })
+    const order = unwrapData<ApiOrder>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder }) ?? res.data.data
+    return order ? toOrderWithItems(order) : null
   },
 
   async cancelOrder(_email: string, orderId: string): Promise<void> {
-    await api.patch(`/ecommerce/orders/${orderId}/status`, { status: 'cancelled' })
+    await api.patch(`/ecommerce/orders/${orderId}/status`, { status: 'CANCELED' })
+  },
+
+  async insert(_order: DbOrder, _items: DbOrderItem[]): Promise<void> {
+    throw new Error('orderRepository.insert deprecated — gunakan checkoutService.placeOrder')
   },
 
   async reset(): Promise<void> {
-    resetMockOrders()
+    throw new Error('reset mock tidak tersedia di BE mode')
   },
 }

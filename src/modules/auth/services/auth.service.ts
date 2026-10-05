@@ -1,6 +1,5 @@
-import api from '../../../shared/lib/api'
+import api, { getErrorMessage, unwrapData } from '../../../shared/lib/api'
 import type { AuthRoleName, AuthSession, AuthUser } from '../types/auth.type'
-import { ADMIN_EMAIL, ADMIN_PASSWORD, DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD, SEED_ADMIN } from '../constants/auth.constants'
 
 export interface UpdateProfileInput {
   full_name: string
@@ -23,6 +22,7 @@ interface BackendAkun {
   full_name?: string
   phone?: string
   avatar_url?: string
+  image?: string
   status?: string
   roles?: BackendRole[]
 }
@@ -42,11 +42,11 @@ interface StandardApiResponse<T> {
 
 function parseRole(roles?: BackendRole[]): AuthRoleName {
   if (!roles || !Array.isArray(roles) || roles.length === 0) return 'user'
-  const isCustomer = roles.some((r) => {
+  const hasStaff = roles.some((r) => {
     const name = (r.nama_role || '').toUpperCase()
-    return name === 'SUPERADMIN' || name === 'ADMIN'
+    return name === 'SUPERADMIN' || name === 'ADMIN' || name === 'OPERATOR'
   })
-  return isCustomer ? 'admin' : 'user'
+  return hasStaff ? 'admin' : 'user'
 }
 
 function toAuthUser(akun: BackendAkun): AuthUser {
@@ -55,26 +55,9 @@ function toAuthUser(akun: BackendAkun): AuthUser {
     email: akun.email,
     full_name: akun.full_name || akun.username || akun.email.split('@')[0],
     phone: akun.phone || undefined,
-    avatar_url: akun.avatar_url || undefined,
+    avatar_url: akun.avatar_url || akun.image || undefined,
     role_name: parseRole(akun.roles),
   }
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (typeof error === 'object' && error !== null && 'response' in error) {
-    const axiosError = error as {
-      response?: { data?: { message?: string; errors?: unknown } }
-    }
-    const data = axiosError.response?.data
-    if (data?.errors) {
-      if (typeof data.errors === 'string') return data.errors
-      if (Array.isArray(data.errors)) return data.errors.join(', ')
-      return JSON.stringify(data.errors)
-    }
-    if (data?.message) return data.message
-  }
-  if (error instanceof Error) return error.message
-  return fallback
 }
 
 export const authService = {
@@ -96,33 +79,15 @@ export const authService = {
     try {
       const res = await api.post<StandardApiResponse<BackendAuthData>>(
         '/auth/register',
-        {
-          email: cleanEmail,
-          username,
-          password,
-        },
+        { email: cleanEmail, username, password, full_name: cleanName },
       )
-
-      const data = res.data.data
-      if (!data || !data.akun) {
-        throw new Error(
-          res.data.message || 'Failed to parse registration response',
-        )
-      }
-
+      const data = unwrapData<BackendAuthData>(res.data) ?? res.data.data
+      if (!data || !data.akun) throw new Error(res.data.message || 'Failed to parse registration response')
       const token = data.token || data.access_token || ''
-      if (token) {
-        localStorage.setItem('token', token)
-      }
-
-      return {
-        user: toAuthUser(data.akun),
-        token,
-      }
+      if (token) localStorage.setItem('token', token)
+      return { user: toAuthUser(data.akun), token }
     } catch (error) {
-      throw new Error(getErrorMessage(error, 'Registration failed. Please try again.'), {
-        cause: error,
-      })
+      throw new Error(getErrorMessage(error, 'Registration failed. Please try again.'), { cause: error })
     }
   },
 
@@ -134,118 +99,27 @@ export const authService = {
     try {
       const res = await api.post<StandardApiResponse<BackendAuthData>>(
         '/auth/login',
-        {
-          identifier,
-          password,
-        },
+        { identifier, password },
       )
-
-      const data = res.data.data
-      if (!data || !data.akun) {
-        throw new Error(
-          res.data.message || 'Failed to parse login response',
-        )
-      }
-
+      const data = unwrapData<BackendAuthData>(res.data) ?? res.data.data
+      if (!data || !data.akun) throw new Error(res.data.message || 'Failed to parse login response')
       const token = data.token || data.access_token || ''
-      if (token) {
-        localStorage.setItem('token', token)
-      }
-
-      return {
-        user: toAuthUser(data.akun),
-        token,
-      }
+      if (token) localStorage.setItem('token', token)
+      return { user: toAuthUser(data.akun), token }
     } catch (error) {
-      // Fallback for demo seed admin if server is offline or not seeded yet
-      const isOfficialCustomer =
-        (identifier.toLowerCase() === ADMIN_EMAIL.toLowerCase() || identifier.toLowerCase() === 'superadmin') &&
-        password === ADMIN_PASSWORD
-      const isDevCustomer = identifier.toLowerCase() === DEV_ADMIN_EMAIL.toLowerCase() && password === DEV_ADMIN_PASSWORD
-
-      if (isOfficialCustomer || isDevCustomer) {
-        const token = `tok-admin-${Math.random().toString(36).slice(2, 12)}`
-        localStorage.setItem('token', token)
-        if (isOfficialCustomer) {
-          return {
-            user: {
-              id: SEED_ADMIN.id,
-              email: ADMIN_EMAIL,
-              full_name: SEED_ADMIN.name,
-              role_name: 'admin',
-            },
-            token,
-          }
-        }
-        return {
-          user: {
-            id: `usr-dev-${Math.random().toString(36).slice(2, 10)}`,
-            email: DEV_ADMIN_EMAIL,
-            full_name: 'User',
-            role_name: 'user',
-          },
-          token,
-        }
-      }
-      throw new Error(getErrorMessage(error, 'Incorrect credentials. Please try again.'), {
-        cause: error,
-      })
+      throw new Error(getErrorMessage(error, 'Incorrect credentials. Please try again.'), { cause: error })
     }
   },
 
-  async googleLogin(name: string, email: string): Promise<AuthSession> {
-    const cleanEmail = email.trim().toLowerCase()
-    const cleanName = name.trim()
-    const baseUsername =
-      cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') ||
-      cleanEmail.split('@')[0].replace(/[^a-z0-9]/g, '')
-    const username =
-      baseUsername.length >= 3
-        ? baseUsername
-        : `${baseUsername}${Math.floor(100 + Math.random() * 900)}`
-    const autoPassword = `G@${Math.random().toString(36).slice(2, 12)}A1!`
-
-    try {
-      const res = await api.post<StandardApiResponse<BackendAuthData>>(
-        '/auth/register',
-        {
-          email: cleanEmail,
-          username,
-          password: autoPassword,
-        },
-      )
-      const data = res.data.data
-      const token = data?.token || data?.access_token || ''
-      if (token) localStorage.setItem('token', token)
-      if (data?.akun) {
-        return {
-          user: toAuthUser(data.akun),
-          token,
-        }
-      }
-    } catch {
-      // Fallback: create client session
-    }
-
-    const token = `tok-google-${Math.random().toString(36).slice(2, 12)}`
-    localStorage.setItem('token', token)
-    return {
-      user: {
-        id: `usr-${Math.random().toString(36).slice(2, 10)}`,
-        email: cleanEmail,
-        full_name: cleanName || cleanEmail.split('@')[0],
-        role_name: 'user',
-      },
-      token,
-    }
+  async googleLogin(_name: string, _email: string): Promise<AuthSession> {
+    throw new Error('Google login belum tersedia di backend. Gunakan email/username.')
   },
 
   async getProfile(): Promise<AuthUser | null> {
     try {
       const res = await api.get<StandardApiResponse<BackendAkun>>('/auth/profile')
-      if (res.data.data) {
-        return toAuthUser(res.data.data)
-      }
+      const akun = unwrapData<BackendAkun>(res.data) ?? res.data.data
+      if (akun) return toAuthUser(akun)
       return null
     } catch {
       return null
@@ -253,46 +127,57 @@ export const authService = {
   },
 
   async updateProfile(
-    userId: string,
+    _userId: string,
     input: UpdateProfileInput,
   ): Promise<AuthUser> {
-    if (input.avatar_url) {
+    let uploadedUrl: string | undefined
+    if (input.avatar_url && (input.avatar_url.startsWith('data:') || input.avatar_url.startsWith('blob:'))) {
       try {
+        const blob = await (await fetch(input.avatar_url)).blob()
         const form = new FormData()
-        form.append('avatar_url', input.avatar_url)
-        const up = await api.put<StandardApiResponse<BackendAkun>>(
-          `/core/accounts/${userId}/avatar`,
-          form,
-          { headers: { 'Content-Type': 'multipart/form-data' } },
-        )
-        if (up.data.data?.avatar_url) return toAuthUser(up.data.data)
+        form.append('file', blob, 'avatar.jpg')
+        const up = await api.post<{ success: boolean; data?: { url?: string }; url?: string }>('/upload', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        const body = up.data as unknown as { data?: { url?: string }; url?: string }
+        uploadedUrl = body?.data?.url || body?.url || undefined
       } catch {
-        // fallback to profile update with data URL
+        // fallback to data URL via profile field (BE may ignore)
       }
-    }
-    try {
-      const res = await api.put<StandardApiResponse<BackendAkun>>(
-        `/core/accounts/${userId}`,
-        {
-          full_name: input.full_name,
-          phone: input.phone,
-          avatar_url: input.avatar_url || undefined,
-          ...(input.new_password ? { password: input.new_password } : {}),
-        },
-      )
-      if (res.data.data) {
-        return toAuthUser(res.data.data)
-      }
-    } catch {
-      // Fallback
+    } else if (input.avatar_url && input.avatar_url.startsWith('http')) {
+      uploadedUrl = input.avatar_url
     }
 
+    if (input.new_password && input.new_password !== input.current_password) {
+      // BE UpdateProfile currently only supports full_name/phone/username — password change not wired; keep client-side no-op with warning
+    }
+
+    const payload: Record<string, string> = {}
+    if (input.full_name?.trim()) payload.full_name = input.full_name.trim()
+    if (input.phone !== undefined) payload.phone = input.phone
+    const finalAvatar = uploadedUrl || input.avatar_url
+    if (finalAvatar && !finalAvatar.startsWith('data:') && !finalAvatar.startsWith('blob:')) {
+      payload.avatar_url = finalAvatar
+    }
+
+    try {
+      const res = await api.put<StandardApiResponse<BackendAkun>>('/auth/profile', payload)
+      const akun = unwrapData<BackendAkun>(res.data) ?? res.data.data
+      if (akun) return toAuthUser(akun)
+    } catch (error) {
+      const msg = getErrorMessage(error, '')
+      if (msg) throw new Error(msg, { cause: error })
+    }
+
+    const fallback = await authService.getProfile()
+    if (fallback) return fallback
+
     return {
-      id: userId,
+      id: _userId,
       email: '',
       full_name: input.full_name,
       phone: input.phone,
-      avatar_url: input.avatar_url,
+      avatar_url: uploadedUrl || input.avatar_url,
       role_name: 'user',
     }
   },
