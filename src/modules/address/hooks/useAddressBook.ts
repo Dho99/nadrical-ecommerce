@@ -9,7 +9,6 @@ export function useAddressBook(_email: string | null | undefined) {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
     addressService
       .fetchAddresses()
       .then((res) => {

@@ -1,12 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Check, Download, Loader2, PackageCheck } from 'lucide-react'
+import { ArrowRight, Check, Download, Loader2, PackageCheck, Sparkles } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { Button, Card, Separator } from '../../shared/components/ui'
 import { formatPrice } from '../../shared/utils/format'
 import { orderRepository } from '../../modules/checkout/services/order.repository'
 import { invoiceService } from '../../modules/orders/services/invoice.service'
 import type { OrderConfirmation } from '../../modules/checkout/types/checkout.type'
+import { ProductCard } from '../../modules/products'
+import { productService } from '../../modules/products/services/product.service'
+import type { Product } from '../../modules/products/types/product.type'
 
 const STORAGE_KEY = 'last-order-confirmation'
 
@@ -60,6 +63,22 @@ export function CheckoutSuccessPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [downloading, setDownloading] = useState(false)
+  const [recommendations, setRecommendations] = useState<Product[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void productService
+      .getTopRecommended({ limit: 4, randomize: true })
+      .then((items) => {
+        if (!cancelled) setRecommendations(items)
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendations([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const confirmation = useMemo<OrderConfirmation | null>(() => {
     const state = location.state as unknown
@@ -180,6 +199,30 @@ export function CheckoutSuccessPage() {
           </Button>
         </div>
       </Card>
+
+      {recommendations.length > 0 && (
+        <section className="mx-auto mt-12 max-w-5xl border-t pt-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-amber-500" />
+              <h2 className="font-display text-lg font-bold tracking-tight sm:text-xl">
+                You might also like
+              </h2>
+            </div>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-1 font-mono text-xs font-medium text-primary hover:underline"
+            >
+              Browse catalog <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {recommendations.map((product, i) => (
+              <ProductCard key={`checkout-rec-${product.id}`} product={product} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

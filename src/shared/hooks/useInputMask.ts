@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
-// @ts-expect-error no types for inputmask
 import Inputmask from 'inputmask'
 
 export type MaskType = 'phone' | 'currency'
 
 export function useInputMask(
-  ref: React.RefObject<HTMLInputElement>,
+  ref: React.RefObject<HTMLInputElement | null>,
   type: MaskType | null,
 ) {
   useEffect(() => {

@@ -94,7 +94,7 @@ export function PostalCodeField({
               highlightItemOnHover
               itemToStringLabel={(place: PostalPlace) => place.postal_code}
               itemToStringValue={(place: PostalPlace) => place.postal_code}
-              isItemEqualToValue={(a, b) => {
+              isItemEqualToValue={(a: PostalPlace | null, b: PostalPlace | null) => {
                 if (!a || !b) return a === b
                 return a.postal_code === b.postal_code && a.village === b.village
               }}

@@ -54,7 +54,7 @@ export const voucherService = {
       if (voucher && (voucher as Voucher).code) return voucher as Voucher
     } catch (e) {
       const msg = getErrorMessage(e, '')
-      if (msg && !msg.includes('Unexpected')) throw new Error(msg)
+      if (msg && !msg.includes('Unexpected')) throw new Error(msg, { cause: e })
     }
     const voucher = await this.get(normalized)
     if (!voucher) throw new Error('Kode voucher tidak ditemukan')

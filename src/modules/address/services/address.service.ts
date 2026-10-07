@@ -50,6 +50,7 @@ export const addressService = {
   },
 
   listByEmail(_email: string): UserAddress[] {
+    void _email
     throw new Error('listByEmail deprecated — gunakan fetchAddresses()')
   },
 

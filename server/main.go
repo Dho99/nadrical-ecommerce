@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
 	"server/pkg/websocket"
 )
@@ -34,7 +36,17 @@ func setupRoutes() {
 }
 
 func main() {
-	fmt.Println("Distributed Chat App v0.01")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8085"
+	}
+	if !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
+
+	fmt.Printf("Standalone Mock Chat Server running on %s (Port 8080 is reserved for nadrical-compro-be)\n", port)
 	setupRoutes()
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(port, nil); err != nil {
+		fmt.Printf("Server failed to start: %v\n", err)
+	}
 }

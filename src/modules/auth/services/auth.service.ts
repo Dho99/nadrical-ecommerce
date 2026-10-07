@@ -112,6 +112,8 @@ export const authService = {
   },
 
   async googleLogin(_name: string, _email: string): Promise<AuthSession> {
+    void _name
+    void _email
     throw new Error('Google login belum tersedia di backend. Gunakan email/username.')
   },
 

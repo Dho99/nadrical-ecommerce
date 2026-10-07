@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { LoaderCircle } from 'lucide-react'
-import { ProductFilter, ProductGrid, useInfiniteProducts } from '../../modules/products'
+import { ArrowRight, LoaderCircle, Sparkles } from 'lucide-react'
+import { ProductCard, ProductFilter, ProductGrid, useInfiniteProducts } from '../../modules/products'
+import { productService } from '../../modules/products/services/product.service'
+import type { Product } from '../../modules/products/types/product.type'
 import { parseProductFilters, toProductParams } from '../../modules/products/utils/filters'
 import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll'
 
@@ -11,6 +13,33 @@ export function ProductsPage() {
   const filters = useMemo(() => parseProductFilters(searchParams), [searchParams])
   const { items, total, status, error, loadingMore, hasMore, loadMore, refetch } =
     useInfiniteProducts(filters)
+
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    const q = filters.query?.trim()
+    if (!q) {
+      setTimeout(() => setRelatedProducts([]), 0)
+      return
+    }
+    let cancelled = false
+    void productService
+      .getRelatedProducts({
+        query: q,
+        categoryId: filters.category_id,
+        excludeIds: items.map((p) => p.id),
+        limit: 3,
+      })
+      .then((rel) => {
+        if (!cancelled) setRelatedProducts(rel)
+      })
+      .catch(() => {
+        if (!cancelled) setRelatedProducts([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [filters.query, filters.category_id, items])
 
   const sentinelRef = useInfiniteScroll({ onLoadMore: loadMore, hasMore, loading: loadingMore })
 
@@ -55,6 +84,36 @@ export function ProductsPage() {
         }
         />
       </div>
+
+      {filters.query && relatedProducts.length > 0 && (
+        <section className="mt-14 border-t pt-8">
+          <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-amber-500" />
+                <h2 className="font-display text-lg font-bold tracking-tight sm:text-xl">
+                  Related Products You Might Like
+                </h2>
+              </div>
+              <p className="mt-1 font-mono text-xs text-muted-foreground">
+                Recommendations based on search “{filters.query}”
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleChange({ query: undefined })}
+              className="inline-flex items-center gap-1 font-mono text-xs font-medium text-primary hover:underline"
+            >
+              Clear search <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-5">
+            {relatedProducts.map((p, i) => (
+              <ProductCard key={`related-${p.id}`} product={p} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

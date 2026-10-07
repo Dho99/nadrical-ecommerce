@@ -153,6 +153,8 @@ export const orderRepository = {
   },
 
   async insert(_order: DbOrder, _items: DbOrderItem[]): Promise<void> {
+    void _order
+    void _items
     throw new Error('orderRepository.insert deprecated — gunakan checkoutService.placeOrder')
   },
 

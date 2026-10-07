@@ -40,6 +40,7 @@ export const dashboardService = {
   },
 
   async exportData(_params: { type: string; format: string; from?: string; to?: string }): Promise<{ url: string; filename: string }> {
+    void _params
     throw new Error('Dashboard export belum tersedia di backend (/dashboard/stats hanya read)')
   },
 }

@@ -187,6 +187,70 @@ function buildParams(filters: ProductFilters, page?: number, limit?: number): Re
 
 export type ProductDraft = Omit<Product, 'id' | 'sku'>
 
+export interface GetRelatedProductsOptions {
+  query?: string
+  categoryId?: string
+  excludeIds?: string[]
+  limit?: number
+  sourceProduct?: Product
+  diversify?: boolean
+}
+
+export interface GetTopRecommendedOptions {
+  limit?: number
+  diversify?: boolean
+  excludeIds?: string[]
+  randomize?: boolean
+}
+
+const STOP_WORDS = new Set([
+  'the', 'and', 'a', 'an', 'with', 'in', 'of', 'for', 'set', 'pc',
+  '42mm', '28l', '750ml', '5pc', 'queen', 'to', 'from', 'is', 'on',
+])
+
+function extractTokens(str: string): string[] {
+  return (str || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/[\s-]+/)
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t))
+}
+
+const COMPLEMENTARY_CATEGORIES: Record<string, string[]> = {
+  electronics: ['accessories'],
+  outdoors: ['accessories', 'home-living'],
+  apparel: ['accessories'],
+  'home-living': ['accessories'],
+  accessories: ['apparel', 'electronics', 'outdoors'],
+}
+
+function hashPair(id1: string, id2: string): number {
+  const s = `${id1}:${id2}`
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i)
+    h |= 0
+  }
+  return Math.abs(h % 1000) / 1000 // 0.0 to 1.0
+}
+
+export function calculateProductRecommendationScore(p: Product): number {
+  const rev = p.review_count ?? 0
+  const rate = p.rating ?? 0
+  const disc = p.discount_percent ?? 0
+  const popScore = Math.min(100, Math.log10(rev + 1) * 32)
+  const dampedRate =
+    rev > 0
+      ? (rate * rev + 4.0 * 3) / (rev + 3)
+      : rate > 0
+        ? rate * 0.7
+        : 3.0
+  const qualScore = Math.min(100, (dampedRate / 5) * 100)
+  const discScore = Math.min(100, (disc / 50) * 100)
+  const featBonus = p.is_featured ? 10 : 0
+  return Math.round((popScore * 0.4 + qualScore * 0.35 + discScore * 0.25 + featBonus) * 100) / 100
+}
+
 let cachedProducts: Product[] | null = null
 let cacheTimestamp = 0
 const CACHE_TTL_MS = 5_000
@@ -262,18 +326,159 @@ export const productService = {
     return null
   },
 
-  async getFeatured(limit = 4): Promise<Product[]> {
+  async getTopRecommended(optionsOrLimit: number | GetTopRecommendedOptions = 6): Promise<Product[]> {
+    const opts: GetTopRecommendedOptions =
+      typeof optionsOrLimit === 'number' ? { limit: optionsOrLimit } : optionsOrLimit
+    const limit = opts.limit ?? 6
+    const excludeSet = new Set(opts.excludeIds ?? [])
+
     const all = await this.getProducts()
-    const featured = all.filter((p) => p.is_featured)
-    const rest = all.filter((p) => !p.is_featured)
-    return [...featured, ...rest].slice(0, limit)
+    const available = all.filter((p) => !excludeSet.has(p.id) && p.stock > 0)
+
+    const pool = available.sort(
+      (a, b) => calculateProductRecommendationScore(b) - calculateProductRecommendationScore(a),
+    )
+
+    if (opts.randomize) {
+      const topTier = pool.slice(0, Math.max(limit * 2, 8))
+      return [...topTier].sort(() => Math.random() - 0.5).slice(0, limit)
+    }
+
+    if (opts.diversify) {
+      const picked: Product[] = []
+      const catCounts: Record<string, number> = {}
+      for (const p of pool) {
+        if (picked.length >= limit) break
+        const cat = p.category_id || 'other'
+        if ((catCounts[cat] || 0) < 2) {
+          picked.push(p)
+          catCounts[cat] = (catCounts[cat] || 0) + 1
+        }
+      }
+      if (picked.length < limit) {
+        const pickedIds = new Set(picked.map((p) => p.id))
+        for (const p of pool) {
+          if (picked.length >= limit) break
+          if (!pickedIds.has(p.id)) picked.push(p)
+        }
+      }
+      return picked
+    }
+
+    return pool.slice(0, limit)
+  },
+
+  async getFeatured(limit = 4): Promise<Product[]> {
+    return this.getTopRecommended({ limit, diversify: true })
+  },
+
+  async getRelatedProducts(options: GetRelatedProductsOptions = {}): Promise<Product[]> {
+    const {
+      query = '',
+      categoryId = '',
+      excludeIds = [],
+      limit = 4,
+      sourceProduct,
+    } = options
+
+    const all = await this.getProducts()
+    const excludeSet = new Set(excludeIds)
+    if (sourceProduct) excludeSet.add(sourceProduct.id)
+
+    const candidates = all.filter((p) => !excludeSet.has(p.id) && p.stock > 0)
+
+    const targetCategory = (sourceProduct?.category_id || categoryId || '').toLowerCase().trim()
+    const compCats = new Set(COMPLEMENTARY_CATEGORIES[targetCategory] || [])
+
+    const sourceTokens = new Set([
+      ...extractTokens(sourceProduct?.name || ''),
+      ...extractTokens(sourceProduct?.summary || sourceProduct?.description || ''),
+      ...extractTokens(query),
+    ])
+
+    const scored = candidates.map((p) => {
+      let score = 0
+      const pCat = (p.category_id || '').toLowerCase().trim()
+      const pTokens = extractTokens(p.name + ' ' + (p.summary || p.description || ''))
+
+      // 1. Kesesuaian Kategori
+      if (targetCategory && pCat === targetCategory) {
+        score += 15
+      } else if (compCats.has(pCat)) {
+        score += 7
+      }
+
+      // 2. Kecocokan Kata Kunci (Token Matching)
+      if (sourceTokens.size > 0) {
+        let tokenMatches = 0
+        for (const token of pTokens) {
+          if (sourceTokens.has(token)) tokenMatches++
+        }
+        score += tokenMatches * 8
+      }
+
+      // 3. Price Proximity (jika ada sourceProduct dan harga valid)
+      if (sourceProduct && sourceProduct.base_price > 0 && p.base_price > 0) {
+        const ratio =
+          Math.min(p.base_price, sourceProduct.base_price) /
+          Math.max(p.base_price, sourceProduct.base_price)
+        score += ratio * 4
+      }
+
+      // 4. Skor Kualitas Produk (Rating & Ulasan)
+      const recScore = calculateProductRecommendationScore(p)
+      score += recScore * 0.12
+
+      // 5. Contextual Pair Hash Diversity (mencegah static tie-breaker pada katalog kecil)
+      if (sourceProduct) {
+        score += hashPair(sourceProduct.id, p.id) * 4
+      }
+
+      return { product: p, score, recScore }
+    })
+
+    scored.sort((a, b) => b.score - a.score)
+
+    const results: Product[] = []
+    const usedCategories = new Set<string>()
+
+    for (const item of scored) {
+      if (item.score > 0 && results.length < limit) {
+        results.push(item.product)
+        if (item.product.category_id) usedCategories.add(item.product.category_id)
+      }
+    }
+
+    // Fallback cerdas dengan keragaman kategori (Category Diversity)
+    if (results.length < limit) {
+      const pickedIds = new Set([...excludeSet, ...results.map((r) => r.id)])
+      const remainingCandidates = candidates
+        .filter((p) => !pickedIds.has(p.id))
+        .sort((a, b) => {
+          // Prioritaskan kategori yang belum ada agar tampilan bervariasi
+          const catA = a.category_id && usedCategories.has(a.category_id) ? 0 : 1
+          const catB = b.category_id && usedCategories.has(b.category_id) ? 0 : 1
+          if (catB !== catA) return catB - catA
+          return calculateProductRecommendationScore(b) - calculateProductRecommendationScore(a)
+        })
+
+      for (const item of remainingCandidates) {
+        if (results.length >= limit) break
+        results.push(item)
+        if (item.category_id) usedCategories.add(item.category_id)
+      }
+    }
+
+    return results.slice(0, limit)
   },
 
   async getRelated(product: Product, limit = 3): Promise<Product[]> {
-    const all = await this.getProducts()
-    const same = all.filter((p) => p.id !== product.id && p.category_id === product.category_id)
-    const rest = all.filter((p) => p.id !== product.id && p.category_id !== product.category_id)
-    return [...same, ...rest].slice(0, limit)
+    return this.getRelatedProducts({
+      sourceProduct: product,
+      categoryId: product.category_id,
+      excludeIds: [product.id],
+      limit,
+    })
   },
 
   async getCategories(): Promise<ProductCategory[]> {

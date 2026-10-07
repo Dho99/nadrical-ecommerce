@@ -100,7 +100,7 @@ export const cartService = {
         ...(validVariantUuid ? { variant_uuid: validVariantUuid } : {}),
       })
     } catch (e) {
-      throw new Error(getErrorMessage(e, 'Gagal menambah keranjang'))
+      throw new Error(getErrorMessage(e, 'Gagal menambah keranjang'), { cause: e })
     }
   },
 
@@ -110,7 +110,7 @@ export const cartService = {
     try {
       await api.put(`/ecommerce/cart/items/${itemUUID}`, { quantity })
     } catch (e) {
-      throw new Error(getErrorMessage(e, 'Gagal update keranjang'))
+      throw new Error(getErrorMessage(e, 'Gagal update keranjang'), { cause: e })
     }
   },
 
@@ -120,7 +120,7 @@ export const cartService = {
     try {
       await api.delete(`/ecommerce/cart/items/${itemUUID}`)
     } catch (e) {
-      throw new Error(getErrorMessage(e, 'Gagal hapus item'))
+      throw new Error(getErrorMessage(e, 'Gagal hapus item'), { cause: e })
     }
   },
 
@@ -128,7 +128,7 @@ export const cartService = {
     try {
       await api.delete('/ecommerce/cart')
     } catch (e) {
-      throw new Error(getErrorMessage(e, 'Gagal kosongkan keranjang'))
+      throw new Error(getErrorMessage(e, 'Gagal kosongkan keranjang'), { cause: e })
     }
   },
 }

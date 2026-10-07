@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Award, Flame, PackageX, Sparkles, Tag } from 'lucide-react'
 import {
@@ -7,8 +8,8 @@ import {
   ReviewSection,
   StarRating,
   useProduct,
-  useProducts,
 } from '../../modules/products'
+import { productService } from '../../modules/products/services/product.service'
 import { CATEGORY_LABEL } from '../../modules/products/constants/product.constants'
 import { useGuardedAdd, useBuyNow } from '../../modules/cart'
 import { WishlistButton } from '../../modules/wishlist'
@@ -33,8 +34,29 @@ export function ProductDetailPage() {
   const { add } = useGuardedAdd()
   const { buyNow } = useBuyNow()
 
-  const relatedQuery = useProducts(product ? { category_id: product.category_id } : {})
-  const related = relatedQuery.products.filter((p) => p.id !== product?.id).slice(0, 3)
+  const [related, setRelated] = useState<Product[]>([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
+
+  useEffect(() => {
+    if (!product) return
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect fetching state before async lookup
+    setRelatedLoading(true)
+    void productService
+      .getRelated(product, 3)
+      .then((items) => {
+        if (!cancelled) {
+          setRelated(items)
+          setRelatedLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRelatedLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [product])
 
   const handleAdd = (p: Product, qty: number, variant?: ProductVariant) =>
     add(
@@ -214,13 +236,15 @@ export function ProductDetailPage() {
               You might also like
             </p>
             <h2 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              More in {CATEGORY_LABEL[product.category_id]}
+              {product.category_id && CATEGORY_LABEL[product.category_id]
+                ? `More in ${CATEGORY_LABEL[product.category_id]}`
+                : 'Related products'}
             </h2>
           </header>
           <ProductGrid
             products={related}
-            status={relatedQuery.status}
-            error={relatedQuery.error}
+            status={relatedLoading ? 'loading' : 'success'}
+            error={null}
           />
         </section>
       )}

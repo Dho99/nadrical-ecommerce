@@ -30,6 +30,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const debounced = useDebounce(query, 300)
 
   const [results, setResults] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
+  const [related, setRelated] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
   const [recommended, setRecommended] = useState<Awaited<ReturnType<typeof productService.getFeatured>>>([])
   const [recLoading, setRecLoading] = useState(false)
 
@@ -38,17 +39,28 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     const q = debounced.trim()
     if (!q) {
       setTimeout(() => setResults([]), 0)
+      setTimeout(() => setRelated([]), 0)
       setTimeout(() => setLoading(false), 0)
       return
     }
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect fetching state before async lookup
     setLoading(true)
-    void productService.getProducts({ query: q }).then((products) => {
-      if (cancelled) return
-      setResults(products.slice(0, 8))
-      setLoading(false)
-    })
+    void Promise.all([
+      productService.getProducts({ query: q }),
+      productService.getRelatedProducts({ query: q, limit: 3 }),
+    ])
+      .then(([products, rel]) => {
+        if (cancelled) return
+        const topResults = products.slice(0, 8)
+        setResults(topResults)
+        const resultIds = new Set(topResults.map((p) => p.id))
+        setRelated(rel.filter((p) => !resultIds.has(p.id)).slice(0, 3))
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -66,7 +78,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
          setTimeout(() => setRecLoading(false), 0)
        })
        .catch(() => {
-         if (cancelled) return
+         if (!cancelled) return
          setTimeout(() => setRecLoading(false), 0)
        })
      return () => {
@@ -85,6 +97,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const reset = () => {
     setQuery('')
     setResults([])
+    setRelated([])
     onOpenChange(false)
   }
 
@@ -202,36 +215,111 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               ))}
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-6 text-center">
-              <p className="text-sm font-medium">No results for “{query.trim()}”</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Try a different keyword, or search the full catalog.
-              </p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={submit}>
-                Search full catalog <ArrowRight />
-              </Button>
+            <div className="space-y-4">
+              <div className="px-3 py-6 text-center">
+                <p className="text-sm font-medium">No results for “{query.trim()}”</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try a different keyword, or check our top recommendations below.
+                </p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={submit}>
+                  Search full catalog <ArrowRight />
+                </Button>
+              </div>
+
+              {recommended.length > 0 && (
+                <div className="space-y-2 border-t pt-3">
+                  <div className="flex items-center gap-1.5 px-2">
+                    <Sparkles className="size-3.5 text-amber-500" />
+                    <p className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                      Top Recommendations
+                    </p>
+                  </div>
+                  <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                    {recommended.slice(0, 4).map((product) => (
+                      <li key={`rec-${product.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleProductClick(product.id)}
+                          className="flex w-full items-center gap-3 rounded-lg border bg-card px-2 py-2 text-left transition-colors hover:bg-accent hover:border-primary/20"
+                        >
+                          <ProductImage
+                            src={product.cover_image_url}
+                            alt={product.name}
+                            className="size-12 shrink-0 rounded-md border bg-muted object-cover"
+                          />
+                          <span className="min-w-0 grow">
+                            <span className="block truncate text-sm font-medium leading-tight">{product.name}</span>
+                            <span className="block truncate font-mono text-xs font-semibold text-primary">
+                              {format(product.base_price)}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : (
-            <ul className="space-y-0.5">
-              {results.map((product) => (
-                <li key={product.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleProductClick(product.id)}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
-                  >
-                    <ProductImage
-                      src={product.cover_image_url}
-                      alt={product.name}
-                      className="size-10 shrink-0 rounded-md border bg-muted object-cover"
-                    />
-                    <span className="min-w-0 grow">
-                      <span className="block truncate text-sm font-medium">{product.name}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              <ul className="space-y-0.5">
+                {results.map((product) => (
+                  <li key={product.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleProductClick(product.id)}
+                      className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+                    >
+                      <ProductImage
+                        src={product.cover_image_url}
+                        alt={product.name}
+                        className="size-10 shrink-0 rounded-md border bg-muted object-cover"
+                      />
+                      <span className="min-w-0 grow">
+                        <span className="block truncate text-sm font-medium">{product.name}</span>
+                        <span className="block truncate font-mono text-xs font-semibold text-primary">
+                          {format(product.base_price)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              {related.length > 0 && (
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-1.5 px-2 pb-2">
+                    <Sparkles className="size-3.5 text-amber-500" />
+                    <p className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                      Related Products You Might Like
+                    </p>
+                  </div>
+                  <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                    {related.map((product) => (
+                      <li key={`related-${product.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleProductClick(product.id)}
+                          className="flex w-full items-center gap-3 rounded-lg border bg-card px-2 py-2 text-left transition-colors hover:bg-accent hover:border-primary/20"
+                        >
+                          <ProductImage
+                            src={product.cover_image_url}
+                            alt={product.name}
+                            className="size-10 shrink-0 rounded-md border bg-muted object-cover"
+                          />
+                          <span className="min-w-0 grow">
+                            <span className="block truncate text-xs font-medium leading-tight">{product.name}</span>
+                            <span className="block truncate font-mono text-xs font-semibold text-primary">
+                              {format(product.base_price)}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

@@ -26,8 +26,9 @@ export function CheckoutField({ name, label, className, mask, ...inputProps }: C
               {...field}
               ref={(el) => {
                 inputRef.current = el as HTMLInputElement
-                if (typeof field.ref === 'function') field.ref(el)
-                else if (field.ref && typeof field.ref === 'object' && 'current' in field.ref) {
+                if (typeof field.ref === 'function') {
+                  field.ref(el)
+                } else if (field.ref && typeof field.ref === 'object' && 'current' in field.ref) {
                   (field.ref as React.MutableRefObject<HTMLInputElement | null>).current = el as HTMLInputElement
                 }
               }}

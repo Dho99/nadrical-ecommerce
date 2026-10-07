@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { HomeBanner } from "../../modules/home";
@@ -5,13 +6,22 @@ import {
     ProductGrid,
     useProducts,
 } from "../../modules/products";
+import { calculateProductRecommendationScore } from "../../modules/products/services/product.service";
 import { PromoDialog } from "../../modules/promo";
 import { SectionHead } from "../../shared/components/ui";
 
 export function HomePage() {
     const { products, status, error, refetch } = useProducts({});
 
-    const featured = products.filter((p) => p.is_featured).slice(0, 4);
+    const featured = useMemo(() => {
+        const explicitFeatured = products.filter((p) => p.is_featured);
+        if (explicitFeatured.length >= 4) return explicitFeatured.slice(0, 4);
+        const pickedIds = new Set(explicitFeatured.map((p) => p.id));
+        const recommendations = [...products]
+            .filter((p) => !pickedIds.has(p.id))
+            .sort((a, b) => calculateProductRecommendationScore(b) - calculateProductRecommendationScore(a));
+        return [...explicitFeatured, ...recommendations].slice(0, 4);
+    }, [products]);
     const heroProducts = products.length > 0 ? products : null;
 
     return (
