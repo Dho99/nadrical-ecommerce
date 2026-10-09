@@ -32,8 +32,10 @@ export const reviewService = {
 
     if (isUuid) {
       try {
+        const params: Record<string, string | number> = { page, limit, sort }
+        if (rating !== 'all') params.rating = rating
         const res = await api.get<{ success: boolean; message: string; data?: Review[] | { items?: Review[]; data?: Review[] } }>(`/ecommerce/products/${productId}/reviews`, {
-          params: { page, limit, sort },
+          params,
         })
         const data = unwrapData<Review[] | { items?: Review[]; data?: Review[] }>(res.data as unknown as { success: boolean; message: string; data?: Review[] }) ?? res.data.data
         if (Array.isArray(data)) backendReviews = data as Review[]

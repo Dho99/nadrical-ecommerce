@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { unsplashUrl } from '../../../shared/utils/unsplash'
+import { useBannerImages } from '../hooks/useBanner'
 
 interface BannerSlide {
   id: string
@@ -63,12 +64,29 @@ const BANNERS: BannerSlide[] = [
 ]
 
 export function HomeBanner() {
+  const { images: apiImages } = useBannerImages()
+  const slides: BannerSlide[] =
+    apiImages.length > 0
+      ? apiImages.map((img, i) => ({
+          id: `api-banner-${i}`,
+          eyebrow: 'Featured',
+          title: 'Featured Collection',
+          subtitle: '',
+          image: img,
+          href: '/products',
+          cta: 'Shop Now',
+        }))
+      : BANNERS
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const timerRef = useRef<number | null>(null)
 
-  const next = useCallback(() => setActive((p) => (p + 1) % BANNERS.length), [])
-  const prev = useCallback(() => setActive((p) => (p - 1 + BANNERS.length) % BANNERS.length), [])
+  useEffect(() => {
+    setActive(0)
+  }, [slides.length])
+
+  const next = useCallback(() => setActive((p) => (p + 1) % slides.length), [slides.length])
+  const prev = useCallback(() => setActive((p) => (p - 1 + slides.length) % slides.length), [slides.length])
 
   useEffect(() => {
     if (paused) return
@@ -121,7 +139,7 @@ export function HomeBanner() {
       aria-label="Featured collections"
     >
       <div className="relative h-[75vh] max-h-[80vh]">
-        {BANNERS.map((slide, idx) => (
+        {slides.map((slide, idx) => (
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-700 ease-out ${
@@ -182,7 +200,7 @@ export function HomeBanner() {
 
         {/* dots — bro.do pagination centered bottom */}
         <div className="absolute inset-x-0 bottom-5 flex justify-center gap-2">
-          {BANNERS.map((_, idx) => (
+          {slides.map((_, idx) => (
             <button
               key={idx}
               type="button"

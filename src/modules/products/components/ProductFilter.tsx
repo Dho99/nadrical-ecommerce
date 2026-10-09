@@ -1,4 +1,5 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useDebounce } from '../../../shared/hooks/useDebounce'
 import { ChevronDown, Search, X, SlidersHorizontal, Tag } from 'lucide-react'
 import {
   Button,
@@ -52,7 +53,7 @@ function getFilteredSpecOptions(products: Product[]) {
 
 export function ProductFilter({ filters, onChange, total, products }: ProductFilterProps) {
   const [query, setQuery] = useState(filters.query ?? '')
-  const deferredQuery = useDeferredValue(query)
+  const debouncedQuery = useDebounce(query, 300)
   const currentQuery = filters.query ?? ''
   const [specsOpen, setSpecsOpen] = useState(false)
   const specOptions = useMemo(() => getFilteredSpecOptions(products), [products])
@@ -67,11 +68,11 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
   }
 
   useEffect(() => {
-    if (deferredQuery !== currentQuery) {
-      onChange({ query: deferredQuery || undefined })
+    if (debouncedQuery !== currentQuery) {
+      onChange({ query: debouncedQuery || undefined })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deferredQuery])
+  }, [debouncedQuery])
 
   const normalizeCategory = (v: string | undefined) => {
     if (!v || v === 'all') return 'all'

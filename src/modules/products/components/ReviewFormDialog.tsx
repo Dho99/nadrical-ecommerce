@@ -13,8 +13,10 @@ import {
   Textarea,
 } from '../../../shared/components/ui'
 import { ProductImage } from '../../../shared/components/ProductImage'
+import { reviewService } from '../services/review.service'
 import { userReviewStorage, type UserReview } from '../services/userReview.storage'
 import type { ReviewRating } from '../types/review.type'
+import { getErrorMessage } from '../../../shared/lib/api'
 
 interface ReviewFormDialogProps {
   open: boolean
@@ -44,29 +46,61 @@ export function ReviewFormDialog({
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = () => {
+  const isUuidProduct = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id)
+
+  const handleSubmit = async () => {
     if (!comment.trim()) {
       toast.error('Silakan isi ulasan Anda')
       return
     }
     setSubmitting(true)
     try {
-      const review = userReviewStorage.addReview({
-        productId: product.id,
-        orderNumber,
-        rating,
-        comment: comment.trim(),
-        reviewerName,
-        variantName,
-      })
-      toast.success('Ulasan berhasil dikirim! Terima kasih atas masukan Anda.', {
-        position: 'top-center',
-        style: { marginTop: '72px' },
-        closeButton: true,
-      })
-      onSubmitted?.(review)
+      const text = comment.trim()
+      if (isUuidProduct) {
+        const created = await reviewService.createReview(product.id, { rating, comment: text })
+        toast.success('Ulasan berhasil dikirim! Terima kasih atas masukan Anda.', {
+          position: 'top-center',
+          style: { marginTop: '72px' },
+          closeButton: true,
+        })
+        onSubmitted?.({
+          id: created.id,
+          productId: product.id,
+          orderNumber,
+          rating: created.rating,
+          comment: created.comment,
+          reviewerName: created.author || reviewerName,
+          createdAt: created.created_at,
+          variantName,
+        })
+        userReviewStorage.addReview({
+          productId: product.id,
+          orderNumber,
+          rating,
+          comment: text,
+          reviewerName,
+          variantName,
+        })
+      } else {
+        const review = userReviewStorage.addReview({
+          productId: product.id,
+          orderNumber,
+          rating,
+          comment: text,
+          reviewerName,
+          variantName,
+        })
+        toast.success('Ulasan berhasil dikirim! Terima kasih atas masukan Anda.', {
+          position: 'top-center',
+          style: { marginTop: '72px' },
+          closeButton: true,
+        })
+        onSubmitted?.(review)
+      }
       onOpenChange(false)
       setComment('')
+    } catch (e) {
+      toast.error(getErrorMessage(e, 'Gagal mengirim ulasan'))
     } finally {
       setSubmitting(false)
     }

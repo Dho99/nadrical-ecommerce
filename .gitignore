@@ -32,3 +32,6 @@ AGENTS.md
 
 
 .env
+
+opencode.json
+.opencode/

@@ -1,4 +1,4 @@
-import api from '../../../shared/lib/api'
+import api, { unwrapData } from '../../../shared/lib/api'
 
 export interface PromoDialog {
   uuid: string
@@ -17,8 +17,9 @@ export interface PromoDialog {
 export const promoService = {
   async getActive(): Promise<PromoDialog[]> {
     try {
-      const res = await api.get<PromoDialog[]>('/cms/promo-dialogs/active')
-      return (res.data as unknown as PromoDialog[]) ?? []
+      const res = await api.get('/cms/promo-dialogs/active')
+      const data = unwrapData<PromoDialog[]>(res.data) ?? (res.data as { data?: PromoDialog[] })?.data ?? []
+      return Array.isArray(data) ? data : []
     } catch {
       return []
     }
@@ -26,8 +27,9 @@ export const promoService = {
 
   async getById(id: string): Promise<PromoDialog | null> {
     try {
-      const res = await api.get<PromoDialog>(`/cms/promo-dialogs/${id}`)
-      return (res.data as unknown as PromoDialog) ?? null
+      const res = await api.get(`/cms/promo-dialogs/${id}`)
+      const data = unwrapData<PromoDialog>(res.data) ?? (res.data as { data?: PromoDialog })?.data ?? null
+      return data
     } catch {
       return null
     }

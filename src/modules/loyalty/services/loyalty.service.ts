@@ -1,4 +1,4 @@
-import api from '../../../shared/lib/api'
+import api, { unwrapData } from '../../../shared/lib/api'
 
 export interface LoyaltyAccount {
   uuid: string
@@ -24,17 +24,22 @@ export interface LoyaltyTransaction {
 
 export const loyaltyService = {
   async getAccount(): Promise<LoyaltyAccount> {
-    const res = await api.get<LoyaltyAccount>('/ecommerce/loyalty/me')
-    return (res.data as unknown as LoyaltyAccount)
+    const res = await api.get('/ecommerce/loyalty/me')
+    const data = unwrapData<LoyaltyAccount>(res.data) ?? (res.data as { data?: LoyaltyAccount })?.data
+    if (!data) throw new Error('Failed to load loyalty account')
+    return data
   },
 
   async getTransactions(): Promise<LoyaltyTransaction[]> {
-    const res = await api.get<LoyaltyTransaction[]>('/ecommerce/loyalty/transactions')
-    return (res.data as unknown as LoyaltyTransaction[]) ?? []
+    const res = await api.get('/ecommerce/loyalty/transactions')
+    const data = unwrapData<LoyaltyTransaction[]>(res.data) ?? (res.data as { data?: LoyaltyTransaction[] })?.data ?? []
+    return Array.isArray(data) ? data : []
   },
 
   async redeem(points: number, description: string): Promise<LoyaltyAccount> {
-    const res = await api.post<LoyaltyAccount>('/ecommerce/loyalty/redeem', { points, description })
-    return (res.data as unknown as LoyaltyAccount)
+    const res = await api.post('/ecommerce/loyalty/redeem', { points, description })
+    const data = unwrapData<LoyaltyAccount>(res.data) ?? (res.data as { data?: LoyaltyAccount })?.data
+    if (!data) throw new Error('Failed to redeem points')
+    return data
   },
 }

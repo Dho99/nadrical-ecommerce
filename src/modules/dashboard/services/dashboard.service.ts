@@ -22,6 +22,28 @@ export interface DashboardStatsRaw {
   total_faqs: number
 }
 
+function toCsv(rows: Record<string, unknown>[], columns: string[]): string {
+  const esc = (v: unknown) => {
+    const s = v == null ? '' : String(v)
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+  return [columns.map(esc).join(','), ...rows.map((r) => columns.map((c) => esc(r[c])).join(','))].join('\n')
+}
+
+function downloadBlob(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return { url, filename }
+}
+
 export const dashboardService = {
   async getSummary(): Promise<DashboardSummary> {
     const res = await api.get<{ success: boolean; message: string; data?: DashboardStatsRaw & DashboardSummary }>('/dashboard/stats')
@@ -39,8 +61,44 @@ export const dashboardService = {
     }
   },
 
-  async exportData(_params: { type: string; format: string; from?: string; to?: string }): Promise<{ url: string; filename: string }> {
-    void _params
-    throw new Error('Dashboard export belum tersedia di backend (/dashboard/stats hanya read)')
+  async exportData(params: { type: string; format: string; from?: string; to?: string }): Promise<{ url: string; filename: string }> {
+    try {
+      const res = await api.get('/dashboard/export', { params, responseType: 'blob' })
+      const disposition = (res.headers as Record<string, string>)?.['content-disposition'] || ''
+      const match = /filename="?([^"]+)"?/.exec(disposition)
+      const filename = match?.[1] || `export-${params.type}.${params.format === 'csv' ? 'csv' : 'json'}`
+      const blob = res.data as Blob
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      return { url, filename }
+    } catch {
+      // Backend export not available -> client-side CSV from summary
+    }
+    const summary = await dashboardService.getSummary()
+    const type = params.type
+    let rows: Record<string, unknown>[] = []
+    let columns: string[] = []
+    if (type === 'orders' && summary.recent_orders) {
+      rows = summary.recent_orders as Record<string, unknown>[]
+      columns = ['order_number', 'status', 'grand_total', 'created_at']
+    } else if (type === 'products' && summary.top_products) {
+      rows = summary.top_products as Record<string, unknown>[]
+      columns = ['name', 'base_price', 'stock']
+    } else if (type === 'customers') {
+      rows = [{ total_customers: summary.total_customers, total_orders: summary.total_orders, total_revenue: summary.total_revenue }]
+      columns = ['total_customers', 'total_orders', 'total_revenue']
+    } else {
+      rows = [{ total_revenue: summary.total_revenue, total_orders: summary.total_orders, total_customers: summary.total_customers, total_products: summary.total_products }]
+      columns = ['total_revenue', 'total_orders', 'total_customers', 'total_products']
+    }
+    const csv = toCsv(rows, columns)
+    const filename = `export-${type}-${new Date().toISOString().slice(0, 10)}.csv`
+    return downloadBlob(csv, filename, 'text/csv;charset=utf-8;')
   },
 }

@@ -27,8 +27,7 @@ export function DashboardPage() {
 
   const handleExport = async (type: string) => {
     try {
-      const res = await dashboardService.exportData({ type, format: 'csv' })
-      window.open(res.url, '_blank')
+      await dashboardService.exportData({ type, format: 'csv' })
     } catch {
       alert('Export failed')
     }

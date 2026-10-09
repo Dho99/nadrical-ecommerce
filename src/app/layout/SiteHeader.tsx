@@ -16,6 +16,7 @@ import { useTheme } from "next-themes";
 import { useCart } from "../../modules/cart/hooks/useCart";
 import { useAuth } from "../../modules/auth/hooks/useAuth";
 import { NotificationBell, useNotifications } from "../../modules/notifications";
+import { useLogo } from "../../modules/home/hooks/useBanner";
 import { useWishlist } from "../../modules/wishlist";
 import { LoyaltyDisplay } from "../../modules/loyalty";
 import {
@@ -59,6 +60,7 @@ export function SiteHeader() {
   const { count: wishlistCount } = useWishlist();
   const { unreadCount } = useNotifications();
   const { code: currencyCode, set: setCurrency } = useCurrency();
+  const { logo: dynamicLogoUrl } = useLogo();
 
   const dark = resolvedTheme === "dark";
 
@@ -67,7 +69,6 @@ export function SiteHeader() {
   const onProducts = pathname === "/products" && !searchParams.get("category");
   const activeCategory =
     pathname === "/products" ? searchParams.get("category") : null;
-  const onNews = pathname.startsWith("/news");
   const onFAQ = pathname === "/faq";
 
   const getItemClass = (active: boolean) =>
@@ -103,13 +104,6 @@ export function SiteHeader() {
         );
       })}
       <Separator orientation="vertical" className="h-6 mx-1" />
-      <Link
-        to="/news"
-        aria-current={onNews ? "page" : undefined}
-        className={getItemClass(onNews)}
-      >
-        News
-      </Link>
       <Link
         to="/faq"
         aria-current={onFAQ ? "page" : undefined}
@@ -177,16 +171,14 @@ export function SiteHeader() {
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="shrink-0 flex items-center gap-2">
-            <img
-              src="/logo.svg"
-              alt="Nadrical"
-              className="h-7 w-auto dark:hidden"
-            />
-            <img
-              src="/logo-dark.svg"
-              alt="Nadrical"
-              className="hidden h-7 w-auto dark:block"
-            />
+            {dynamicLogoUrl ? (
+              <img src={dynamicLogoUrl} alt="Nadrical" className="h-7 w-auto object-contain" />
+            ) : (
+              <>
+                <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
+                <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
+              </>
+            )}
           </Link>
 
           <nav
@@ -321,16 +313,14 @@ export function SiteHeader() {
               <SheetContent side="right" className="flex flex-col w-[85vw] max-w-sm p-0">
                 <div className="p-5 border-b">
                   <SheetTitle className="font-display text-xl font-bold tracking-tight">
-                    <img
-                      src="/logo.svg"
-                      alt="Nadrical"
-                      className="h-6 w-auto dark:hidden"
-                    />
-                    <img
-                      src="/logo-dark.svg"
-                      alt="Nadrical"
-                      className="hidden h-6 w-auto dark:block"
-                    />
+                    {dynamicLogoUrl ? (
+                      <img src={dynamicLogoUrl} alt="Nadrical" className="h-6 w-auto object-contain" />
+                    ) : (
+                      <>
+                        <img src="/logo.svg" alt="Nadrical" className="h-6 w-auto dark:hidden" />
+                        <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-6 w-auto dark:block" />
+                      </>
+                    )}
                   </SheetTitle>
                   <div className="mt-4">
                     <Button
@@ -435,18 +425,8 @@ export function SiteHeader() {
                          </Link>
                        );
                      })}
-                     <Link
-                       to="/news"
-                       onClick={() => setMenuOpen(false)}
-                       className={cn(
-                         "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                         onNews ? "bg-primary text-primary-foreground font-bold" : "hover:bg-accent text-foreground",
-                       )}
-                     >
-                       News
-                     </Link>
-                     <Link
-                       to="/faq"
+                      <Link
+                        to="/faq"
                        onClick={() => setMenuOpen(false)}
                        className={cn(
                          "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",

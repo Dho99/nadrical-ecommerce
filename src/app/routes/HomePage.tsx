@@ -7,7 +7,6 @@ import {
     useProducts,
 } from "../../modules/products";
 import { calculateProductRecommendationScore } from "../../modules/products/services/product.service";
-import { PromoDialog } from "../../modules/promo";
 import { SectionHead } from "../../shared/components/ui";
 
 export function HomePage() {
@@ -26,7 +25,6 @@ export function HomePage() {
 
     return (
         <>
-            <PromoDialog />
             <HomeBanner />
 
             <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8 py-10">

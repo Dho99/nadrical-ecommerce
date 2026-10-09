@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService, type UpdateProfileInput } from "../services/auth.service";
-import { setAuthToken } from "../../../shared/lib/api";
+import { api, setAuthToken } from "../../../shared/lib/api";
 import type { AuthSession } from "../types/auth.type";
 
 interface AuthStore {
@@ -22,14 +22,11 @@ export const useAuthStore = create<AuthStore>()(
                 const session = await authService.login(email, password);
                 setAuthToken(session.token);
                 set({ session });
+                void api.get("/auth/profile").catch(() => {});
             },
 
             register: async (name, email, password) => {
-                const session = await authService.register(
-                    name,
-                    email,
-                    password,
-                );
+                const session = await authService.register(name, email, password);
                 setAuthToken(session.token);
                 set({ session });
             },

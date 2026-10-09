@@ -18,26 +18,26 @@ export function setWsUrl(url: string): void {
 function resolveWsUrl(): string {
   if (_overrideUrl) return _overrideUrl
 
-  if (import.meta.env.VITE_WEBSOCKET_URL) {
-    return import.meta.env.VITE_WEBSOCKET_URL
-  }
+  const wsExplicit = String(import.meta.env.VITE_WEBSOCKET_URL ?? '').trim()
+  if (wsExplicit) return wsExplicit
 
-  const host = import.meta.env.VITE_WS_HOST
-  const port = import.meta.env.VITE_WS_PORT
-  if (host && port) {
-    const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${host}:${port}/ws`
-  }
-
-  const apiBase = import.meta.env.VITE_API_BASE_URL
-  if (apiBase) {
+  const apiBaseRaw = String(import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (apiBaseRaw) {
     try {
-      const url = new URL(apiBase, typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8080')
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8080'
+      const url = new URL(apiBaseRaw, origin)
       const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
       return `${wsProtocol}//${url.host}/ws`
     } catch {
       // ignore
     }
+  }
+
+  const host = String(import.meta.env.VITE_WS_HOST ?? '').trim()
+  const port = String(import.meta.env.VITE_WS_PORT ?? '').trim()
+  if (host && port) {
+    const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${protocol}//${host}:${port}/ws`
   }
 
   if (typeof window !== 'undefined') {

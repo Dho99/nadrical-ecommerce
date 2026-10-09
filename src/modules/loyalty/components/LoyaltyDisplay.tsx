@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, Badge } from '../../../shared
 import { useLoyalty } from '../hooks/useLoyalty'
 
 export function LoyaltyDisplay() {
-  const { account, loading } = useLoyalty()
+  const { account, loading, error } = useLoyalty()
 
+  if (error) {
+    return <p className="text-xs text-destructive">Gagal memuat loyalty: {error}</p>
+  }
   if (loading || !account) return null
 
   const tierColors: Record<string, string> = {

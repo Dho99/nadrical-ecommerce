@@ -165,6 +165,16 @@ function hasDiscount(p: Product): boolean {
   return false
 }
 
+export interface ProductFilterOptions {
+  categories: { uuid: string; name: string; slug: string; product_count: number }[]
+  price_range: { min_price: number; max_price: number; currency: string }
+  ratings: { rating: number; label: string; count: number }[]
+  specifications: { name: string; values: { value: string; count: number }[] }[]
+  variants: { name: string; count: number }[]
+  summary: { total_products: number; in_stock_count: number; on_sale_count: number; featured_count: number }
+  sort_options: { label: string; value: string }[]
+}
+
 function buildParams(filters: ProductFilters, page?: number, limit?: number): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {}
   if (limit !== undefined) params.limit = limit
@@ -531,6 +541,20 @@ export const productService = {
 
   async deleteProduct(id: string): Promise<void> {
     await api.delete(`/ecommerce/products/${id}`)
+  },
+
+  async getFilterOptions(filters: Pick<ProductFilters, 'query' | 'category_id'> = {}): Promise<ProductFilterOptions> {
+    const params: Record<string, string> = {}
+    if (filters.query?.trim()) params.search = filters.query.trim()
+    if (filters.category_id && filters.category_id !== 'all') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.category_id)
+      if (isUuid) params.category_uuid = filters.category_id
+      else params.category = filters.category_id
+    }
+    const res = await api.get<StandardApiResponse<ProductFilterOptions>>('/ecommerce/products/filters', { params })
+    const data = unwrapData<ProductFilterOptions>(res.data) ?? res.data.data
+    if (!data) throw new Error(res.data.message || 'Failed to load filter options')
+    return data
   },
 
   async resetCatalog(): Promise<void> {
