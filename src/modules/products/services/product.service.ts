@@ -543,15 +543,15 @@ export const productService = {
     await api.delete(`/ecommerce/products/${id}`)
   },
 
-  async getFilterOptions(filters: Pick<ProductFilters, 'query' | 'category_id'> = {}): Promise<ProductFilterOptions> {
+  async getFilterOptions(filters: Pick<ProductFilters, 'query' | 'category_id'> = {}, signal?: AbortSignal): Promise<ProductFilterOptions> {
     const params: Record<string, string> = {}
     if (filters.query?.trim()) params.search = filters.query.trim()
     if (filters.category_id && filters.category_id !== 'all') {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.category_id)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.category_id)
       if (isUuid) params.category_uuid = filters.category_id
       else params.category = filters.category_id
     }
-    const res = await api.get<StandardApiResponse<ProductFilterOptions>>('/ecommerce/products/filters', { params })
+    const res = await api.get<StandardApiResponse<ProductFilterOptions>>('/ecommerce/products/filters', { params, signal })
     const data = unwrapData<ProductFilterOptions>(res.data) ?? res.data.data
     if (!data) throw new Error(res.data.message || 'Failed to load filter options')
     return data

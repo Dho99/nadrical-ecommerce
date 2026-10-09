@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ArrowRight, LoaderCircle, Sparkles } from 'lucide-react'
 import { ProductCard, ProductFilter, ProductGrid, useInfiniteProducts } from '../../modules/products'
 import { productService } from '../../modules/products/services/product.service'
+import { useProductFilters } from '../../modules/products/hooks/useProductFilters'
 import type { Product } from '../../modules/products/types/product.type'
 import { parseProductFilters, toProductParams } from '../../modules/products/utils/filters'
 import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll'
@@ -13,6 +14,10 @@ export function ProductsPage() {
   const filters = useMemo(() => parseProductFilters(searchParams), [searchParams])
   const { items, total, status, error, loadingMore, hasMore, loadMore, refetch } =
     useInfiniteProducts(filters)
+  const { data: filterOptions, loading: filtersLoading } = useProductFilters({
+    query: filters.query,
+    category_id: filters.category_id,
+  })
 
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
 
@@ -59,7 +64,7 @@ export function ProductsPage() {
         </h1>
       </header>
 
-      <ProductFilter filters={filters} onChange={handleChange} total={total} products={items} />
+      <ProductFilter filters={filters} onChange={handleChange} total={total} products={items} filterOptions={filterOptions} filtersLoading={filtersLoading} />
 
       <div className="mt-6">
         <ProductGrid

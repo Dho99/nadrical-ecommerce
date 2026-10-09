@@ -16,6 +16,7 @@ import {
 } from '../../../shared/components/ui'
 import { CATEGORIES, SORT_OPTIONS } from '../constants/product.constants'
 import type { Product, ProductFilters } from '../types/product.type'
+import type { ProductFilterOptions } from '../services/product.service'
 import { useCurrency } from '../../currency'
 import { cn } from '../../../shared/utils/cn'
 
@@ -24,6 +25,8 @@ interface ProductFilterProps {
   onChange: (patch: Partial<ProductFilters>) => void
   total: number
   products: Product[]
+  filterOptions?: ProductFilterOptions | null
+  filtersLoading?: boolean
 }
 
 function getFilteredSpecOptions(products: Product[]) {
@@ -51,12 +54,21 @@ function getFilteredSpecOptions(products: Product[]) {
   return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set).slice(0, 6) }))
 }
 
-export function ProductFilter({ filters, onChange, total, products }: ProductFilterProps) {
+export function ProductFilter({ filters, onChange, total, products, filterOptions, filtersLoading }: ProductFilterProps) {
   const [query, setQuery] = useState(filters.query ?? '')
   const debouncedQuery = useDebounce(query, 300)
   const currentQuery = filters.query ?? ''
   const [specsOpen, setSpecsOpen] = useState(false)
-  const specOptions = useMemo(() => getFilteredSpecOptions(products), [products])
+  const clientSpecOptions = useMemo(() => getFilteredSpecOptions(products), [products])
+  const specOptions = useMemo(() => {
+    if (filterOptions?.specifications?.length) {
+      return filterOptions.specifications.map((s) => ({ key: s.name, values: s.values.map((v) => v.value).slice(0, 6) }))
+    }
+    return clientSpecOptions
+  }, [filterOptions, clientSpecOptions])
+  const variantOptions = filterOptions?.variants ?? []
+  const ratingOptions = filterOptions?.ratings ?? []
+  const categoriesFromApi = filterOptions?.categories
   const { code: currencyCode } = useCurrency()
   const priceStep = currencyCode === 'IDR' ? 1000 : 1
   const [collapsed, setCollapsed] = useState(true)
@@ -242,15 +254,62 @@ export function ProductFilter({ filters, onChange, total, products }: ProductFil
           >
             <TabsList className="flex w-fit max-w-full flex-wrap justify-center overflow-x-auto overflow-y-hidden scrollbar-none">
               <TabsTrigger value="all" className="min-h-10">
-                All
+                All{filtersLoading ? '' : categoriesFromApi ? ` (${filterOptions?.summary.total_products ?? total})` : ''}
               </TabsTrigger>
-              {CATEGORIES.map((cat) => (
-                <TabsTrigger key={cat.id} value={cat.id} className="min-h-10">
-                  {cat.label}
-                </TabsTrigger>
-              ))}
+              {(categoriesFromApi ?? CATEGORIES).map((cat) => {
+                const apiCat = categoriesFromApi?.find((c) => c.slug === (cat as unknown as { slug?: string }).slug || c.name === (cat as unknown as { name?: string }).name || (cat as { id: string }).id === c.slug)
+                const count = apiCat?.product_count
+                const label = (cat as { label?: string; name?: string }).label ?? (cat as { name: string }).name
+                const id = (cat as { id: string }).id ?? (cat as { slug: string }).slug
+                return (
+                  <TabsTrigger key={id} value={id} className="min-h-10">
+                    {label}
+                    {typeof count === 'number' ? ` (${count})` : ''}
+                  </TabsTrigger>
+                )
+              })}
             </TabsList>
           </Tabs>
+          {filtersLoading && !filterOptions ? (
+            <div className="h-6 w-full animate-pulse rounded bg-muted" aria-hidden="true" />
+          ) : filterOptions ? (
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>
+                Price: {filterOptions.price_range.currency} {filterOptions.price_range.min_price.toLocaleString()} – {filterOptions.price_range.max_price.toLocaleString()}
+              </span>
+              <span>·</span>
+              <span>
+                {filterOptions.summary.total_products} total · {filterOptions.summary.in_stock_count} in stock · {filterOptions.summary.on_sale_count} on sale
+              </span>
+              {variantOptions.length > 0 && <span>· {variantOptions.length} variant types</span>}
+            </div>
+          ) : null}
+
+          {variantOptions.length > 0 && (
+            <div className="border-t pt-4">
+              <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Variants</p>
+              <div className="flex flex-wrap gap-2">
+                {variantOptions.slice(0, 8).map((v) => (
+                  <span key={v.name} className="rounded-full border bg-muted px-2.5 py-1 text-xs">
+                    {v.name} ({v.count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {ratingOptions.length > 0 && (
+            <div className="border-t pt-4">
+              <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Ratings</p>
+              <div className="flex flex-wrap gap-2">
+                {ratingOptions.map((r) => (
+                  <span key={r.rating} className="rounded-full border bg-muted px-2.5 py-1 text-xs">
+                    {r.label} ({r.count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="border-t pt-4">
             <button
