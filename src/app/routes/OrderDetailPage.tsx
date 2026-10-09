@@ -7,6 +7,7 @@ import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
 import { PRODUCT_CATALOG } from '../../modules/products/services/mock-data'
 import { ReviewFormDialog, userReviewStorage } from '../../modules/products'
+import { websocketService } from '../../shared/lib/websocket'
 import {
   InvoiceButton,
   ShipmentAccordion,
@@ -71,6 +72,27 @@ export function OrderDetailPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial order load
     void load()
   }, [load])
+
+  useEffect(() => {
+    const handleUpdate = (event: unknown) => {
+      const payload = (event as { payload?: { order_id?: string; order_number?: string } })?.payload || (event as { order_id?: string; order_number?: string })
+      if (!payload?.order_id && !payload?.order_number) {
+        void load()
+        return
+      }
+      if (payload.order_id === id || payload.order_number === id) {
+        void load()
+      }
+    }
+    const unsub1 = websocketService.on('order_status_updated', handleUpdate)
+    const unsub2 = websocketService.on('order_updated', handleUpdate)
+    const unsub3 = websocketService.on('payment_submitted', handleUpdate)
+    return () => {
+      unsub1()
+      unsub2()
+      unsub3()
+    }
+  }, [id, load])
 
   const normStatus = (order?.status ?? '').toLowerCase()
   const canCancel =
