@@ -301,6 +301,8 @@ export interface DbChatMessage {
     conversation_id: string;
     sender_user_id?: string;
     sender_role?: ChatSenderRole;
+    sender_name?: string;
+    sender_avatar?: string;
     message: string;
     attachments?: DbChatMessageAttachment[];
     is_read?: boolean;

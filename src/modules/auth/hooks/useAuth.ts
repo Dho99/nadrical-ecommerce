@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { authService, type UpdateProfileInput } from "../services/auth.service";
 import { api, setAuthToken } from "../../../shared/lib/api";
 import type { AuthSession } from "../types/auth.type";
+import { chatService } from "../../chat/services/chat.service";
 
 interface AuthStore {
     session: AuthSession | null;
@@ -21,14 +22,31 @@ export const useAuthStore = create<AuthStore>()(
             login: async (email, password) => {
                 const session = await authService.login(email, password);
                 setAuthToken(session.token);
-                set({ session });
                 void api.get("/auth/profile").catch(() => {});
+                try {
+                    chatService.transferGuestHistory({
+                        customer_user_id: session.user.id,
+                        customer_name: session.user.full_name ?? session.user.email,
+                        customer_email: session.user.email,
+                    });
+                } catch (e) {
+                    console.error("Failed to transfer chat history on login:", e);
+                }
             },
 
             register: async (name, email, password) => {
                 const session = await authService.register(name, email, password);
                 setAuthToken(session.token);
                 set({ session });
+                try {
+                    chatService.transferGuestHistory({
+                        customer_user_id: session.user.id,
+                        customer_name: session.user.full_name ?? name,
+                        customer_email: session.user.email,
+                    });
+                } catch (e) {
+                    console.error("Failed to transfer chat history on register:", e);
+                }
             },
 
             googleLogin: async (_name, _email) => {

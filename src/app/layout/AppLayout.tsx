@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router-dom'
 import { SiteHeader } from './SiteHeader'
 import { SiteFooter } from './SiteFooter'
@@ -11,7 +12,13 @@ export function AppLayout() {
   const { user, isAuthed } = useAuth()
   const identity: ChatIdentity = user
     ? { customer_user_id: user.id, customer_name: user.full_name ?? 'Guest', customer_email: user.email }
-    : { customer_user_id: chatService.getGuestId(), customer_name: 'Guest' }
+    : { customer_name: 'Guest' }
+
+  useEffect(() => {
+    if (user?.email) {
+      chatService.transferGuestHistory(identity)
+    }
+  }, [user?.id, user?.email])
 
   return (
     <div className="flex min-h-svh flex-col">

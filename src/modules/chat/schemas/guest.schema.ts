@@ -6,9 +6,15 @@ export const guestProfileSchema = z.object({
   phone: z
     .string()
     .trim()
-    .min(8, 'Nomor HP minimal 8 digit')
-    .max(20, 'Nomor HP terlalu panjang')
-    .regex(/^\+?[0-9\s-]+$/, 'Nomor HP hanya angka, spasi, atau + -'),
+    .transform((val) => val.replace(/[\s-]/g, ''))
+    .pipe(
+      z
+        .string()
+        .regex(
+          /^(\+62|62|0)8[1-9][0-9]{7,11}$/,
+          'Format nomor HP tidak valid (contoh: 08123456789 atau +628123456789)',
+        ),
+    ),
 })
 
 export type GuestProfileInput = z.infer<typeof guestProfileSchema>
