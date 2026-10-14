@@ -184,9 +184,9 @@ export function useChat(identity: ChatIdentity): UseChatResult {
     }
 
     const matchesMyConversation = (
-      targetConvId?: string,
-      targetEmail?: string,
-      targetUserId?: string,
+      targetConvId?: string | null,
+      targetEmail?: string | null,
+      targetUserId?: string | null,
     ) => {
       const currentConv = conversationRef.current
       if (!currentConv) return false

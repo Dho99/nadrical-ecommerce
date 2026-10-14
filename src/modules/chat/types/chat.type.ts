@@ -55,5 +55,7 @@ export interface WSReadReceiptPayload {
   conversation_id: string
   reader_role: 'customer' | 'admin' | 'agent'
   reader_id?: string | null
+  customer_email?: string | null
+  customer_user_id?: string | null
   read_at: string
 }

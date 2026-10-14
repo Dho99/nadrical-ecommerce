@@ -283,11 +283,17 @@ export const chatService = {
   ): { messages: ChatMessage[]; hasMore: boolean } {
     const conv = chatRepository.get(conversationId)
     let all = conv?.messages ? [...conv.messages] : []
-    all.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    all.sort(
+      (a, b) =>
+        (a.created_at ? new Date(a.created_at).getTime() : 0) -
+        (b.created_at ? new Date(b.created_at).getTime() : 0),
+    )
 
     if (before) {
       const beforeMs = new Date(before).getTime()
-      all = all.filter((m) => new Date(m.created_at).getTime() < beforeMs)
+      all = all.filter(
+        (m) => (m.created_at ? new Date(m.created_at).getTime() : 0) < beforeMs,
+      )
     }
 
     const startIndex = Math.max(0, all.length - limit)
