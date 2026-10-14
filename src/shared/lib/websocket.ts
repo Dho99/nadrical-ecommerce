@@ -9,6 +9,43 @@ export interface WSEvent<T = unknown> {
   [key: string]: unknown
 }
 
+export interface WSTypingPayload {
+  type: 'typing'
+  conversation_id: string
+  sender_role: 'customer' | 'admin' | 'agent'
+  sender_name?: string
+  customer_email?: string
+  customer_user_id?: string
+  is_typing: boolean
+}
+
+export interface WSPresencePayload {
+  type: 'presence'
+  role: 'customer' | 'admin' | 'agent'
+  conversation_id?: string
+  user_id?: string | null
+  customer_email?: string
+  customer_user_id?: string
+  user_name?: string
+  status: 'online' | 'offline'
+  timestamp: number
+}
+
+export interface WSPresenceQueryPayload {
+  type: 'presence_query'
+  sender_role: 'customer' | 'admin' | 'agent'
+}
+
+export interface WSReadReceiptPayload {
+  type: 'read_receipt'
+  conversation_id: string
+  reader_role: 'customer' | 'admin' | 'agent'
+  reader_id?: string | null
+  customer_email?: string
+  customer_user_id?: string
+  read_at: string
+}
+
 let _overrideUrl: string | null = null
 
 export function setWsUrl(url: string): void {
@@ -122,6 +159,12 @@ class WebSocketService {
     }
   }
 
+  private presenceAnnouncer: (() => void) | null = null
+
+  public setPresenceAnnouncer(handler: () => void): void {
+    this.presenceAnnouncer = handler
+  }
+
   public connect(): void {
     if (
       this.socket &&
@@ -144,6 +187,11 @@ class WebSocketService {
         this.setStatus('connected')
         this.startHeartbeat()
         this.flushQueue()
+        try {
+          this.presenceAnnouncer?.()
+        } catch (err) {
+          console.error('[WebSocket] Presence announcer error:', err)
+        }
       }
 
       this.socket.onmessage = (event: MessageEvent) => {
@@ -285,6 +333,50 @@ class WebSocketService {
         this.typeListeners.delete(eventType)
       }
     }
+  }
+
+  public onTyping(callback: (payload: WSTypingPayload) => void): () => void {
+    return this.on<WSTypingPayload>('typing', callback)
+  }
+
+  public onPresence(callback: (payload: WSPresencePayload) => void): () => void {
+    return this.on<WSPresencePayload>('presence', callback)
+  }
+
+  public onPresenceQuery(callback: (payload: WSPresenceQueryPayload) => void): () => void {
+    return this.on<WSPresenceQueryPayload>('presence_query', callback)
+  }
+
+  public onReadReceipt(callback: (payload: WSReadReceiptPayload) => void): () => void {
+    return this.on<WSReadReceiptPayload>('read_receipt', callback)
+  }
+
+  public sendReadReceipt(payload: Omit<WSReadReceiptPayload, 'type'>): void {
+    this.send({
+      type: 'read_receipt',
+      ...payload,
+    })
+  }
+
+  public sendTyping(payload: Omit<WSTypingPayload, 'type'>): void {
+    this.send({
+      type: 'typing',
+      ...payload,
+    })
+  }
+
+  public sendPresence(payload: Omit<WSPresencePayload, 'type'>): void {
+    this.send({
+      type: 'presence',
+      ...payload,
+    })
+  }
+
+  public sendPresenceQuery(senderRole: 'customer' | 'admin' | 'agent'): void {
+    this.send({
+      type: 'presence_query',
+      sender_role: senderRole,
+    })
   }
 
   public send(payload: unknown): boolean {

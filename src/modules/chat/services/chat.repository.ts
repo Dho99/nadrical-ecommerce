@@ -69,7 +69,8 @@ export const chatRepository = {
     return conversation
   },
 
-  findByCustomer(customer_user_id: string): ChatConversation | null {
+  findByCustomer(customer_user_id?: string): ChatConversation | null {
+    if (!customer_user_id) return null
     return this.list().find((c) => c.customer_user_id === customer_user_id) ?? null
   },
 
@@ -103,15 +104,37 @@ export const chatRepository = {
   },
 
   ensureConversation(identity: ChatIdentity): ChatConversation {
-    const existing = this.findByCustomer(identity.customer_user_id)
+    const normalizedEmail = identity.customer_email?.trim().toLowerCase()
+    const normalizedPhone = identity.customer_phone?.trim()
+
+    // 1. Match by customer_user_id
+    let existing = this.findByCustomer(identity.customer_user_id)
+
+    // 2. If not found by customer_user_id, match by email or phone
+    if (!existing && (normalizedEmail || normalizedPhone)) {
+      existing =
+        this.list().find((c) => {
+          const emailMatch =
+            normalizedEmail && c.customer_email?.trim().toLowerCase() === normalizedEmail
+          const phoneMatch =
+            normalizedPhone && c.customer_phone?.trim() === normalizedPhone
+          return emailMatch || phoneMatch
+        }) ?? null
+    }
+
     if (existing) {
+      const needsUpgrade =
+        identity.customer_user_id && existing.customer_user_id !== identity.customer_user_id
       const needsUpdate =
+        needsUpgrade ||
         (identity.customer_name && identity.customer_name !== existing.customer_name) ||
         (identity.customer_email && identity.customer_email !== existing.customer_email) ||
         (identity.customer_phone && identity.customer_phone !== existing.customer_phone)
+
       if (needsUpdate) {
         return this.upsert({
           ...existing,
+          customer_user_id: identity.customer_user_id || existing.customer_user_id,
           customer_name: identity.customer_name || existing.customer_name,
           customer_email: identity.customer_email ?? existing.customer_email,
           customer_phone: identity.customer_phone ?? existing.customer_phone,
@@ -119,10 +142,22 @@ export const chatRepository = {
       }
       return existing
     }
+
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
     const now = new Date().toISOString()
     return this.upsert({
-      id: `conv-${Math.random().toString(36).slice(2, 10)}`,
-      customer_user_id: identity.customer_user_id,
+      id: generateUUID(),
+      customer_user_id: identity.customer_user_id || undefined,
       customer_name: identity.customer_name,
       customer_email: identity.customer_email,
       customer_phone: identity.customer_phone,
@@ -135,13 +170,99 @@ export const chatRepository = {
     })
   },
 
+  syncConversationId(oldId: string, newId: string): void {
+    if (!oldId || !newId || oldId === newId) return
+    const db = loadDb()
+    const existingNewIndex = db.conversations.findIndex((c) => c.id === newId)
+    const oldIndex = db.conversations.findIndex((c) => c.id === oldId)
+    if (oldIndex !== -1) {
+      if (existingNewIndex !== -1) {
+        db.conversations.splice(oldIndex, 1)
+      } else {
+        db.conversations[oldIndex].id = newId
+      }
+    }
+    db.messages = db.messages.map((m) =>
+      m.conversation_id === oldId ? { ...m, conversation_id: newId } : m,
+    )
+    saveDb(db.conversations, db.messages)
+  },
+
   markRead(conversation_id: string, by: 'customer' | 'agent'): ChatConversation | null {
     const conversation = this.get(conversation_id)
     if (!conversation) return null
+    const now = new Date().toISOString()
     const patch =
       by === 'customer'
-        ? { customer_read_at: new Date().toISOString() }
-        : { agent_read_at: new Date().toISOString() }
-    return this.upsert({ ...conversation, ...patch })
+        ? { customer_read_at: now }
+        : { agent_read_at: now }
+
+    const nextMessages = conversation.messages.map((m) => {
+      const isOpposite =
+        by === 'customer'
+          ? m.sender_role === 'agent' || m.sender_role === 'admin' || m.sender_role === 'bot'
+          : m.sender_role === 'customer'
+      if (isOpposite && !m.is_read) {
+        return { ...m, is_read: true }
+      }
+      return m
+    })
+
+    return this.upsert({ ...conversation, ...patch, messages: nextMessages })
+  },
+
+  handleIncomingReadReceipt(
+    conversation_id: string,
+    reader_role: 'customer' | 'admin' | 'agent',
+  ): ChatConversation | null {
+    const conversation = this.get(conversation_id)
+    if (!conversation) return null
+
+    const nextMessages = conversation.messages.map((m) => {
+      const isOpposite =
+        reader_role === 'admin' || reader_role === 'agent'
+          ? m.sender_role === 'customer'
+          : m.sender_role === 'agent' || m.sender_role === 'admin'
+      if (isOpposite && !m.is_read) {
+        return { ...m, is_read: true }
+      }
+      return m
+    })
+
+    return this.upsert({ ...conversation, messages: nextMessages })
+  },
+
+  transferGuestHistory(identity: ChatIdentity): ChatConversation | null {
+    const normalizedEmail = identity.customer_email?.trim().toLowerCase()
+    const normalizedPhone = identity.customer_phone?.trim()
+    if (!normalizedEmail && !normalizedPhone) return null
+
+    const conversations = this.list()
+    const targetConv = conversations.find((c) => {
+      if (c.customer_user_id === identity.customer_user_id) return false
+      const emailMatch =
+        normalizedEmail && c.customer_email?.trim().toLowerCase() === normalizedEmail
+      const phoneMatch =
+        normalizedPhone && c.customer_phone?.trim() === normalizedPhone
+      return emailMatch || phoneMatch
+    })
+
+    if (!targetConv) return null
+
+    const updated: ChatConversation = {
+      ...targetConv,
+      customer_user_id: identity.customer_user_id,
+      customer_name: identity.customer_name || targetConv.customer_name,
+      customer_email: identity.customer_email ?? targetConv.customer_email,
+      customer_phone: identity.customer_phone ?? targetConv.customer_phone,
+      messages: targetConv.messages.map((m) =>
+        m.sender_role === 'customer'
+          ? { ...m, sender_user_id: identity.customer_user_id }
+          : m,
+      ),
+    }
+
+    this.upsert(updated)
+    return updated
   },
 }

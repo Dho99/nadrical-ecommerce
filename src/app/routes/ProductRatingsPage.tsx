@@ -72,6 +72,7 @@ export function ProductRatingsPage() {
         <EmptyState
           icon={<PackageX className="size-10" />}
           title="Product not found"
+          description="The product you are looking for does not exist or has been removed."
           action={
             <Button variant="outline" asChild>
               <Link to="/products">Back to catalog</Link>
