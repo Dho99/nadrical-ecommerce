@@ -50,22 +50,26 @@ export function AuthForm({ mode }: AuthFormProps) {
     });
 
     const onSubmit = form.handleSubmit(async (values) => {
+        if (submitting) return;
         setSubmitting(true);
         setFormError(null);
         try {
-            if (isLogin) {
-                await login(values.email, values.password);
-            } else {
-                await registerUser(values.full_name, values.email, values.password);
-            }
-            toast.success("Successfully logged in");
+            const message = isLogin
+                ? await login(values.email, values.password)
+                : await registerUser(
+                      values.full_name,
+                      values.email,
+                      values.password,
+                  );
+            toast.success(message || "Successfully logged in");
             navigate(redirectTo, { replace: true });
         } catch (err) {
-            setFormError(
+            const msg =
                 err instanceof Error
                     ? err.message
-                    : "Something went wrong. Try again.",
-            );
+                    : "Something went wrong. Try again.";
+            setFormError(msg);
+            toast.error(msg);
         } finally {
             setSubmitting(false);
         }

@@ -119,8 +119,7 @@ export function SiteHeader() {
   const confirmLogout = () => {
     setLogoutConfirmOpen(false);
     setMenuOpen(false);
-    logout();
-    navigate("/login");
+    void logout().finally(() => navigate("/login"));
   };
 
   const handleOpenSearch = () => {

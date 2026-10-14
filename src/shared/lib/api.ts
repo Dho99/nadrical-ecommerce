@@ -5,14 +5,28 @@ import axios, {
 } from "axios";
 import type { ApiError, PaginationMeta } from "../types/api.response";
 
+const RAW_BASE =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
+
+// Strip trailing slashes: prevents `.../api/v1//auth/login` (404/CORS hang).
+const BASE_URL = RAW_BASE.replace(/\/+$/, "");
+
 export const api = axios.create({
-    baseURL:
-        import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1",
+    baseURL: BASE_URL,
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
     },
-    timeout: 10000,
+    // Cookie session is opt-in: enable ONLY when the Go backend actually sets
+    // an HttpOnly session cookie (today it does not — it returns the token in
+    // the JSON body). Sending credentialed cross-site requests without any
+    // cookie to carry only triggers the strictest browser handling (Brave
+    // Shields, third-party-cookie blocking) and can leave the request with no
+    // usable response. Flip via VITE_API_WITH_CREDENTIALS=true when BE ships
+    // Set-Cookie (HttpOnly, Secure, SameSite) + explicit CORS origins.
+    withCredentials:
+        import.meta.env.VITE_API_WITH_CREDENTIALS === "true",
+    timeout: 15000,
 });
 
 export function setAuthToken(token: string | null): void {
@@ -26,7 +40,7 @@ export function setAuthToken(token: string | null): void {
 }
 
 export function getAuthToken(): string | null {
-    return localStorage.getItem("token") || sessionStorage.getItem("token");
+    return localStorage.getItem("token");
 }
 
 export function unwrapData<T>(body: unknown): T | undefined {
@@ -61,6 +75,17 @@ export function parseApiError(error: unknown): ApiError {
         const msg = typeof body.errors === "string" ? body.errors : Array.isArray(body.errors) ? body.errors.join(", ") : JSON.stringify(body.errors);
         return { status, message: msg, errors: body.errors, raw: body };
     }
+    // Transport failure (no response object at all): CORS block, Brave Shields,
+    // offline, or server unreachable — NOT a credential error. Surface it as
+    // such so login UI never reports "wrong password" for a network problem.
+    if (!ax.response) {
+        if (ax.code === "ECONNABORTED" || /timeout/i.test(ax.message ?? "")) {
+            return { status, message: "Backend tidak merespons (timeout). Cek koneksi / CORS / Brave Shields, lalu coba lagi.", raw: error };
+        }
+        if (/network error/i.test(ax.message ?? "")) {
+            return { status, message: "Gagal mencapai backend (network/CORS diblokir browser). Coba browser lain atau cek Console.", raw: error };
+        }
+    }
     if (ax.message) return { status, message: ax.message, raw: error };
     if (error instanceof Error) return { message: error.message, raw: error };
     return { message: "Unexpected error", raw: error };
@@ -72,22 +97,7 @@ export function getErrorMessage(error: unknown, fallback = "Request failed"): st
 
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        let token = getAuthToken();
-        if (!token) {
-            try {
-                const rawAuth = localStorage.getItem("store-auth");
-                if (rawAuth) {
-                    const parsed = JSON.parse(rawAuth) as {
-                        state?: { session?: { token?: string } };
-                        session?: { token?: string };
-                    };
-                    token =
-                        parsed?.state?.session?.token || parsed?.session?.token || null;
-                }
-            } catch {
-                // ignore parse error
-            }
-        }
+        const token = getAuthToken();
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -100,10 +110,17 @@ api.interceptors.response.use(
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem("token");
-            sessionStorage.removeItem("token");
-            localStorage.removeItem("store-auth");
-            delete api.defaults.headers.common.Authorization;
+            // Token rejected/expired: drop it so later calls don't reuse it.
+            setAuthToken(null);
+            // Mark UI logged out without a static import cycle
+            // (api <- auth store <- auth service <- api): lazy dynamic import.
+            void import("../../modules/auth/hooks/useAuth").then((m) => {
+                m.useAuthStore.setState({
+                    user: null,
+                    isAuthenticated: false,
+                    status: "unauthenticated",
+                });
+            });
         }
         return Promise.reject(error);
     },

@@ -1,4 +1,7 @@
-export interface JwtPayload {
+// Google ID-token decoder only (payload is public, verified by Google).
+// Session JWT is HttpOnly and never readable here — never verify auth
+// client-side. Source of truth is GET /auth/profile via cookie.
+export interface GoogleIdPayload {
     akun_uuid?: string;
     username?: string;
     email: string;
@@ -12,26 +15,14 @@ export interface JwtPayload {
     sub?: string;
 }
 
-export function decodeJWT(token: string): JwtPayload | null {
+export function decodeJWT(token: string): GoogleIdPayload | null {
     try {
         const parts = token.split(".");
         if (parts.length !== 3) return null;
         const payload = parts[1];
         const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-        return JSON.parse(decoded) as JwtPayload;
+        return JSON.parse(decoded) as GoogleIdPayload;
     } catch {
         return null;
     }
-}
-
-export function isTokenExpired(token: string): boolean {
-    const payload = decodeJWT(token);
-    if (!payload?.exp) return true;
-    return Date.now() >= payload.exp * 1000;
-}
-
-export function getTokenExpiration(token: string): Date | null {
-    const payload = decodeJWT(token);
-    if (!payload?.exp) return null;
-    return new Date(payload.exp * 1000);
 }

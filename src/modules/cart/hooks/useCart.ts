@@ -33,8 +33,10 @@ export const useCartStore = create<CartStore>()(
       setItems: (items) => set({ items }),
 
       syncFromBackend: async () => {
-        const token = useAuthStore.getState().session?.token
-        if (!token) return
+        // Cookie session: backend decides auth via HttpOnly cookie.
+        // Skip only when UI is explicitly unauthenticated to avoid
+        // pointless 401 noise; never gate on a client-side token.
+        if (!useAuthStore.getState().isAuthenticated) return
         set({ syncing: true })
         try {
           const remote = await cartService.fetchCart()
@@ -163,10 +165,10 @@ export function useCart() {
 
   const syncFromBackend = useCartStore((s) => s.syncFromBackend)
 
-  const session = useAuthStore((s) => s.session)
+  const isAuthed = useAuthStore((s) => s.isAuthenticated);
   useEffect(() => {
-    if (session?.token) syncFromBackend()
-  }, [session?.token, syncFromBackend])
+    if (isAuthed) void syncFromBackend();
+  }, [isAuthed, syncFromBackend])
 
   const add = useCallback((p: ProductBrief, qty?: number) => useCartStore.getState().add(p, qty), [])
   const remove = useCallback((pid: string, vid?: string) => useCartStore.getState().remove(pid, vid), [])

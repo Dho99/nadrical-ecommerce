@@ -1,5 +1,5 @@
-import api, { getErrorMessage, unwrapData } from '../../../shared/lib/api'
-import type { AuthRoleName, AuthSession, AuthUser } from '../types/auth.type'
+import api, { getErrorMessage, setAuthToken, unwrapData } from '../../../shared/lib/api'
+import type { AuthResult, AuthRoleName, AuthUser } from '../types/auth.type'
 
 export interface UpdateProfileInput {
   full_name: string
@@ -28,9 +28,11 @@ interface BackendAkun {
 }
 
 interface BackendAuthData {
+  // Legacy body tokens (transitional). Ignored: session lives in HttpOnly cookie.
   access_token?: string
   token?: string
   akun?: BackendAkun
+  user?: BackendAkun
 }
 
 interface StandardApiResponse<T> {
@@ -65,7 +67,7 @@ export const authService = {
     name: string,
     email: string,
     password: string,
-  ): Promise<AuthSession> {
+  ): Promise<AuthResult> {
     const cleanEmail = email.trim().toLowerCase()
     const cleanName = name.trim()
     const baseUsername =
@@ -82,10 +84,13 @@ export const authService = {
         { email: cleanEmail, username, password, full_name: cleanName },
       )
       const data = unwrapData<BackendAuthData>(res.data) ?? res.data.data
-      if (!data || !data.akun) throw new Error(res.data.message || 'Failed to parse registration response')
-      const token = data.token || data.access_token || ''
-      if (token) localStorage.setItem('token', token)
-      return { user: toAuthUser(data.akun), token }
+      const akun = data?.akun ?? data?.user
+      if (!akun) throw new Error(res.data.message || 'Failed to parse registration response')
+      const token = data?.token || data?.access_token || ''
+      if (token) setAuthToken(token)
+      // Cookie set by backend; follow up with profile to confirm session.
+      const user = toAuthUser(akun)
+      return { user, message: res.data.message || 'Account registered successfully.' }
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Registration failed. Please try again.'), { cause: error })
     }
@@ -94,7 +99,7 @@ export const authService = {
   async login(
     emailOrUsername: string,
     password: string,
-  ): Promise<AuthSession> {
+  ): Promise<AuthResult> {
     const identifier = emailOrUsername.trim()
     try {
       const res = await api.post<StandardApiResponse<BackendAuthData>>(
@@ -102,22 +107,25 @@ export const authService = {
         { identifier, password },
       )
       const data = unwrapData<BackendAuthData>(res.data) ?? res.data.data
-      if (!data || !data.akun) throw new Error(res.data.message || 'Failed to parse login response')
-      const token = data.token || data.access_token || ''
-      if (token) localStorage.setItem('token', token)
-      return { user: toAuthUser(data.akun), token }
+      const akun = data?.akun ?? data?.user
+      if (!akun) throw new Error(res.data.message || 'Failed to parse login response')
+      const token = data?.token || data?.access_token || ''
+      if (token) setAuthToken(token)
+      const user = toAuthUser(akun)
+      return { user, message: res.data.message || 'Login successful. Welcome back!' }
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Incorrect credentials. Please try again.'), { cause: error })
     }
   },
 
-  async googleLogin(_name: string, _email: string): Promise<AuthSession> {
+  async googleLogin(_name: string, _email: string): Promise<AuthResult> {
     void _name
     void _email
     throw new Error('Google login belum tersedia di backend. Gunakan email/username.')
   },
 
   async getProfile(): Promise<AuthUser | null> {
+    // Source of truth: HttpOnly session cookie validated by backend.
     try {
       const res = await api.get<StandardApiResponse<BackendAkun>>('/auth/profile')
       const akun = unwrapData<BackendAkun>(res.data) ?? res.data.data
@@ -125,6 +133,16 @@ export const authService = {
       return null
     } catch {
       return null
+    }
+  },
+
+  async logout(): Promise<void> {
+    // Ask backend to clear the HttpOnly session cookie. Ignore network errors:
+    // UI must always end up logged out locally.
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // no-op
     }
   },
 

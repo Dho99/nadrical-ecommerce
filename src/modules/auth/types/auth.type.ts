@@ -12,7 +12,12 @@ export interface AuthUser {
   role_name: AuthRoleName
 }
 
-export interface AuthSession {
-  user: AuthUser
-  token: string
+export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
+
+// Public, non-sensitive UI profile only. Never holds JWT/session token.
+// Source of truth for auth is the HttpOnly session cookie validated by
+// `GET /auth/profile` on the Go backend.
+export interface AuthResult {
+  user: AuthUser;
+  message: string;
 }
