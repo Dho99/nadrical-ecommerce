@@ -5,6 +5,7 @@ import { checkoutService } from '../services/checkout.service'
 import { checkoutSchema, type CheckoutInput } from '../schemas/checkout.schema'
 import type { OrderConfirmation, OrderPayload, PaymentDetail } from '../types/checkout.type'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
+import { taxService } from '../../tax'
 import { shippingService } from '../services/shipping.service'
 import { paymentService } from '../services/payment.service'
 import { useCheckoutRuntime } from './useCheckoutRuntime'
@@ -111,14 +112,27 @@ export function useCheckout(
     setIsSubmitting(true)
     setError(null)
     try {
-      const subtotal = payloadBase.totals.subtotal
+      const subtotal = Number(payloadBase.totals.subtotal) || 0
       const quote = shippingService.quote(shippingMethod, subtotal)
-      const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
-      const paymentFee = paymentService.fee(paymentKind, subtotal)
-      const taxTotal = subtotal * 0.11
+      const rawDiscount = applied ? discount(subtotal, quote.cost) : 0
+      const voucherDiscount = Math.max(0, Number(rawDiscount) || 0)
+      const paymentFee = Math.max(0, Number(paymentService.fee(paymentKind, subtotal)) || 0)
+
+      let taxTotal = 0
+      try {
+        const activeTaxes = await taxService.getActive()
+        const taxableBase = Math.max(0, subtotal - voucherDiscount)
+        for (const tax of activeTaxes) {
+          const effectiveRate = tax.rate > 1 ? tax.rate / 100 : tax.rate
+          taxTotal += Math.round(taxableBase * effectiveRate)
+        }
+      } catch {
+        taxTotal = 0
+      }
+
       const grandTotal = Math.max(
         0,
-        subtotal - voucherDiscount + quote.cost + paymentFee + taxTotal,
+        subtotal - voucherDiscount + taxTotal + quote.cost + paymentFee,
       )
 
       const payment: PaymentDetail = {
@@ -154,6 +168,7 @@ export function useCheckout(
           subtotal,
           shipping_total: quote.cost,
           discount: voucherDiscount,
+          tax_total: taxTotal,
           payment_fee: paymentFee,
           voucher_code: applied?.code,
           grand_total: grandTotal,

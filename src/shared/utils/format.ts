@@ -2,13 +2,14 @@ import { useCurrencyStore } from '../../modules/currency/hooks/useCurrency'
 import { CURRENCIES } from '../../modules/currency/constants/currency.constants'
 
 export function formatPrice(value: number): string {
+  const safeValue = typeof value === 'number' && !isNaN(value) && isFinite(value) ? value : 0
   const code = useCurrencyStore.getState().code
   const config = CURRENCIES[code]
-  const isAlreadyIdr = Math.abs(value) >= 5000
+  const isAlreadyIdr = Math.abs(safeValue) >= 5000
   const converted =
     code === 'IDR'
-      ? (isAlreadyIdr ? value : value * config.rate)
-      : (isAlreadyIdr ? value / 15800 : value)
+      ? (isAlreadyIdr ? safeValue : safeValue * config.rate)
+      : (isAlreadyIdr ? safeValue / 15800 : safeValue)
   return new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.code,

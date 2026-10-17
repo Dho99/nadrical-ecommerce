@@ -276,7 +276,7 @@ async function renderAndSave(invoice: InvoiceData): Promise<void> {
   }
   row('Subtotal', m(invoice.summary.subtotal))
   if (invoice.summary.tax && invoice.summary.tax > 0) {
-    row('Tax (PPN 11%)', m(invoice.summary.tax))
+    row('Tax (PPN)', m(invoice.summary.tax))
   }
   row('Shipping', m(invoice.summary.shipping))
   row('Discount', invoice.summary.discount > 0 ? `-${m(invoice.summary.discount)}` : money(invoice.currency, 0))

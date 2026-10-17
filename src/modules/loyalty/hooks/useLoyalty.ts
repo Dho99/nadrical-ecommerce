@@ -13,7 +13,7 @@ export function useLoyalty() {
         setLoading(true)
         const [acc, txs] = await Promise.all([
           loyaltyService.getAccount(),
-          loyaltyService.getTransactions(),
+          loyaltyService.getTransactions().catch(() => []),
         ])
         setAccount(acc)
         setTransactions(txs)

@@ -43,6 +43,7 @@ export interface OrderPayload {
     subtotal: number
     shipping_total: number
     discount: number
+    tax_total?: number
     payment_fee?: number
     grand_total: number
     voucher_code?: string

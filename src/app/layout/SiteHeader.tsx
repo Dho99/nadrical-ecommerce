@@ -238,7 +238,7 @@ export function SiteHeader() {
                     <UserRound className="size-5" />
                   </Button>
                 </PopoverTrigger>
-               <PopoverContent align="end" className="w-56 p-2">
+                <PopoverContent align="end" className="w-72 p-2">
                  {isAuthed ? (
                    <>
                      <p className="truncate px-2 py-1 text-sm font-bold">

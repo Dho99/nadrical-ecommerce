@@ -37,8 +37,11 @@ export function AuthForm({ mode }: AuthFormProps) {
     const { login, register: registerUser } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const rawFrom = (location.state as { from?: string } | null)?.from;
     const redirectTo =
-        (location.state as { from?: string } | null)?.from ?? "/";
+        rawFrom && rawFrom !== "/login" && rawFrom !== "/register"
+            ? rawFrom
+            : "/";
     const [formError, setFormError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 

@@ -4,7 +4,7 @@ export interface Tax {
   uuid: string
   name: string
   rate: number
-  status: 'active' | 'inactive'
+  status: 'active' | 'inactive' | 'ACTIVE' | 'INACTIVE'
   created_at: string
   updated_at: string
 }
@@ -13,6 +13,10 @@ export const taxService = {
   async list(params?: { status?: string }): Promise<Tax[]> {
     const res = await api.get<{ success: boolean; message: string; data?: Tax[] }>('/ecommerce/taxes', { params })
     return unwrapData<Tax[]>(res.data as unknown as { success: boolean; message: string; data?: Tax[] }) ?? res.data.data ?? []
+  },
+
+  async getActive(): Promise<Tax[]> {
+    return this.list({ status: 'active' })
   },
 
   async getById(id: string): Promise<Tax | null> {

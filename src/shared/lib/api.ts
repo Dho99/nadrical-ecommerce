@@ -6,7 +6,7 @@ import axios, {
 import type { ApiError, PaginationMeta } from "../types/api.response";
 
 const RAW_BASE =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
+    import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8080/api/v1";
 
 // Strip trailing slashes: prevents `.../api/v1//auth/login` (404/CORS hang).
 const BASE_URL = RAW_BASE.replace(/\/+$/, "");

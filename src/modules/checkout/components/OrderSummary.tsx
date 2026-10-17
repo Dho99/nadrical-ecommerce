@@ -4,8 +4,7 @@ import { Card, Separator } from '../../../shared/components/ui'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
 import { VoucherField } from '../../voucher/components/VoucherField'
 import { shippingService } from '../services/shipping.service'
-import { paymentService } from '../services/payment.service'
-import { useCheckoutRuntime } from '../hooks/useCheckoutRuntime'
+import { useCheckoutCalculation } from '../hooks/useCheckoutCalculation'
 import type { CartItem } from '../../cart/types/cart.type'
 import { CheckoutProductItem } from './CheckoutProductItem'
 
@@ -14,14 +13,16 @@ interface OrderSummaryProps {
 }
 
 export function OrderSummary({ items }: OrderSummaryProps) {
-  const subtotal = items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
-  const { applied, discount } = useVoucher()
-  const shippingMethod = useCheckoutRuntime((s) => s.shippingMethod)
-  const paymentKind = useCheckoutRuntime((s) => s.paymentKind)
-  const quote = shippingService.quote(shippingMethod, subtotal)
-  const voucherDiscount = applied ? discount(subtotal, quote.cost) : 0
-  const paymentFee = paymentService.fee(paymentKind, subtotal)
-  const grandTotal = Math.max(0, subtotal - voucherDiscount + quote.cost + paymentFee)
+  const { applied } = useVoucher()
+  const {
+    subtotal,
+    shippingTotal,
+    paymentFee,
+    voucherDiscount,
+    taxes,
+    grandTotal,
+    shippingMethod,
+  } = useCheckoutCalculation({ items })
   const etaDays = shippingService.etaDays(shippingMethod)
   const method = shippingService.getMethod(shippingMethod)
 
@@ -29,7 +30,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
     // eslint-disable-next-line react-hooks/purity -- delivery estimate uses current time
     Date.now() + etaDays * 86400000,
   )
-  const loyaltyPoints = Math.floor(grandTotal / 10)
+  const loyaltyPoints = Math.max(0, Math.floor(grandTotal / 10)) || 0
 
   return (
     <Card className="h-fit p-5 sm:p-6">
@@ -44,7 +45,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
       </ul>
 
       <div className="mt-4">
-        <VoucherField subtotal={subtotal} shipping={quote.cost} />
+        <VoucherField subtotal={subtotal} shipping={shippingTotal} />
       </div>
 
       <Separator className="my-3" />
@@ -56,7 +57,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
         </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Shipping · {method.label}</dt>
-          <dd>{quote.cost === 0 ? 'FREE' : formatPrice(quote.cost)}</dd>
+          <dd>{shippingTotal === 0 ? 'FREE' : formatPrice(shippingTotal)}</dd>
         </div>
         {paymentFee > 0 && (
           <div className="flex justify-between">
@@ -70,6 +71,17 @@ export function OrderSummary({ items }: OrderSummaryProps) {
             <dd>-{formatPrice(voucherDiscount)}</dd>
           </div>
         )}
+        {taxes.map((t) => {
+          const ratePercent = Math.round(t.rate * 10000) / 100
+          return (
+            <div key={t.uuid} className="flex justify-between">
+              <dt className="text-muted-foreground">
+                {t.name} ({ratePercent}%)
+              </dt>
+              <dd>{formatPrice(t.amount)}</dd>
+            </div>
+          )
+        })}
         <div className="flex items-center justify-between border-t pt-2">
           <dt className="font-semibold">Total</dt>
           <dd className="font-display text-lg font-bold tracking-tight">

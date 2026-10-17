@@ -4,6 +4,7 @@ import { SEED_ANNOUNCEMENTS } from '../constants/notification.constants'
 import type { AppNotification } from '../types/notification.type'
 import { notificationRepository } from './notification.repository'
 import { websocketService } from '../../../shared/lib/websocket'
+import { announcementService } from '../../announcements/services/announcement.service'
 
 function now(): string {
   return new Date().toISOString()
@@ -28,6 +29,27 @@ export const notificationService = {
   async syncNotifications(email: string): Promise<AppNotification[]> {
     const store = notificationRepository.load()
     let changed = false
+
+    try {
+      const activeAnnouncements = await announcementService.getActive()
+      for (const ann of activeAnnouncements) {
+        const id = `ann-${ann.uuid}`
+        const exists = store.items.some((item) => item.id === id)
+        if (!exists) {
+          store.items.push({
+            id,
+            type: 'announcement',
+            title: ann.title,
+            content: ann.content,
+            created_at: ann.created_at || now(),
+            is_read: false,
+          })
+          changed = true
+        }
+      }
+    } catch {
+      // ignore
+    }
 
     if (store.items.length === 0 && Object.keys(store.lastStatus).length === 0) {
       SEED_ANNOUNCEMENTS.forEach((a, i) => {

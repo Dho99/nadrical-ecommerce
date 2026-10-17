@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router-dom'
 import { SiteHeader } from './SiteHeader'
 import { SiteFooter } from './SiteFooter'
+import { PromoPopupModal } from './PromoPopupModal'
 import { ChatWidget } from '../../modules/chat'
 import { useAuth, useInitializeAuth } from '../../modules/auth/hooks/useAuth'
 import { chatService } from '../../modules/chat/services/chat.service'
@@ -28,6 +29,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <SiteFooter />
+      <PromoPopupModal />
       <ChatWidget identity={identity} isGuest={!isAuthed} />
     </div>
   )

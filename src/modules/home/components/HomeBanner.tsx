@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { unsplashUrl } from '../../../shared/utils/unsplash'
-import { useBannerImages } from '../hooks/useBanner'
+import { useBannerSlides } from '../hooks/useBanner'
 
 interface BannerSlide {
   id: string
@@ -64,17 +64,17 @@ const BANNERS: BannerSlide[] = [
 ]
 
 export function HomeBanner() {
-  const { images: apiImages } = useBannerImages()
+  const { slides: apiSlides } = useBannerSlides()
   const slides: BannerSlide[] =
-    apiImages.length > 0
-      ? apiImages.map((img, i) => ({
+    apiSlides.length > 0
+      ? apiSlides.map((s, i) => ({
           id: `api-banner-${i}`,
-          eyebrow: 'Featured',
-          title: 'Featured Collection',
-          subtitle: '',
-          image: img,
-          href: '/products',
-          cta: 'Shop Now',
+          eyebrow: s.badge || '',
+          title: s.title || '',
+          subtitle: s.subtitle || '',
+          image: s.image,
+          href: s.ctaHref || '/products',
+          cta: s.ctaLabel || '',
         }))
       : BANNERS
   const [active, setActive] = useState(0)
@@ -128,7 +128,7 @@ export function HomeBanner() {
 
   return (
     <section
-      className="relative cursor-grab overflow-hidden bg-black active:cursor-grabbing"
+      className="group relative cursor-grab overflow-hidden bg-black active:cursor-grabbing"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => { setPaused(false); mouseStart.current = null }}
       onMouseDown={onMouseDown}
@@ -139,64 +139,88 @@ export function HomeBanner() {
       aria-label="Featured collections"
     >
       <div className="relative h-[75vh] max-h-[80vh]">
-        {slides.map((slide, idx) => (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-700 ease-out ${
-              idx === active ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            aria-hidden={idx !== active}
-          >
-            <img
-              src={slide.image}
-              alt=""
-              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out ${idx === active ? 'scale-100' : 'scale-105'}`}
-              loading={idx === 0 ? 'eager' : 'lazy'}
-              draggable={false}
-            />
-            {/* bro.do style: subtle dark overlay + left gradient for legibility */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        {slides.map((slide, idx) => {
+          const hasContent = Boolean(
+            slide.eyebrow || slide.title || slide.subtitle || slide.cta
+          );
 
-            <div className="relative mx-auto w-full max-w-7xl flex h-full items-center px-5 sm:px-8">
-              <div className="max-w-xl">
-                <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-white/80 uppercase">
-                  {slide.eyebrow}
-                </p>
-                <h2 className="mt-3 font-display text-4xl leading-[0.9] font-bold tracking-tight whitespace-pre-line text-white sm:text-5xl lg:text-6xl">
-                  {slide.title}
-                </h2>
-                <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
-                  {slide.subtitle}
-                </p>
-                <Link
-                  to={slide.href}
-                  className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold tracking-tight text-black transition hover:bg-white/90"
-                >
-                  {slide.cta}
-                </Link>
-              </div>
+          return (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-700 ease-out ${
+                idx === active ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              aria-hidden={idx !== active}
+            >
+              <img
+                src={slide.image}
+                alt=""
+                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out ${idx === active ? 'scale-100' : 'scale-105'}`}
+                loading={idx === 0 ? 'eager' : 'lazy'}
+                draggable={false}
+              />
+              {/* bro.do style: subtle dark overlay + left gradient for legibility */}
+              {hasContent && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                </>
+              )}
+
+              {hasContent && (
+                <div className="relative mx-auto w-full max-w-7xl flex h-full items-center px-5 sm:px-8">
+                  <div className="max-w-xl">
+                    {slide.eyebrow && (
+                      <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-white/80 uppercase">
+                        {slide.eyebrow}
+                      </p>
+                    )}
+                    {slide.title && (
+                      <h2 className="mt-3 font-display text-4xl leading-[0.9] font-bold tracking-tight whitespace-pre-line text-white sm:text-5xl lg:text-6xl">
+                        {slide.title}
+                      </h2>
+                    )}
+                    {slide.subtitle && (
+                      <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
+                        {slide.subtitle}
+                      </p>
+                    )}
+                    {slide.cta && (
+                      <Link
+                        to={slide.href}
+                        className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold tracking-tight text-black transition hover:bg-white/90"
+                      >
+                        {slide.cta}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* arrows — bro.do uses subtle side chevrons on hover */}
-        <button
-          type="button"
-          aria-label="Previous banner"
-          onClick={prev}
-          className="absolute top-1/2 left-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur transition hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:flex lg:left-6"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Next banner"
-          onClick={next}
-          className="absolute top-1/2 right-3 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur transition hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:flex lg:right-6"
-        >
-          <ChevronRight className="size-5" />
-        </button>
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous banner"
+              onClick={prev}
+              className="absolute top-1/2 left-3 z-20 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur opacity-0 pointer-events-none transition-all duration-300 hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 group-hover:opacity-100 group-hover:pointer-events-auto sm:flex lg:left-6"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next banner"
+              onClick={next}
+              className="absolute top-1/2 right-3 z-20 hidden -translate-y-1/2 rounded-full bg-white/90 p-2 text-black shadow-md ring-1 ring-black/10 backdrop-blur opacity-0 pointer-events-none transition-all duration-300 hover:scale-105 hover:bg-white focus-visible:ring-2 focus-visible:ring-white active:scale-95 group-hover:opacity-100 group-hover:pointer-events-auto sm:flex lg:right-6"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </>
+        )}
 
         {/* dots — bro.do pagination centered bottom */}
         <div className="absolute inset-x-0 bottom-5 flex justify-center gap-2">

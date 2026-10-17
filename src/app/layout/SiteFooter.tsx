@@ -1,13 +1,17 @@
 import { Link } from 'react-router-dom'
-import { Mail } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 import { useState } from 'react'
 import { CATEGORIES } from '../../modules/products/constants/product.constants'
 import { Input, Button } from '../../shared/components/ui'
 import { toast } from '../../shared/lib/alert'
+import { useLogo, useContactInfo, useSiteTagline } from '../../modules/home/hooks/useBanner'
 
 export function SiteFooter() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const { logo: dynamicLogo } = useLogo()
+  const { email: contactEmail, phone: contactPhone } = useContactInfo()
+  const { tagline } = useSiteTagline()
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,11 +39,17 @@ export function SiteFooter() {
     <footer className="mt-auto border-t bg-muted/40">
       <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-12 sm:px-8 md:grid-cols-4">
         <div>
-          <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
-          <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
+          {dynamicLogo ? (
+            <img src={dynamicLogo} alt="Nadrical" className="h-7 w-auto object-contain" />
+          ) : (
+            <>
+              <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
+              <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
+            </>
+          )}
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Nadrical — curated essentials across electronics, apparel, home & outdoors. Designed
-            for everyday living, shipped within 48 hours.
+            {tagline ||
+              'Nadrical — curated essentials across electronics, apparel, home & outdoors. Designed for everyday living, shipped within 48 hours.'}
           </p>
         </div>
         <div>
@@ -75,6 +85,30 @@ export function SiteFooter() {
             <li>Ships within 48 hours</li>
             <li>14-day returns, no questions</li>
             <li>2-year guarantee included</li>
+            {contactEmail && (
+              <li className="pt-1">
+                <a
+                  href={`mailto:${contactEmail}`}
+                  className="flex items-center gap-1.5 transition-colors hover:text-foreground truncate"
+                >
+                  <Mail className="size-3.5 text-primary shrink-0" />
+                  <span className="truncate">{contactEmail}</span>
+                </a>
+              </li>
+            )}
+            {contactPhone && (
+              <li>
+                <a
+                  href={`https://wa.me/${contactPhone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+                >
+                  <Phone className="size-3.5 text-primary shrink-0" />
+                  <span>{contactPhone}</span>
+                </a>
+              </li>
+            )}
             <li className="pt-2">
               <Link to="/cart" className="transition-colors hover:text-foreground">
                 Cart

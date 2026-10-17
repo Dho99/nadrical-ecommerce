@@ -14,12 +14,13 @@ interface CartSummaryProps {
 
 export function CartSummary({ totals, totalQty }: CartSummaryProps) {
   const { applied, discount } = useVoucher()
-  const voucherDiscount = applied ? discount(totals.subtotal, totals.shipping_total) : 0
+  const rawDiscount = applied ? discount(totals.subtotal, totals.shipping_total) : 0
+  const voucherDiscount = Math.max(0, Number(rawDiscount) || 0)
   const displayTotals: CartTotals = {
     ...totals,
     discount: voucherDiscount,
     voucher_code: applied?.code,
-    grand_total: Math.max(0, totals.subtotal - voucherDiscount + totals.shipping_total),
+    grand_total: Math.max(0, Number(totals.subtotal) - voucherDiscount + Number(totals.shipping_total)),
   }
   const toFreeShip = Math.max(0, FREE_SHIPPING_THRESHOLD - totals.subtotal)
 

@@ -31,7 +31,7 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
     fetchSuggestions()
   }, [])
 
-  const discount = applied ? getDiscount(subtotal, shipping) : 0
+  const discount = applied ? Math.max(0, Number(getDiscount(subtotal, shipping)) || 0) : 0
 
   const handleApply = async () => {
     const ok = await apply(code, subtotal)
