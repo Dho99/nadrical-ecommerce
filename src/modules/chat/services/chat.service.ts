@@ -3,6 +3,7 @@ import type { ProductChatContext } from '../../../shared/constants/chat.constant
 import { BOT_REPLIES, BOT_REPLY_DELAY_MS, GUEST_ID_KEY } from '../constants/chat.constants'
 import { chatRepository } from './chat.repository'
 import { websocketService } from '../../../shared/lib/websocket'
+import { api } from '../../../shared/lib/api'
 
 function makeMessage(
   conversation_id: string,
@@ -271,16 +272,11 @@ export const chatService = {
       })
 
       if (identity.customer_user_id && identity.customer_email) {
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-        void fetch(`${apiBase}/ecommerce/chats/transfer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: identity.customer_email,
-            phone: identity.customer_phone || '',
-            customer_user_id: identity.customer_user_id,
-            customer_name: identity.customer_name,
-          }),
+        void api.post('/ecommerce/chats/transfer', {
+          email: identity.customer_email,
+          phone: identity.customer_phone || '',
+          customer_user_id: identity.customer_user_id,
+          customer_name: identity.customer_name,
         }).catch((e) => console.warn('[ChatService] Backend transfer failed:', e))
       }
     }
