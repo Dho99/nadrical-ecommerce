@@ -126,12 +126,22 @@ export const chatService = {
     identity: ChatIdentity,
     replyToId?: string,
   ): Promise<void> {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)) {
-      return
+    let targetId = conversationId
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+      try {
+        const synced = await this.getOrCreate(identity)
+        if (synced && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(synced.id)) {
+          targetId = synced.id
+        } else {
+          return
+        }
+      } catch {
+        return
+      }
     }
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-      await fetch(`${apiBase}/ecommerce/chats/${conversationId}/messages`, {
+      await fetch(`${apiBase}/ecommerce/chats/${targetId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -185,6 +195,7 @@ export const chatService = {
       type: 'chat_message',
       conversation_id: conversation.id,
       customer_email: identity.customer_email || conversation.customer_email,
+      customer_phone: identity.customer_phone || conversation.customer_phone,
       customer_user_id: identity.customer_user_id || conversation.customer_user_id,
       conversation: {
         ...updated,
