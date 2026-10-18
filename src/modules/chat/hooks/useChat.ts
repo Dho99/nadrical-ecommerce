@@ -43,6 +43,7 @@ function isChatMessagePayload(
   message: ChatMessage
   conversation?: Partial<ChatConversation>
   customer_email?: string
+  customer_phone?: string
   customer_user_id?: string
 } {
   return Boolean(
@@ -187,6 +188,7 @@ export function useChat(identity: ChatIdentity): UseChatResult {
       targetConvId?: string | null,
       targetEmail?: string | null,
       targetUserId?: string | null,
+      targetPhone?: string | null,
     ) => {
       const currentConv = conversationRef.current
       if (!currentConv) return false
@@ -197,6 +199,15 @@ export function useChat(identity: ChatIdentity): UseChatResult {
         targetEmail &&
         effectiveEmail &&
         targetEmail.trim().toLowerCase() === effectiveEmail.trim().toLowerCase()
+      ) {
+        return true
+      }
+
+      const effectivePhone = currentConv.customer_phone || identity.customer_phone
+      if (
+        targetPhone &&
+        effectivePhone &&
+        targetPhone.trim() === effectivePhone.trim()
       ) {
         return true
       }
@@ -225,12 +236,16 @@ export function useChat(identity: ChatIdentity): UseChatResult {
         const incomingUserId =
           incomingConv?.customer_user_id ||
           ('customer_user_id' in payload ? (payload.customer_user_id as string) : undefined)
+        const incomingPhone =
+          incomingConv?.customer_phone ||
+          ('customer_phone' in payload ? (payload.customer_phone as string) : undefined)
 
         if (
           matchesMyConversation(
             payload.conversation_id,
             incomingEmail,
             incomingUserId,
+            incomingPhone,
           )
         ) {
           const currentConv = conversationRef.current
