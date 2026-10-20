@@ -128,10 +128,10 @@ export const chatService = {
     replyToId?: string,
   ): Promise<void> {
     let targetId = conversationId
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)) {
       try {
         const synced = await this.getOrCreate(identity)
-        if (synced && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(synced.id)) {
+        if (synced && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(synced.id)) {
           targetId = synced.id
         } else {
           return
@@ -318,7 +318,7 @@ export const chatService = {
     limit = 20,
     before?: string,
   ): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
     if (!isUUID) {
       return this.getLocalMessagesPage(conversationId, limit, before)
     }
