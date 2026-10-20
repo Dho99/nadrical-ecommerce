@@ -249,6 +249,7 @@ export function useSiteTagline() {
 export function useContactInfo() {
   const [email, setEmail] = useState<string | null>(null)
   const [phone, setPhone] = useState<string | null>(null)
+  const [address, setAddress] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [attempt, setAttempt] = useState(0)
 
@@ -270,15 +271,18 @@ export function useContactInfo() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const [e, p] = await Promise.all([
+        const [e, p, a] = await Promise.all([
           bannerService.getContactEmail(),
           bannerService.getContactPhone(),
+          bannerService.getContactAddress(),
         ])
         setEmail(e)
         setPhone(p)
+        setAddress(a)
       } catch {
         setEmail(null)
         setPhone(null)
+        setAddress(null)
       } finally {
         setLoading(false)
       }
@@ -286,11 +290,12 @@ export function useContactInfo() {
     fetch()
   }, [attempt])
 
-  return { email, phone, loading }
+  return { email, phone, address, loading }
 }
 
 export function usePopupBanner() {
   const [popupBanner, setPopupBanner] = useState<string | null>(null)
+  const [isPopupEnabled, setIsPopupEnabled] = useState<boolean>(true)
   const [loading, setLoading] = useState(true)
   const [attempt, setAttempt] = useState(0)
 
@@ -312,10 +317,15 @@ export function usePopupBanner() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const banner = await bannerService.getPopupBanner()
+        const [banner, enabled] = await Promise.all([
+          bannerService.getPopupBanner(),
+          bannerService.isPopupEnabled(),
+        ])
         setPopupBanner(banner)
+        setIsPopupEnabled(enabled)
       } catch {
         setPopupBanner(null)
+        setIsPopupEnabled(false)
       } finally {
         setLoading(false)
       }
@@ -323,5 +333,5 @@ export function usePopupBanner() {
     fetch()
   }, [attempt])
 
-  return { popupBanner, loading }
+  return { popupBanner, isPopupEnabled, loading }
 }

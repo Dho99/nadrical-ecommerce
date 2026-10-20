@@ -4,24 +4,28 @@ import { X, Sparkles } from 'lucide-react'
 import { usePopupBanner } from '../../modules/home/hooks/useBanner'
 
 export function PromoPopupModal() {
-  const { popupBanner } = usePopupBanner()
+  const { popupBanner, isPopupEnabled } = usePopupBanner()
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
-    if (!popupBanner) return
+    if (!popupBanner || !isPopupEnabled) {
+      setIsOpen(false)
+      return undefined
+    }
     const isClosed = sessionStorage.getItem('ecommerce_promo_popup_closed')
     if (!isClosed) {
       const timer = setTimeout(() => setIsOpen(true), 1200)
       return () => clearTimeout(timer)
     }
-  }, [popupBanner])
+    return undefined
+  }, [popupBanner, isPopupEnabled])
 
   const handleClose = () => {
     setIsOpen(false)
     sessionStorage.setItem('ecommerce_promo_popup_closed', 'true')
   }
 
-  if (!isOpen || !popupBanner) return null
+  if (!isOpen || !popupBanner || !isPopupEnabled) return null
 
   return (
     <div

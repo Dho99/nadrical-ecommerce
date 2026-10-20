@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, MapPin } from 'lucide-react'
 import { useState } from 'react'
 import { CATEGORIES } from '../../modules/products/constants/product.constants'
 import { Input, Button } from '../../shared/components/ui'
@@ -10,7 +10,7 @@ export function SiteFooter() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const { logo: dynamicLogo } = useLogo()
-  const { email: contactEmail, phone: contactPhone } = useContactInfo()
+  const { email: contactEmail, phone: contactPhone, address: contactAddress } = useContactInfo()
   const { tagline } = useSiteTagline()
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -85,8 +85,16 @@ export function SiteFooter() {
             <li>Ships within 48 hours</li>
             <li>14-day returns, no questions</li>
             <li>2-year guarantee included</li>
-            {contactEmail && (
+            {contactAddress && (
               <li className="pt-1">
+                <div className="flex items-start gap-1.5 text-muted-foreground">
+                  <MapPin className="size-3.5 text-primary shrink-0 mt-0.5" />
+                  <span className="leading-snug">{contactAddress}</span>
+                </div>
+              </li>
+            )}
+            {contactEmail && (
+              <li className="pt-0.5">
                 <a
                   href={`mailto:${contactEmail}`}
                   className="flex items-center gap-1.5 transition-colors hover:text-foreground truncate"

@@ -255,9 +255,33 @@ export const bannerService = {
     }
   },
 
+  async getContactAddress(): Promise<string | null> {
+    try {
+      const map = await getSettingsMapCached()
+      return map.contact_address || map.address || map.alamat || null
+    } catch {
+      return null
+    }
+  },
+
+  async isPopupEnabled(): Promise<boolean> {
+    try {
+      const map = await getSettingsMapCached()
+      const rawEnabled = map.site_popup_enabled ?? map.popup_enabled ?? 'true'
+      return rawEnabled === 'true' || rawEnabled === '1'
+    } catch {
+      return true
+    }
+  },
+
   async getPopupBanner(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
+      const rawEnabled = map.site_popup_enabled ?? map.popup_enabled ?? 'true'
+      const isEnabled = rawEnabled === 'true' || rawEnabled === '1'
+      if (!isEnabled) {
+        return null
+      }
       const rawPopup = map.site_popup_banner || map.popup_banner || null
       return resolveImageUrl(rawPopup)
     } catch {
