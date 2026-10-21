@@ -4,7 +4,7 @@ import { X, Sparkles } from 'lucide-react'
 import { usePopupBanner } from '../../modules/home/hooks/useBanner'
 
 export function PromoPopupModal() {
-  const { popupBanner, isPopupEnabled } = usePopupBanner()
+  const { popupBanner, popupLink, isPopupEnabled } = usePopupBanner()
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
@@ -27,6 +27,11 @@ export function PromoPopupModal() {
 
   if (!isOpen || !popupBanner || !isPopupEnabled) return null
 
+  const isExternal =
+    popupLink.startsWith('http://') ||
+    popupLink.startsWith('https://') ||
+    popupLink.startsWith('//')
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs transition-opacity duration-300"
@@ -48,14 +53,34 @@ export function PromoPopupModal() {
           <X className="size-4" />
         </button>
 
-        {/* Promo Image */}
-        <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-muted">
-          <img
-            src={popupBanner}
-            alt="Promo Spesial"
-            className="h-full w-full object-cover"
-          />
-        </div>
+        {/* Promo Image (Clickable) */}
+        {isExternal ? (
+          <a
+            href={popupLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleClose}
+            className="block relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-muted cursor-pointer group"
+          >
+            <img
+              src={popupBanner}
+              alt="Promo Spesial"
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-102"
+            />
+          </a>
+        ) : (
+          <Link
+            to={popupLink}
+            onClick={handleClose}
+            className="block relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-muted cursor-pointer group"
+          >
+            <img
+              src={popupBanner}
+              alt="Promo Spesial"
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-102"
+            />
+          </Link>
+        )}
 
         {/* Footer Action */}
         <div className="p-4 sm:p-5 flex items-center justify-between gap-3 bg-card border-t">
@@ -71,13 +96,25 @@ export function PromoPopupModal() {
             >
               Nanti Saja
             </button>
-            <Link
-              to="/products"
-              onClick={handleClose}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-xs transition"
-            >
-              Lihat Produk
-            </Link>
+            {isExternal ? (
+              <a
+                href={popupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleClose}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-xs transition"
+              >
+                Lihat Produk
+              </a>
+            ) : (
+              <Link
+                to={popupLink}
+                onClick={handleClose}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-xs transition"
+              >
+                Lihat Produk
+              </Link>
+            )}
           </div>
         </div>
       </div>

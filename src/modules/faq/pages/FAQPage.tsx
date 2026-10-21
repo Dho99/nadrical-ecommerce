@@ -1,4 +1,6 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../../shared/components/ui'
+import { useMemo } from 'react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Skeleton } from '../../../shared/components/ui'
+import { useFAQ } from '../hooks/useFAQ'
 
 type DummyFAQ = {
   uuid: string
@@ -95,15 +97,48 @@ const DUMMY_FAQS: DummyFAQ[] = [
   },
 ]
 
+function formatCategoryTitle(category: string): string {
+  if (!category) return 'General'
+  const lower = category.toLowerCase()
+  if (lower === 'ecommerce') return 'E-Commerce & Belanja'
+  if (lower === 'general') return 'Umum'
+  if (lower === 'shipping') return 'Pengiriman & Kurir'
+  if (lower === 'payment') return 'Pembayaran'
+  return category
+    .replace(/[_-]/g, ' ')
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 export function FAQPage() {
-  const grouped = DUMMY_FAQS.reduce(
-    (acc, faq) => {
-      if (!acc[faq.category]) acc[faq.category] = []
-      acc[faq.category].push(faq)
-      return acc
-    },
-    {} as Record<string, DummyFAQ[]>,
-  )
+  const { data: remoteFaqs, loading } = useFAQ()
+
+  const grouped = useMemo(() => {
+    // If backend provided FAQs, use them; otherwise fallback to DUMMY_FAQS
+    const sourceList = remoteFaqs && remoteFaqs.length > 0 ? remoteFaqs : DUMMY_FAQS
+
+    const map: Record<string, Array<{ uuid: string; question: string; answer: string; order: number }>> = {}
+    for (const item of sourceList) {
+      const catKey = formatCategoryTitle(item.category || 'General')
+      if (!map[catKey]) {
+        map[catKey] = []
+      }
+      map[catKey].push({
+        uuid: item.uuid,
+        question: item.question,
+        answer: item.answer,
+        order: item.order ?? 0,
+      })
+    }
+
+    // Sort items within each category
+    for (const catKey of Object.keys(map)) {
+      map[catKey].sort((a, b) => a.order - b.order)
+    }
+
+    return map
+  }, [remoteFaqs])
 
   return (
     <div className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8 sm:py-16">
@@ -113,18 +148,29 @@ export function FAQPage() {
           Frequently Asked Questions
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Find quick answers about shipping, returns, payments, and products. Still stuck? Reach us via live chat.
+          Temukan jawaban cepat seputar pemesanan, pembayaran, dan layanan kami. Butuh bantuan lebih lanjut? Hubungi admin via live chat.
         </p>
       </div>
 
-      <div className="grid gap-6 sm:gap-8 md:grid-cols-1 lg:gap-10">
-        {Object.entries(grouped).map(([category, faqs]) => (
-          <section key={category} className="rounded-xl border bg-card p-4 sm:p-6">
-            <h2 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">{category}</h2>
-            <Accordion type="single" collapsible className="space-y-2">
-              {faqs
-                .sort((a, b) => a.order - b.order)
-                .map((faq) => (
+      {loading && (!remoteFaqs || remoteFaqs.length === 0) ? (
+        <div className="space-y-6">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
+              <Skeleton className="h-6 w-40" />
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:gap-8 md:grid-cols-1 lg:gap-10">
+          {Object.entries(grouped).map(([category, faqs]) => (
+            <section key={category} className="rounded-xl border bg-card p-4 sm:p-6 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold sm:mb-4 sm:text-lg">{category}</h2>
+              <Accordion type="single" collapsible className="space-y-2">
+                {faqs.map((faq) => (
                   <AccordionItem key={faq.uuid} value={faq.uuid} className="rounded-lg border px-3 sm:px-4">
                     <AccordionTrigger className="py-3 text-left text-sm font-medium hover:no-underline sm:py-4 sm:text-[15px]">
                       {faq.question}
@@ -134,10 +180,12 @@ export function FAQPage() {
                     </AccordionContent>
                   </AccordionItem>
                 ))}
-            </Accordion>
-          </section>
-        ))}
-      </div>
+              </Accordion>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
+

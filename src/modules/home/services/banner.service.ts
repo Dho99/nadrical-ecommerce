@@ -15,6 +15,11 @@ export interface RichBannerSlide {
   ctaHref?: string
 }
 
+export interface PopupBannerData {
+  image: string
+  link: string
+}
+
 interface BackendPageSetting {
   uuid?: string
   key?: string
@@ -274,7 +279,7 @@ export const bannerService = {
     }
   },
 
-  async getPopupBanner(): Promise<string | null> {
+  async getPopupBannerData(): Promise<PopupBannerData | null> {
     try {
       const map = await getSettingsMapCached()
       const rawEnabled = map.site_popup_enabled ?? map.popup_enabled ?? 'true'
@@ -283,9 +288,37 @@ export const bannerService = {
         return null
       }
       const rawPopup = map.site_popup_banner || map.popup_banner || null
-      return resolveImageUrl(rawPopup)
+      if (!rawPopup) return null
+
+      let image = ''
+      let link = '/products'
+
+      try {
+        const parsed = JSON.parse(rawPopup)
+        if (typeof parsed === 'object' && parsed !== null) {
+          image = typeof parsed.image === 'string' ? parsed.image : typeof parsed.img === 'string' ? parsed.img : ''
+          link = typeof parsed.link === 'string' ? parsed.link : typeof parsed.url === 'string' ? parsed.url : '/products'
+        } else if (typeof parsed === 'string') {
+          image = parsed
+        }
+      } catch {
+        image = rawPopup
+      }
+
+      const resolvedImage = resolveImageUrl(image)
+      if (!resolvedImage) return null
+
+      return {
+        image: resolvedImage,
+        link: sanitizeCtaUrl(link, '/products'),
+      }
     } catch {
       return null
     }
+  },
+
+  async getPopupBanner(): Promise<string | null> {
+    const data = await this.getPopupBannerData()
+    return data ? data.image : null
   },
 }

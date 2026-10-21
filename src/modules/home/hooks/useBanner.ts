@@ -295,6 +295,7 @@ export function useContactInfo() {
 
 export function usePopupBanner() {
   const [popupBanner, setPopupBanner] = useState<string | null>(null)
+  const [popupLink, setPopupLink] = useState<string>('/products')
   const [isPopupEnabled, setIsPopupEnabled] = useState<boolean>(true)
   const [loading, setLoading] = useState(true)
   const [attempt, setAttempt] = useState(0)
@@ -317,14 +318,16 @@ export function usePopupBanner() {
     const fetch = async () => {
       try {
         setLoading(true)
-        const [banner, enabled] = await Promise.all([
-          bannerService.getPopupBanner(),
+        const [bannerData, enabled] = await Promise.all([
+          bannerService.getPopupBannerData(),
           bannerService.isPopupEnabled(),
         ])
-        setPopupBanner(banner)
+        setPopupBanner(bannerData?.image ?? null)
+        setPopupLink(bannerData?.link ?? '/products')
         setIsPopupEnabled(enabled)
       } catch {
         setPopupBanner(null)
+        setPopupLink('/products')
         setIsPopupEnabled(false)
       } finally {
         setLoading(false)
@@ -333,5 +336,5 @@ export function usePopupBanner() {
     fetch()
   }, [attempt])
 
-  return { popupBanner, isPopupEnabled, loading }
+  return { popupBanner, popupLink, isPopupEnabled, loading }
 }
