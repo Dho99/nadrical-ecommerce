@@ -175,6 +175,16 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
     prevMessagesLengthRef.current = messages.length
   }, [messages])
 
+  // Auto-scroll when admin starts typing so indicator is never clipped or overlapped
+  useEffect(() => {
+    if (isAdminTyping && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+    }
+  }, [isAdminTyping])
+
   // Older messages fetch trigger
   const handleLoadMore = useCallback(async () => {
     if (!hasMore || isLoadingMore || isPrependingRef.current) return
@@ -529,7 +539,17 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
               )
             })}
             {isAdminTyping && (
-              <p className="text-xs text-muted-foreground italic">Admin is typing…</p>
+              <div className="flex items-end gap-2 pb-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground">
+                  SA
+                </span>
+                <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-border bg-card px-3.5 py-2 shadow-xs">
+                  <span className="text-xs text-muted-foreground mr-1">Admin sedang mengetik</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
+                </div>
+              </div>
             )}
             {sending && <p className="text-xs text-muted-foreground italic">Sending…</p>}
             <div ref={bottomRef} />

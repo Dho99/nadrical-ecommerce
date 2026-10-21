@@ -126,6 +126,7 @@ export const chatService = {
     messageText: string,
     identity: ChatIdentity,
     replyToId?: string,
+    localMsgId?: string,
   ): Promise<void> {
     let targetId = conversationId
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)) {
@@ -142,7 +143,7 @@ export const chatService = {
     }
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-      await fetch(`${apiBase}/ecommerce/chats/${targetId}/messages`, {
+      const res = await fetch(`${apiBase}/ecommerce/chats/${targetId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,8 +154,17 @@ export const chatService = {
               : null,
           message: messageText,
           reply_to_id: replyToId || undefined,
+          client_temp_id: localMsgId || undefined,
         }),
       })
+
+      if (res.ok) {
+        const json = await res.json().catch(() => null)
+        const serverMsg = json?.data?.message || json?.data
+        if (serverMsg && serverMsg.id && localMsgId) {
+          chatRepository.reconcileMessage(targetId, localMsgId, serverMsg)
+        }
+      }
     } catch (err) {
       console.warn('[ChatService] Failed to persist message to PostgreSQL:', err)
     }
@@ -187,40 +197,22 @@ export const chatService = {
       replyTo ? replyTo.id : null,
       attachments,
     )
+    message.client_temp_id = message.id
     if (message.attachments) {
       for (const a of message.attachments) a.chat_message_id = message.id
     }
     const updated = chatRepository.insertMessage(conversation.id, message)
 
-    websocketService.send({
-      type: 'chat_message',
-      conversation_id: conversation.id,
-      customer_email: identity.customer_email || conversation.customer_email,
-      customer_phone: identity.customer_phone || conversation.customer_phone,
-      customer_user_id: identity.customer_user_id || conversation.customer_user_id,
-      conversation: {
-        ...updated,
-        product_context: productContext,
-      },
-      message,
-    })
-
-    void this.persistMessageRemote(conversation.id, text, identity, replyTo ? replyTo.id : undefined)
+    // Note: Do NOT broadcast raw chat_message over WebSocket from client.
+    // The backend REST API saves the message and broadcasts the single authoritative event.
+    void this.persistMessageRemote(conversation.id, text, identity, replyTo ? replyTo.id : undefined, message.id)
 
     // Only invoke mock bot if WebSocket is NOT connected (offline fallback simulation)
     if (!websocketService.isConnected()) {
       const botReply = pickBotReply(updated)
       setTimeout(() => {
         const botMsg = makeMessage(updated.id, 'bot', botReply)
-        const afterBot = chatRepository.insertMessage(updated.id, botMsg)
-        if (afterBot) {
-          websocketService.send({
-            type: 'chat_message',
-            conversation_id: updated.id,
-            conversation: afterBot,
-            message: botMsg,
-          })
-        }
+        chatRepository.insertMessage(updated.id, botMsg)
       }, BOT_REPLY_DELAY_MS)
     }
 

@@ -95,11 +95,63 @@ export const chatRepository = {
         agent_read_at: fallbackConversation?.agent_read_at ?? now,
       })
     }
-    if (conversation.messages.some((m) => m.id === message.id)) return conversation
+    const existingIndex = conversation.messages.findIndex(
+      (m) =>
+        m.id === message.id ||
+        (message.client_temp_id && (m.id === message.client_temp_id || m.client_temp_id === message.client_temp_id)) ||
+        (m.client_temp_id && m.client_temp_id === message.id) ||
+        (m.sender_role === message.sender_role &&
+          m.message === message.message &&
+          Math.abs(new Date(m.created_at || 0).getTime() - new Date(message.created_at || 0).getTime()) < 30000),
+    )
+
+    if (existingIndex !== -1) {
+      const updatedMessages = [...conversation.messages]
+      updatedMessages[existingIndex] = {
+        ...updatedMessages[existingIndex],
+        ...message,
+        id: message.id,
+        created_at: message.created_at || updatedMessages[existingIndex].created_at,
+      }
+      return this.upsert({
+        ...conversation,
+        messages: updatedMessages,
+        last_activity_at: message.created_at || conversation.last_activity_at,
+      })
+    }
+
     return this.upsert({
       ...conversation,
       messages: [...conversation.messages, message],
       last_activity_at: message.created_at,
+    })
+  },
+
+  reconcileMessage(
+    conversation_id: string,
+    tempId: string,
+    serverMsg: Partial<ChatMessage> & { id: string },
+  ): ChatConversation | null {
+    const conversation = this.get(conversation_id)
+    if (!conversation) return null
+
+    const idx = conversation.messages.findIndex(
+      (m) => m.id === tempId || m.client_temp_id === tempId || m.id === serverMsg.id,
+    )
+    if (idx === -1) return conversation
+
+    const updated = [...conversation.messages]
+    updated[idx] = {
+      ...updated[idx],
+      ...serverMsg,
+      id: serverMsg.id,
+      client_temp_id: tempId,
+    }
+
+    return this.upsert({
+      ...conversation,
+      messages: updated,
+      last_activity_at: serverMsg.created_at || conversation.last_activity_at,
     })
   },
 

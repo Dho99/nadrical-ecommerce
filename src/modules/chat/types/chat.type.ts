@@ -9,6 +9,7 @@ export type ChatMessage = DbChatMessage & {
     sender_role: string
     message: string
   } | null
+  client_temp_id?: string | null
 }
 
 export type ChatConversation = DbChatConversation & {

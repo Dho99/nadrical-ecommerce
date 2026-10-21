@@ -94,7 +94,7 @@ export function useChat(identity: ChatIdentity): UseChatResult {
     // 1. Instant optimistic local render
     const localConv = chatRepository.ensureConversation({ customer_user_id, customer_name, customer_email })
     setConversation(localConv)
-    const local = chatService.getLocalMessagesPage(localConv.id, 20)
+    const local = chatService.getLocalMessagesPage(localConv.id, 50)
     if (local.messages.length > 0) {
       setMessages(local.messages)
       setHasMore(local.hasMore)
@@ -107,10 +107,31 @@ export function useChat(identity: ChatIdentity): UseChatResult {
       setConversation(syncedConv)
       setStatus('success')
 
-      // 3. Fetch latest page 1 (20 messages) using canonical UUID
-      const page = await chatService.fetchMessagesPage(syncedConv.id, 20)
+      // 3. Fetch latest page 1 (50 messages) using canonical UUID
+      const page = await chatService.fetchMessagesPage(syncedConv.id, 50)
       if (page.messages.length > 0 || local.messages.length === 0) {
-        setMessages(page.messages)
+        setMessages((prev) => {
+          const map = new Map<string, ChatMessage>()
+          page.messages.forEach((m) => map.set(m.id, m))
+          prev.forEach((m) => {
+            const alreadyInMap =
+              map.has(m.id) ||
+              (m.client_temp_id &&
+                Array.from(map.values()).some(
+                  (pm) =>
+                    pm.id === m.client_temp_id ||
+                    pm.client_temp_id === m.client_temp_id,
+                ))
+            if (!alreadyInMap) {
+              map.set(m.id, m)
+            }
+          })
+          return Array.from(map.values()).sort(
+            (a, b) =>
+              new Date(a.created_at || 0).getTime() -
+              new Date(b.created_at || 0).getTime(),
+          )
+        })
         setHasMore(page.hasMore)
         hasMoreRef.current = page.hasMore
       }
@@ -266,7 +287,25 @@ export function useChat(identity: ChatIdentity): UseChatResult {
           }
 
           setMessages((prev) => {
-            if (prev.some((m) => m.id === normalizedMsg.id)) return prev
+            const idx = prev.findIndex(
+              (m) =>
+                m.id === normalizedMsg.id ||
+                (normalizedMsg.client_temp_id && (m.id === normalizedMsg.client_temp_id || m.client_temp_id === normalizedMsg.client_temp_id)) ||
+                (m.client_temp_id && m.client_temp_id === normalizedMsg.id) ||
+                (m.sender_role === normalizedMsg.sender_role &&
+                  m.message === normalizedMsg.message &&
+                  Math.abs(new Date(m.created_at || 0).getTime() - new Date(normalizedMsg.created_at || 0).getTime()) < 30000),
+            )
+            if (idx !== -1) {
+              const updated = [...prev]
+              updated[idx] = {
+                ...updated[idx],
+                ...normalizedMsg,
+                id: normalizedMsg.id,
+                created_at: normalizedMsg.created_at || updated[idx].created_at,
+              }
+              return updated
+            }
             return [...prev, normalizedMsg]
           })
 
@@ -425,7 +464,7 @@ export function useChat(identity: ChatIdentity): UseChatResult {
     productContexts?: ProductChatContext[],
   ) => {
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed || sending) return
 
     if (typingTimerRef.current) {
       clearTimeout(typingTimerRef.current)
@@ -452,7 +491,22 @@ export function useChat(identity: ChatIdentity): UseChatResult {
       setConversation(updated)
       if (updated.messages.length > 0) {
         const lastMsg = updated.messages[updated.messages.length - 1]
-        setMessages((prev) => (prev.some((m) => m.id === lastMsg.id) ? prev : [...prev, lastMsg]))
+        setMessages((prev) => {
+          const idx = prev.findIndex(
+            (m) =>
+              m.id === lastMsg.id ||
+              (lastMsg.client_temp_id && (m.id === lastMsg.client_temp_id || m.client_temp_id === lastMsg.client_temp_id)) ||
+              (m.sender_role === lastMsg.sender_role &&
+                m.message === lastMsg.message &&
+                Math.abs(new Date(m.created_at || 0).getTime() - new Date(lastMsg.created_at || 0).getTime()) < 30000),
+          )
+          if (idx !== -1) {
+            const up = [...prev]
+            up[idx] = { ...up[idx], ...lastMsg }
+            return up
+          }
+          return [...prev, lastMsg]
+        })
       }
     } finally {
       setSending(false)
