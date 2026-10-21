@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, PackageOpen, Repeat2, Star, X } from 'lucide-react'
+import { ChevronLeft, Copy, PackageOpen, Repeat2, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
 import { useCart } from '../../modules/cart/hooks/useCart'
@@ -10,10 +10,12 @@ import { ReviewFormDialog, userReviewStorage } from '../../modules/products'
 import { websocketService } from '../../shared/lib/websocket'
 import {
   InvoiceButton,
+  PaymentProofCard,
   ShipmentAccordion,
   useRefund,
 } from '../../modules/orders'
 import { shipmentService } from '../../modules/orders/services/shipment.service'
+import { orderRepository } from '../../modules/checkout/services/order.repository'
 import type { OrderWithItems } from '../../modules/orders/types/order.type'
 import { ProductImage } from '../../shared/components/ProductImage'
 import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
@@ -52,17 +54,26 @@ export function OrderDetailPage() {
   const email = user?.email ?? null
 
   const load = useCallback(async () => {
-    if (!email || !id) {
+    if (!id) {
       setStatus('error')
       return
     }
     setStatus('loading')
     try {
-      const all = await profileService.getOrderHistory(email)
-      const found =
-        all.find((o) => o.order_number === id || o.id === id) ?? null
-      setOrder(found)
-      setStatus(found ? 'success' : 'error')
+      const single = await orderRepository.get(id)
+      if (single) {
+        setOrder(single)
+        setStatus('success')
+        return
+      }
+      if (email) {
+        const all = await profileService.getOrderHistory(email)
+        const found = all.find((o) => o.order_number === id || o.id === id) ?? null
+        setOrder(found)
+        setStatus(found ? 'success' : 'error')
+      } else {
+        setStatus('error')
+      }
     } catch {
       setStatus('error')
     }
@@ -207,12 +218,7 @@ export function OrderDetailPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          {/* <Card className="p-5 sm:p-6">
-            <h3 className="font-display text-lg font-bold tracking-tight">Order journey</h3>
-            <div className="mt-4">
-              <OrderTimeline order={order} />
-            </div>
-          </Card> */}
+          <PaymentProofCard order={order} onUpdated={() => void load()} />
 
           <Card className="p-5 sm:p-6">
             <h3 className="font-display text-lg font-bold tracking-tight">Shipment tracking</h3>
@@ -295,12 +301,33 @@ export function OrderDetailPage() {
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Shipment Method</dt>
-                <dd className="font-medium">{shipmentService.courierLabel(order.shipping_method)}</dd>
+                <dd className="font-medium">{shipmentService.courierLabel(order.shipping_courier || order.shipping_method)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Tracking</dt>
-                <dd className="font-mono font-medium">
-                  {shipmentService.isTrackable(order) ? shipmentService.trackingNumber(order) : '—'}
+              <div className="flex justify-between items-center">
+                <dt className="text-muted-foreground">No. Resi</dt>
+                <dd className="font-mono font-medium flex items-center gap-1.5">
+                  {order.tracking_number ? (
+                    <>
+                      <span className="text-primary font-bold">{order.tracking_number}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Salin No. Resi"
+                        onClick={() => {
+                          void navigator.clipboard?.writeText(order.tracking_number!).then(() => {
+                            toast.success('Nomor resi berhasil disalin!')
+                          })
+                        }}
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    </>
+                  ) : shipmentService.isTrackable(order) ? (
+                    shipmentService.trackingNumber(order)
+                  ) : (
+                    <span className="text-muted-foreground text-xs italic">Menunggu no. resi</span>
+                  )}
                 </dd>
               </div>
               <div className="flex flex-col gap-1">

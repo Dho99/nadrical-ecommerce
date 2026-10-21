@@ -9,6 +9,26 @@ function toOrderWithItems(order: ApiOrder): OrderWithItems {
   }
 }
 
+interface ApiPayment {
+  uuid?: string
+  id?: string
+  order_uuid?: string
+  payment_method?: string
+  payment_channel?: string
+  sender_name?: string
+  payer_name?: string
+  sender_bank?: string
+  payer_bank?: string
+  reference_number?: string
+  amount?: number
+  status?: string
+  payment_proof_url?: string
+  rejection_reason?: string
+  verified_at?: string
+  paid_at?: string
+  created_at?: string
+}
+
 function toDbOrder(order: ApiOrder): DbOrder {
   return {
     id: order.uuid,
@@ -19,8 +39,10 @@ function toDbOrder(order: ApiOrder): DbOrder {
     recipient_phone: order.phone,
     shipping_address_line_1: order.address,
     shipping_city: order.city,
+    shipping_courier: order.shipping_courier,
     shipping_method: order.shipping_courier,
     shipping_method_id: order.shipping_method_id,
+    tracking_number: order.tracking_number,
     status: order.order_status as DbOrder['status'],
     subtotal: Number(order.subtotal ?? 0),
     discount_total: Number(order.discount_total ?? 0),
@@ -30,6 +52,26 @@ function toDbOrder(order: ApiOrder): DbOrder {
     grand_total: Number(order.total ?? 0),
     placed_at: order.created_at,
     created_at: order.created_at,
+    payment: order.payment
+      ? {
+          id: order.payment.uuid || order.payment.id || '',
+          order_id: order.uuid,
+          payment_method: order.payment.payment_method,
+          payment_channel: order.payment.payment_channel,
+          payer_name: order.payment.sender_name || order.payment.payer_name,
+          payer_bank: order.payment.sender_bank || order.payment.payer_bank,
+          sender_name: order.payment.sender_name || order.payment.payer_name,
+          sender_bank: order.payment.sender_bank || order.payment.payer_bank,
+          reference_number: order.payment.reference_number,
+          amount: Number(order.payment.amount ?? 0),
+          status: (order.payment.status as any) || 'pending',
+          payment_proof_url: order.payment.payment_proof_url,
+          rejection_reason: order.payment.rejection_reason,
+          verified_at: order.payment.verified_at,
+          paid_at: order.payment.paid_at,
+          created_at: order.payment.created_at,
+        }
+      : undefined,
   }
 }
 
@@ -51,7 +93,7 @@ function toDbOrderItem(item: ApiOrderItem): DbOrderItem {
   }
 }
 
-interface ApiOrder {
+export interface ApiOrder {
   uuid: string
   order_number: string
   account_uuid: string
@@ -62,6 +104,7 @@ interface ApiOrder {
   city: string
   shipping_courier: string
   shipping_method_id?: string
+  tracking_number?: string
   order_status: string
   subtotal: number
   discount_total?: number
@@ -71,6 +114,7 @@ interface ApiOrder {
   total: number
   created_at: string
   order_items?: ApiOrderItem[]
+  payment?: ApiPayment
 }
 
 interface ApiOrderItem {
@@ -158,7 +202,60 @@ export const orderRepository = {
     throw new Error('orderRepository.insert deprecated — gunakan checkoutService.placeOrder')
   },
 
+  async fetchPaymentMethods(): Promise<GatewayPaymentMethod[]> {
+    try {
+      const res = await api.get<{ success: boolean; message: string; data?: GatewayPaymentMethod[] }>('/ecommerce/payment-methods?is_enabled=true')
+      return unwrapData<GatewayPaymentMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayPaymentMethod[] }) ?? res.data.data ?? []
+    } catch {
+      return []
+    }
+  },
+
+  async fetchShippingMethods(): Promise<GatewayShippingMethod[]> {
+    try {
+      const res = await api.get<{ success: boolean; message: string; data?: GatewayShippingMethod[] }>('/ecommerce/shipping-methods?is_enabled=true')
+      return unwrapData<GatewayShippingMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayShippingMethod[] }) ?? res.data.data ?? []
+    } catch {
+      return []
+    }
+  },
+
   async reset(): Promise<void> {
     throw new Error('reset mock tidak tersedia di BE mode')
   },
 }
+
+export interface GatewayPaymentMethod {
+  uuid: string
+  gateway_code: string
+  code: string
+  name: string
+  category: string
+  logo_url?: string
+  is_enabled: boolean
+  fee_type: 'FIXED' | 'PERCENTAGE'
+  additional_fee: number
+  default_gateway_fee: number
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account_holder_name?: string
+  instructions?: string
+}
+
+export interface GatewayShippingMethod {
+  uuid: string
+  gateway_code: string
+  courier_code: string
+  courier_name: string
+  service_code: string
+  service_name: string
+  full_name: string
+  logo_url?: string
+  base_rate: number
+  fee_type: 'FIXED' | 'PERCENTAGE'
+  additional_fee: number
+  etd?: string
+  is_enabled: boolean
+}
+

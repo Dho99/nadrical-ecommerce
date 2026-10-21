@@ -16,11 +16,15 @@ export type DbOrderStatus =
     | "refunded";
 export type PaymentStatus =
     | "pending"
+    | "PENDING"
     | "success"
+    | "paid"
+    | "PAID"
     | "failed"
     | "refunded"
     | "expired"
     | "SELLER_PAID"
+    | "REJECTED"
     | "CANCELED";
 export type DbNotificationType = "order" | "promo" | "announcement" | "system";
 export type ChatSenderRole = "customer" | "agent" | "admin" | "bot";
@@ -210,6 +214,7 @@ export interface DbOrder {
     shipping_province?: string;
     shipping_postal_code?: string;
     shipping_country_code?: string;
+    shipping_courier?: string;
     shipping_method?: string;
     shipping_method_id?: string;
     tracking_number?: string;
@@ -229,6 +234,7 @@ export interface DbOrder {
     notes?: string;
     created_at?: string;
     updated_at?: string;
+    payment?: DbPayment;
 }
 
 export interface DbOrderItem {
@@ -272,12 +278,16 @@ export interface DbPayment {
     payment_channel?: string;
     payer_name?: string;
     payer_bank?: string;
+    sender_name?: string;
+    sender_bank?: string;
     reference_number?: string;
     amount: number;
     status?: PaymentStatus;
     payment_proof_url?: string;
+    rejection_reason?: string;
     paid_at?: string;
     verified_at?: string;
+    verified_by?: string;
     created_at?: string;
     updated_at?: string;
 }

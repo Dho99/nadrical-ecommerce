@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Copy, MapPin, Truck } from 'lucide-react'
+import { ChevronDown, Copy, ExternalLink, MapPin, Truck } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { Button } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
@@ -30,6 +30,7 @@ export function ShipmentAccordion({ order }: ShipmentAccordionProps) {
   const isTrackable = shipmentService.isTrackable(order)
   const [openState, setOpenState] = useState<string | null>(() => (isTrackable ? 'shipped' : 'paid'))
   const tracking = shipmentService.trackingNumber(order)
+  const trackingUrl = shipmentService.trackingUrl(order.shipping_courier || order.shipping_method, tracking)
   const status = (order.status ?? '').toLowerCase()
   const info = shipmentService.info(order)
   const events = shipmentService.events(order)
@@ -90,11 +91,22 @@ export function ShipmentAccordion({ order }: ShipmentAccordionProps) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Tracking number</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono font-medium">{tracking}</span>
                 <Button type="button" variant="ghost" size="icon-sm" aria-label="Copy tracking number" onClick={copyTracking}>
                   <Copy className="size-3.5" />
                 </Button>
+                {trackingUrl && (
+                  <a
+                    href={trackingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline ml-1"
+                    title="Cek Resi di Website Ekspedisi"
+                  >
+                    <ExternalLink className="size-3" /> Cek Resi
+                  </a>
+                )}
               </div>
             </div>
           </div>

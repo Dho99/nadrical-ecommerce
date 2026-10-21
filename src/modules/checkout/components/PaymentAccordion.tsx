@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ChevronDown, CreditCard } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronDown, CreditCard, Building2, Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { cn } from '../../../shared/utils/cn'
 import { PAYMENT_GROUPS } from '../services/payment.service'
@@ -7,6 +7,8 @@ import { useCheckoutRuntime } from '../hooks/useCheckoutRuntime'
 import type { PaymentKind } from '../types/checkout.type'
 import type { CheckoutInput } from '../schemas/checkout.schema'
 import { CheckoutField } from './CheckoutField'
+import { orderRepository, type GatewayPaymentMethod } from '../services/order.repository'
+import { formatPrice } from '../../../shared/utils/format'
 
 export function PaymentAccordion() {
   const { setValue } = useFormContext<CheckoutInput>()
@@ -15,6 +17,29 @@ export function PaymentAccordion() {
   const setPaymentKind = useCheckoutRuntime((s) => s.setPaymentKind)
   const setPaymentProvider = useCheckoutRuntime((s) => s.setPaymentProvider)
   const [openKind, setOpenKind] = useState<PaymentKind | null>('card')
+  const [manualMethods, setManualMethods] = useState<GatewayPaymentMethod[]>([])
+  const [isManualFallback, setIsManualFallback] = useState(false)
+
+  useEffect(() => {
+    orderRepository.fetchPaymentMethods().then((res) => {
+      if (res && res.length > 0) {
+        const manuals = res.filter((m) => m.gateway_code === 'manual' || m.category === 'BANK_TRANSFER')
+        setManualMethods(manuals)
+        const hasAutomated = res.some((m) => m.gateway_code !== 'manual')
+        if (!hasAutomated) {
+          setIsManualFallback(true)
+          setPaymentKind('bank')
+          setOpenKind('bank')
+          if (manuals.length > 0) {
+            const code = manuals[0].code.replace('manual_', '').toLowerCase()
+            setPaymentProvider(code)
+            setValue('payment_method', 'bank', { shouldValidate: true })
+            setValue('payment_provider', code)
+          }
+        }
+      }
+    }).catch(() => {})
+  }, [setPaymentKind, setPaymentProvider, setValue])
 
   const selectGroup = (kind: PaymentKind) => {
     setOpenKind((prev) => (prev === kind ? null : kind))
@@ -34,7 +59,24 @@ export function PaymentAccordion() {
         Choose how you want to pay. Only one payment method can be active at a time.
       </p>
 
+      {isManualFallback && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+          <Info className="size-4 shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-semibold">Mode Transfer Bank Manual Aktif</p>
+            <p className="mt-0.5 text-muted-foreground">
+              Gateway pembayaran otomatis belum dikonfigurasi. Pembayaran diproses melalui transfer bank manual ke rekening resmi, dan bukti pembayaran dapat diunggah langsung di halaman detail pesanan.
+            </p>
+          </div>
+        </div>
+      )}
+
       {PAYMENT_GROUPS.map((group) => {
+        // If in manual fallback mode, hide card and e-money if not configured
+        if (isManualFallback && group.kind !== 'bank') {
+          return null
+        }
+
         const open = openKind === group.kind
         const active = paymentKind === group.kind
         return (
@@ -60,7 +102,7 @@ export function PaymentAccordion() {
                 {active && <span className="size-2.5 rounded-full bg-primary" />}
               </span>
               <span className="grow font-display text-base font-semibold tracking-tight">
-                {group.label}
+                {group.kind === 'bank' && isManualFallback ? 'Transfer Bank Manual' : group.label}
               </span>
 
               {group.feeRate > 0 && (
@@ -78,6 +120,8 @@ export function PaymentAccordion() {
                 <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={`${group.label} options`}>
                   {group.options.map((opt) => {
                     const isSelected = active && paymentProvider === opt.id
+                    const matchingMethod = manualMethods.find((m) => m.code.toLowerCase().includes(opt.id.toLowerCase()))
+                    const extraFee = matchingMethod?.additional_fee ?? 0
                     return (
                       <button
                         key={opt.id}
@@ -93,6 +137,9 @@ export function PaymentAccordion() {
                         )}
                       >
                         {opt.label}
+                        {extraFee > 0 && (
+                          <span className="text-[10px] opacity-80">+{formatPrice(extraFee)}</span>
+                        )}
                       </button>
                     )
                   })}
@@ -126,7 +173,13 @@ export function PaymentAccordion() {
                   </div>
                 )}
 
-                {group.kind !== 'card' && active && (
+                {group.kind === 'bank' && active && (
+                  <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Building2 className="size-4 text-primary" /> Transfer manual ke rekening yang dipilih. Nomor rekening dan formulir unggah bukti transfer akan ditampilkan setelah pesanan dibuat.
+                  </p>
+                )}
+
+                {group.kind !== 'card' && group.kind !== 'bank' && active && (
                   <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                     <CreditCard className="size-4" /> You&apos;ll be redirected to {group.label} to authorize payment after placing your order.
                   </p>

@@ -1,5 +1,6 @@
 export { OrderTimeline } from './components/OrderTimeline'
 export { ShipmentAccordion } from './components/ShipmentAccordion'
+export { PaymentProofCard } from './components/PaymentProofCard'
 export { RefundRequestForm } from './components/RefundRequestForm'
 export { InvoiceButton } from './components/InvoiceButton'
 export { useRefund } from './hooks/useRefund'

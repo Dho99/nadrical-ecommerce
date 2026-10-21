@@ -12,13 +12,31 @@ const COURIER_LABEL: Record<string, string> = {
 export const shipmentService = {
   courierLabel(method?: string): string {
     if (!method) return 'Standard'
-    return COURIER_LABEL[method.toLowerCase()] ?? COURIER_LABEL[method] ?? 'Standard'
+    const key = method.toLowerCase()
+    return COURIER_LABEL[key] ?? method
   },
 
   trackingNumber(order: OrderWithItems): string {
-    if (order.tracking_number) return order.tracking_number
+    if (order.tracking_number && order.tracking_number.trim() !== '') {
+      return order.tracking_number
+    }
     const seed = order.order_number.replace(/\D/g, '') || order.id.replace(/\D/g, '')
     return `RESI${seed.padStart(6, '0')}`
+  },
+
+  trackingUrl(courier?: string, trackingNumber?: string): string | null {
+    if (!trackingNumber || !trackingNumber.trim()) return null
+    const c = (courier || '').toLowerCase()
+    if (c.includes('jne')) {
+      return `https://www.jne.co.id/id/tracking/trace`
+    }
+    if (c.includes('sicepat')) {
+      return `https://www.sicepat.com/checkAwb`
+    }
+    if (c.includes('j&t') || c.includes('jnt')) {
+      return `https://www.jet.co.id/track`
+    }
+    return `https://cekresi.com/?noresi=${encodeURIComponent(trackingNumber.trim())}`
   },
 
   statusLabel(order: OrderWithItems): string {
@@ -65,7 +83,7 @@ export const shipmentService = {
 
   info(order: OrderWithItems): ShipmentInfo {
     return {
-      courier: this.courierLabel(order.shipping_method),
+      courier: this.courierLabel(order.shipping_courier || order.shipping_method),
       tracking: this.trackingNumber(order),
       statusLabel: this.statusLabel(order),
     }
