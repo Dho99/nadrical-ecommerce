@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { CATEGORIES } from '../../modules/products/constants/product.constants'
 import { Input, Button } from '../../shared/components/ui'
 import { toast } from '../../shared/lib/alert'
-import { useLogo, useContactInfo, useSiteTagline } from '../../modules/home/hooks/useBanner'
+import { useLogo, useLogoConfig, useContactInfo, useSiteTagline } from '../../modules/home/hooks/useBanner'
 
 export function SiteFooter() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const { logo: dynamicLogo } = useLogo()
+  const { config: logoConfig } = useLogoConfig()
   const { email: contactEmail, phone: contactPhone, address: contactAddress } = useContactInfo()
   const { tagline } = useSiteTagline()
 
@@ -40,11 +41,35 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-7xl grid gap-8 px-5 py-12 sm:px-8 md:grid-cols-4">
         <div>
           {dynamicLogo ? (
-            <img src={dynamicLogo} alt="Nadrical" className="h-7 w-auto object-contain" />
+            <img
+              src={dynamicLogo}
+              alt="Nadrical"
+              style={{
+                ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
+                ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
+              }}
+              className="h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto object-contain transition-all"
+            />
           ) : (
             <>
-              <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
-              <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
+              <img
+                src="/logo.svg"
+                alt="Nadrical"
+                style={{
+                  ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
+                  ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
+                }}
+                className="h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto dark:hidden transition-all"
+              />
+              <img
+                src="/logo-dark.svg"
+                alt="Nadrical"
+                style={{
+                  ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
+                  ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
+                }}
+                className="hidden h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto dark:block transition-all"
+              />
             </>
           )}
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">

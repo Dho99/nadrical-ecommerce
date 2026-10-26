@@ -16,7 +16,7 @@ import { useTheme } from "next-themes";
 import { useCart } from "../../modules/cart/hooks/useCart";
 import { useAuth } from "../../modules/auth/hooks/useAuth";
 import { NotificationBell, useNotifications } from "../../modules/notifications";
-import { useLogo } from "../../modules/home/hooks/useBanner";
+import { useLogo, useLogoConfig } from "../../modules/home/hooks/useBanner";
 import { useWishlist } from "../../modules/wishlist";
 import { LoyaltyDisplay } from "../../modules/loyalty";
 import {
@@ -61,6 +61,7 @@ export function SiteHeader() {
   const { unreadCount } = useNotifications();
   const { code: currencyCode, set: setCurrency } = useCurrency();
   const { logo: dynamicLogoUrl } = useLogo();
+  const { config: logoConfig } = useLogoConfig();
 
   const dark = resolvedTheme === "dark";
 
@@ -171,11 +172,35 @@ export function SiteHeader() {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="shrink-0 flex items-center gap-2">
             {dynamicLogoUrl ? (
-              <img src={dynamicLogoUrl} alt="Nadrical" className="h-7 w-auto object-contain" />
+              <img
+                src={dynamicLogoUrl}
+                alt="Nadrical"
+                style={{
+                  ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
+                  ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
+                }}
+                className="h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto object-contain transition-all"
+              />
             ) : (
               <>
-                <img src="/logo.svg" alt="Nadrical" className="h-7 w-auto dark:hidden" />
-                <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-7 w-auto dark:block" />
+                <img
+                  src="/logo.svg"
+                  alt="Nadrical"
+                  style={{
+                    ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
+                    ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
+                  }}
+                  className="h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto dark:hidden transition-all"
+                />
+                <img
+                  src="/logo-dark.svg"
+                  alt="Nadrical"
+                  style={{
+                    ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
+                    ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
+                  }}
+                  className="hidden h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto dark:block transition-all"
+                />
               </>
             )}
           </Link>
@@ -313,11 +338,26 @@ export function SiteHeader() {
                 <div className="p-5 border-b">
                   <SheetTitle className="font-display text-xl font-bold tracking-tight">
                     {dynamicLogoUrl ? (
-                      <img src={dynamicLogoUrl} alt="Nadrical" className="h-6 w-auto object-contain" />
+                      <img
+                        src={dynamicLogoUrl}
+                        alt="Nadrical"
+                        style={{ height: `${logoConfig.navbarMobileHeightPx || 28}px` }}
+                        className="w-auto object-contain"
+                      />
                     ) : (
                       <>
-                        <img src="/logo.svg" alt="Nadrical" className="h-6 w-auto dark:hidden" />
-                        <img src="/logo-dark.svg" alt="Nadrical" className="hidden h-6 w-auto dark:block" />
+                        <img
+                          src="/logo.svg"
+                          alt="Nadrical"
+                          style={{ height: `${logoConfig.navbarMobileHeightPx || 28}px` }}
+                          className="w-auto dark:hidden"
+                        />
+                        <img
+                          src="/logo-dark.svg"
+                          alt="Nadrical"
+                          style={{ height: `${logoConfig.navbarMobileHeightPx || 28}px` }}
+                          className="hidden w-auto dark:block"
+                        />
                       </>
                     )}
                   </SheetTitle>

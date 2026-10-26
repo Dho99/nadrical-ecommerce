@@ -13,11 +13,27 @@ export interface RichBannerSlide {
   subtitle?: string
   ctaLabel?: string
   ctaHref?: string
+  mobileTemplate?: string
+  mobileHeightPx?: number
 }
 
 export interface PopupBannerData {
   image: string
   link: string
+  mobileTemplate?: string
+  mobileMaxWidth?: number
+  mobileAspectRatio?: string
+  objectFit?: 'cover' | 'contain'
+}
+
+export interface LogoConfigData {
+  navbarMobilePreset: string
+  navbarMobileHeightPx: number
+  navbarDesktopHeightPx: number
+  footerMobilePreset: string
+  footerMobileHeightPx: number
+  footerDesktopHeightPx: number
+  maxWidthPx?: number
 }
 
 interface BackendPageSetting {
@@ -25,6 +41,14 @@ interface BackendPageSetting {
   key?: string
   value?: unknown
   type?: string
+}
+
+/**
+ * Strips HTML tags and trims whitespace from a string value.
+ */
+export function stripHtmlTags(str?: string | null): string {
+  if (!str) return ''
+  return str.replace(/<[^>]*>/g, '').trim()
 }
 
 /**
@@ -169,6 +193,8 @@ export const bannerService = {
                     subtitle: typeof o.subtitle === 'string' ? o.subtitle.trim() : '',
                     ctaLabel: typeof o.ctaLabel === 'string' ? o.ctaLabel.trim() : '',
                     ctaHref: sanitizeCtaUrl(rawHref, '/products'),
+                    mobileTemplate: typeof o.mobileTemplate === 'string' ? o.mobileTemplate : undefined,
+                    mobileHeightPx: typeof o.mobileHeightPx === 'number' ? o.mobileHeightPx : undefined,
                   }
                 })
                 .filter((s): s is RichBannerSlide => s !== null)
@@ -227,7 +253,7 @@ export const bannerService = {
   async getSiteTitle(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
-      return map.site_title || null
+      return stripHtmlTags(map.site_title) || null
     } catch {
       return null
     }
@@ -236,7 +262,7 @@ export const bannerService = {
   async getSiteTagline(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
-      return map.site_tagline || null
+      return stripHtmlTags(map.site_tagline) || null
     } catch {
       return null
     }
@@ -245,7 +271,7 @@ export const bannerService = {
   async getContactEmail(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
-      return map.contact_email || null
+      return stripHtmlTags(map.contact_email) || null
     } catch {
       return null
     }
@@ -254,7 +280,7 @@ export const bannerService = {
   async getContactPhone(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
-      return map.contact_phone || null
+      return stripHtmlTags(map.contact_phone) || null
     } catch {
       return null
     }
@@ -263,7 +289,8 @@ export const bannerService = {
   async getContactAddress(): Promise<string | null> {
     try {
       const map = await getSettingsMapCached()
-      return map.contact_address || map.address || map.alamat || null
+      const val = map.contact_address || map.address || map.alamat || null
+      return stripHtmlTags(val) || null
     } catch {
       return null
     }
@@ -272,7 +299,7 @@ export const bannerService = {
   async isPopupEnabled(): Promise<boolean> {
     try {
       const map = await getSettingsMapCached()
-      const rawEnabled = map.site_popup_enabled ?? map.popup_enabled ?? 'true'
+      const rawEnabled = stripHtmlTags(map.site_popup_enabled ?? map.popup_enabled ?? 'true')
       return rawEnabled === 'true' || rawEnabled === '1'
     } catch {
       return true
@@ -292,12 +319,36 @@ export const bannerService = {
 
       let image = ''
       let link = '/products'
+      let mobileTemplate = 'square'
+      let mobileMaxWidth = 320
+      let mobileAspectRatio = '1 / 1'
+      let objectFit: 'cover' | 'contain' = 'cover'
 
       try {
         const parsed = JSON.parse(rawPopup)
         if (typeof parsed === 'object' && parsed !== null) {
           image = typeof parsed.image === 'string' ? parsed.image : typeof parsed.img === 'string' ? parsed.img : ''
           link = typeof parsed.link === 'string' ? parsed.link : typeof parsed.url === 'string' ? parsed.url : '/products'
+          if (typeof parsed.mobileTemplate === 'string' && parsed.mobileTemplate) {
+            mobileTemplate = parsed.mobileTemplate
+          }
+          if (typeof parsed.mobileMaxWidth === 'number' && !isNaN(parsed.mobileMaxWidth)) {
+            mobileMaxWidth = parsed.mobileMaxWidth
+          }
+          if (typeof parsed.mobileAspectRatio === 'string' && parsed.mobileAspectRatio) {
+            mobileAspectRatio = parsed.mobileAspectRatio
+          } else if (mobileTemplate === 'portrait_ig') {
+            mobileAspectRatio = '4 / 5'
+          } else if (mobileTemplate === 'poster_tall') {
+            mobileAspectRatio = '3 / 4'
+          } else if (mobileTemplate === 'compact_landscape') {
+            mobileAspectRatio = '4 / 3'
+          } else if (mobileTemplate === 'story_full') {
+            mobileAspectRatio = '9 / 16'
+          }
+          if (parsed.objectFit === 'contain') {
+            objectFit = 'contain'
+          }
         } else if (typeof parsed === 'string') {
           image = parsed
         }
@@ -311,6 +362,10 @@ export const bannerService = {
       return {
         image: resolvedImage,
         link: sanitizeCtaUrl(link, '/products'),
+        mobileTemplate,
+        mobileMaxWidth,
+        mobileAspectRatio,
+        objectFit,
       }
     } catch {
       return null
@@ -320,5 +375,42 @@ export const bannerService = {
   async getPopupBanner(): Promise<string | null> {
     const data = await this.getPopupBannerData()
     return data ? data.image : null
+  },
+
+  async getLogoConfig(): Promise<LogoConfigData> {
+    const defaultData: LogoConfigData = {
+      navbarMobilePreset: 'standard',
+      navbarMobileHeightPx: 32,
+      navbarDesktopHeightPx: 40,
+      footerMobilePreset: 'standard',
+      footerMobileHeightPx: 36,
+      footerDesktopHeightPx: 44,
+      maxWidthPx: 180,
+    }
+    try {
+      const map = await getSettingsMapCached()
+      if (map.site_logo_config) {
+        const parsed = JSON.parse(map.site_logo_config)
+        if (typeof parsed === 'object' && parsed !== null) {
+          const navPx = Number(parsed.navbarMobileHeightPx) || 32
+          const footPx =
+            parsed.footerMobilePreset === 'sync'
+              ? navPx
+              : Number(parsed.footerMobileHeightPx) || 36
+          return {
+            navbarMobilePreset: parsed.navbarMobilePreset || 'standard',
+            navbarMobileHeightPx: navPx,
+            navbarDesktopHeightPx: Number(parsed.navbarDesktopHeightPx) || 40,
+            footerMobilePreset: parsed.footerMobilePreset || 'standard',
+            footerMobileHeightPx: footPx,
+            footerDesktopHeightPx: Number(parsed.footerDesktopHeightPx) || 44,
+            maxWidthPx: Number(parsed.maxWidthPx) || 180,
+          }
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return defaultData
   },
 }

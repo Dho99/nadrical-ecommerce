@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { bannerService, type RichBannerSlide } from '../services/banner.service'
+import {
+  bannerService,
+  type RichBannerSlide,
+  type LogoConfigData,
+} from '../services/banner.service'
 import { websocketService } from '../../../shared/lib/websocket'
 
 interface WsUpdatePayload {
@@ -297,6 +301,10 @@ export function usePopupBanner() {
   const [popupBanner, setPopupBanner] = useState<string | null>(null)
   const [popupLink, setPopupLink] = useState<string>('/products')
   const [isPopupEnabled, setIsPopupEnabled] = useState<boolean>(true)
+  const [mobileTemplate, setMobileTemplate] = useState<string>('square')
+  const [mobileMaxWidth, setMobileMaxWidth] = useState<number>(320)
+  const [mobileAspectRatio, setMobileAspectRatio] = useState<string>('1 / 1')
+  const [objectFit, setObjectFit] = useState<'cover' | 'contain'>('cover')
   const [loading, setLoading] = useState(true)
   const [attempt, setAttempt] = useState(0)
 
@@ -325,6 +333,10 @@ export function usePopupBanner() {
         setPopupBanner(bannerData?.image ?? null)
         setPopupLink(bannerData?.link ?? '/products')
         setIsPopupEnabled(enabled)
+        setMobileTemplate(bannerData?.mobileTemplate ?? 'square')
+        setMobileMaxWidth(bannerData?.mobileMaxWidth ?? 320)
+        setMobileAspectRatio(bannerData?.mobileAspectRatio ?? '1 / 1')
+        setObjectFit(bannerData?.objectFit ?? 'cover')
       } catch {
         setPopupBanner(null)
         setPopupLink('/products')
@@ -336,5 +348,57 @@ export function usePopupBanner() {
     fetch()
   }, [attempt])
 
-  return { popupBanner, popupLink, isPopupEnabled, loading }
+  return {
+    popupBanner,
+    popupLink,
+    isPopupEnabled,
+    mobileTemplate,
+    mobileMaxWidth,
+    mobileAspectRatio,
+    objectFit,
+    loading,
+  }
+}
+
+export function useLogoConfig() {
+  const [config, setConfig] = useState<LogoConfigData>({
+    navbarMobilePreset: 'standard',
+    navbarMobileHeightPx: 32,
+    navbarDesktopHeightPx: 40,
+    footerMobilePreset: 'standard',
+    footerMobileHeightPx: 36,
+    footerDesktopHeightPx: 44,
+    maxWidthPx: 180,
+  })
+  const [loading, setLoading] = useState(true)
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    const triggerRealtime = () => {
+      bannerService.invalidateCache()
+      setAttempt((a) => a + 1)
+    }
+    const triggerFocus = () => setAttempt((a) => a + 1)
+    const unsub = websocketService.on('settings_updated', triggerRealtime)
+    window.addEventListener('focus', triggerFocus)
+    return () => {
+      unsub()
+      window.removeEventListener('focus', triggerFocus)
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        setLoading(true)
+        const cfg = await bannerService.getLogoConfig()
+        setConfig(cfg)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchConfig()
+  }, [attempt])
+
+  return { config, loading }
 }

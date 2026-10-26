@@ -13,6 +13,8 @@ interface BannerSlide {
   href: string
   cta: string
   align?: 'left' | 'center'
+  mobileTemplate?: string
+  mobileHeightPx?: number
 }
 
 const BANNERS: BannerSlide[] = [
@@ -75,6 +77,8 @@ export function HomeBanner() {
           image: s.image,
           href: s.ctaHref || '/products',
           cta: s.ctaLabel || '',
+          mobileTemplate: s.mobileTemplate,
+          mobileHeightPx: s.mobileHeightPx,
         }))
       : BANNERS
   const [active, setActive] = useState(0)
@@ -126,6 +130,24 @@ export function HomeBanner() {
     mouseStart.current = null
   }
 
+  const currentSlide = slides[active] || slides[0]
+  const mobileTemplate = currentSlide?.mobileTemplate || 'widescreen_16_9'
+  let mobileHeightClass = 'h-[50vh] sm:h-[75vh]'
+  let mobileStyleHeight: string | undefined = undefined
+
+  if (mobileTemplate === 'marketplace_2_1') {
+    mobileHeightClass = 'h-[200px] sm:h-[75vh]'
+  } else if (mobileTemplate === 'widescreen_16_9') {
+    mobileHeightClass = 'h-[220px] sm:h-[75vh]'
+  } else if (mobileTemplate === 'showcase_4_3') {
+    mobileHeightClass = 'h-[280px] sm:h-[75vh]'
+  } else if (mobileTemplate === 'editorial_4_5') {
+    mobileHeightClass = 'h-[420px] sm:h-[75vh]'
+  } else if (mobileTemplate === 'custom') {
+    mobileHeightClass = 'h-[var(--banner-mobile-h)] sm:h-[75vh]'
+    mobileStyleHeight = `${currentSlide?.mobileHeightPx || 220}px`
+  }
+
   return (
     <section
       className="group relative cursor-grab overflow-hidden bg-black active:cursor-grabbing"
@@ -138,7 +160,14 @@ export function HomeBanner() {
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
-      <div className="relative h-[75vh] max-h-[80vh]">
+      <div
+        className={`relative ${mobileHeightClass} max-h-[85vh] transition-all duration-300`}
+        style={
+          mobileStyleHeight
+            ? ({ ['--banner-mobile-h' as string]: mobileStyleHeight } as React.CSSProperties)
+            : undefined
+        }
+      >
         {slides.map((slide, idx) => {
           const hasContent = Boolean(
             slide.eyebrow || slide.title || slide.subtitle || slide.cta
@@ -168,27 +197,27 @@ export function HomeBanner() {
               )}
 
               {hasContent && (
-                <div className="relative mx-auto w-full max-w-7xl flex h-full items-center px-5 sm:px-8">
+                <div className="relative mx-auto w-full max-w-7xl flex h-full items-center px-5 pb-4 sm:pb-0 sm:px-8">
                   <div className="max-w-xl">
                     {slide.eyebrow && (
-                      <p className="font-mono text-[11px] font-medium tracking-[0.16em] text-white/80 uppercase">
+                      <p className="font-mono text-[10px] sm:text-[11px] font-medium tracking-[0.16em] text-white/80 uppercase">
                         {slide.eyebrow}
                       </p>
                     )}
                     {slide.title && (
-                      <h2 className="mt-3 font-display text-4xl leading-[0.9] font-bold tracking-tight whitespace-pre-line text-white sm:text-5xl lg:text-6xl">
+                      <h2 className="mt-1.5 sm:mt-3 font-display text-2xl leading-[0.95] sm:leading-[0.9] font-bold tracking-tight whitespace-pre-line text-white sm:text-5xl lg:text-6xl">
                         {slide.title}
                       </h2>
                     )}
                     {slide.subtitle && (
-                      <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
+                      <p className="mt-1.5 sm:mt-3 max-w-md text-xs sm:text-base leading-relaxed text-white/80 line-clamp-2 sm:line-clamp-none">
                         {slide.subtitle}
                       </p>
                     )}
                     {slide.cta && (
                       <Link
                         to={slide.href}
-                        className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold tracking-tight text-black transition hover:bg-white/90"
+                        className="mt-3 sm:mt-6 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold tracking-tight text-black transition hover:bg-white/90"
                       >
                         {slide.cta}
                       </Link>

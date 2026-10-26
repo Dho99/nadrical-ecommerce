@@ -31,7 +31,7 @@ export const checkoutService = {
       discount: Math.round(payload.totals.discount ?? 0),
       voucher_code: payload.voucher_code || payload.totals.voucher_code || undefined,
       service_fee: Math.round(payload.totals.payment_fee ?? 0),
-      payment_method: payload.payment?.method || 'BANK_TRANSFER',
+      payment_method: (payload.payment as any)?.method || payload.payment?.kind || 'BANK_TRANSFER',
       payment_channel: payload.payment?.provider,
       items: itemsInput,
     }

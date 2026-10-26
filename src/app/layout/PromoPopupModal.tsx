@@ -4,7 +4,14 @@ import { X, Sparkles } from 'lucide-react'
 import { usePopupBanner } from '../../modules/home/hooks/useBanner'
 
 export function PromoPopupModal() {
-  const { popupBanner, popupLink, isPopupEnabled } = usePopupBanner()
+  const {
+    popupBanner,
+    popupLink,
+    isPopupEnabled,
+    mobileMaxWidth,
+    mobileAspectRatio,
+    objectFit,
+  } = usePopupBanner()
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
@@ -32,6 +39,11 @@ export function PromoPopupModal() {
     popupLink.startsWith('https://') ||
     popupLink.startsWith('//')
 
+  const effectiveAspectRatio =
+    mobileAspectRatio && mobileAspectRatio !== 'auto'
+      ? mobileAspectRatio
+      : '1 / 1'
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs transition-opacity duration-300"
@@ -40,7 +52,12 @@ export function PromoPopupModal() {
       aria-modal="true"
     >
       <div
-        className="relative max-w-lg w-full overflow-hidden rounded-2xl bg-background border shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-[var(--popup-mobile-w)] sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden rounded-2xl bg-background border shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        style={
+          {
+            '--popup-mobile-w': `${mobileMaxWidth || 320}px`,
+          } as React.CSSProperties
+        }
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -60,24 +77,36 @@ export function PromoPopupModal() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleClose}
-            className="block relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-muted cursor-pointer group"
+            className="block relative w-full max-h-[68vh] overflow-hidden bg-muted cursor-pointer group"
+            style={{
+              aspectRatio: effectiveAspectRatio,
+            }}
           >
             <img
               src={popupBanner}
               alt="Promo Spesial"
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-102"
+              className="h-full w-full transition duration-300 group-hover:scale-102"
+              style={{
+                objectFit: objectFit || 'cover',
+              }}
             />
           </a>
         ) : (
           <Link
             to={popupLink}
             onClick={handleClose}
-            className="block relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-muted cursor-pointer group"
+            className="block relative w-full max-h-[68vh] overflow-hidden bg-muted cursor-pointer group"
+            style={{
+              aspectRatio: effectiveAspectRatio,
+            }}
           >
             <img
               src={popupBanner}
               alt="Promo Spesial"
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-102"
+              className="h-full w-full transition duration-300 group-hover:scale-102"
+              style={{
+                objectFit: objectFit || 'cover',
+              }}
             />
           </Link>
         )}
