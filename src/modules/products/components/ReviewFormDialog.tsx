@@ -27,6 +27,7 @@ interface ReviewFormDialogProps {
     cover_image_url?: string
   }
   orderNumber: string
+  orderItemId?: string
   variantName?: string
   reviewerName?: string
   onSubmitted?: (review: UserReview) => void
@@ -37,6 +38,7 @@ export function ReviewFormDialog({
   onOpenChange,
   product,
   orderNumber,
+  orderItemId,
   variantName,
   reviewerName = 'Demo User',
   onSubmitted,
@@ -57,7 +59,12 @@ export function ReviewFormDialog({
     try {
       const text = comment.trim()
       if (isUuidProduct) {
-        const created = await reviewService.createReview(product.id, { rating, comment: text })
+        const created = await reviewService.createReview(product.id, {
+          rating,
+          comment: text,
+          order_item_uuid: orderItemId,
+        })
+        window.dispatchEvent(new Event('product-reviews-updated'))
         toast.success('Ulasan berhasil dikirim! Terima kasih atas masukan Anda.', {
           position: 'top-center',
           style: { marginTop: '72px' },

@@ -9,6 +9,74 @@ export interface ReviewPage {
   total: number
 }
 
+export interface BackendReviewItem {
+  uuid?: string
+  id?: string
+  product_uuid?: string
+  product_id?: string
+  order_item_uuid?: string
+  rating: number
+  comment: string
+  image_urls?: string[]
+  is_verified_purchase?: boolean
+  author?: {
+    uuid?: string
+    name?: string
+    username?: string
+    avatar_url?: string
+  } | string
+  account?: {
+    full_name?: string
+    username?: string
+    avatar_url?: string
+  }
+  created_at: string
+}
+
+export function mapBackendReview(item: BackendReviewItem): Review {
+  let authorName = 'Pelanggan'
+  if (typeof item.author === 'string') {
+    authorName = item.author
+  } else if (item.author?.name) {
+    authorName = item.author.name
+  } else if (item.author?.username) {
+    authorName = item.author.username
+  } else if (item.account?.full_name) {
+    authorName = item.account.full_name
+  } else if (item.account?.username) {
+    authorName = item.account.username
+  }
+
+  const rawRating = Math.round(Number(item.rating) || 5)
+  const clampedRating = Math.min(5, Math.max(1, rawRating)) as ReviewRating
+
+  return {
+    id: item.uuid || item.id || `rev-${Date.now()}`,
+    product_id: item.product_uuid || item.product_id || '',
+    rating: clampedRating,
+    author: authorName,
+    comment: item.comment || '',
+    created_at: item.created_at || new Date().toISOString(),
+    verified: Boolean(item.is_verified_purchase || item.order_item_uuid),
+  }
+}
+
+function parseBackendStats(statsRaw: Record<string, unknown> | undefined): ReviewStats | null {
+  if (!statsRaw) return null
+  const dist = (statsRaw.distribution as Record<string, number>) || {}
+  return {
+    avg: Number(statsRaw.average_rating || 0),
+    count: Number(statsRaw.total_reviews || 0),
+    distribution: {
+      1: Number(dist['1'] || dist[1] || 0),
+      2: Number(dist['2'] || dist[2] || 0),
+      3: Number(dist['3'] || dist[3] || 0),
+      4: Number(dist['4'] || dist[4] || 0),
+      5: Number(dist['5'] || dist[5] || 0),
+    },
+  }
+}
+
 function normalizeStats(stats: ReviewStats, hintAvg: number): ReviewStats {
   if (stats.count === 0) {
     return { avg: hintAvg, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }
@@ -17,6 +85,19 @@ function normalizeStats(stats: ReviewStats, hintAvg: number): ReviewStats {
 }
 
 export const reviewService = {
+  async getRatingSummary(productId: string): Promise<ReviewStats | null> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)
+    if (!isUuid) return null
+    try {
+      const res = await api.get<{ success: boolean; data?: Record<string, unknown> }>(
+        `/ecommerce/products/${productId}/ratings`,
+      )
+      return parseBackendStats(res.data?.data)
+    } catch {
+      return null
+    }
+  },
+
   async getReviews(
     productId: string,
     query: ReviewQuery = {},
@@ -29,20 +110,40 @@ export const reviewService = {
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)
     let backendReviews: Review[] = []
+    let backendStats: ReviewStats | null = null
+    let backendTotal = 0
 
     if (isUuid) {
       try {
         const params: Record<string, string | number> = { page, limit, sort }
         if (rating !== 'all') params.rating = rating
-        const res = await api.get<{ success: boolean; message: string; data?: Review[] | { items?: Review[]; data?: Review[] } }>(`/ecommerce/products/${productId}/reviews`, {
+        const res = await api.get<{
+          success: boolean
+          message: string
+          data?: BackendReviewItem[] | { items?: BackendReviewItem[]; data?: BackendReviewItem[] }
+          meta?: {
+            total?: number
+            stats?: Record<string, unknown>
+          }
+        }>(`/ecommerce/products/${productId}/reviews`, {
           params,
         })
-        const data = unwrapData<Review[] | { items?: Review[]; data?: Review[] }>(res.data as unknown as { success: boolean; message: string; data?: Review[] }) ?? res.data.data
-        if (Array.isArray(data)) backendReviews = data as Review[]
-        else if (data && typeof data === 'object') {
-          const obj = data as { items?: Review[]; data?: Review[] }
-          if (Array.isArray(obj.items)) backendReviews = obj.items
-          else if (Array.isArray(obj.data)) backendReviews = obj.data
+
+        const rawData = res.data?.data
+        let rawItems: BackendReviewItem[] = []
+        if (Array.isArray(rawData)) {
+          rawItems = rawData
+        } else if (rawData && typeof rawData === 'object') {
+          const obj = rawData as { items?: BackendReviewItem[]; data?: BackendReviewItem[] }
+          if (Array.isArray(obj.items)) rawItems = obj.items
+          else if (Array.isArray(obj.data)) rawItems = obj.data
+        }
+
+        backendReviews = rawItems.map(mapBackendReview)
+        backendTotal = res.data?.meta?.total ?? backendReviews.length
+
+        if (res.data?.meta?.stats) {
+          backendStats = parseBackendStats(res.data.meta.stats)
         }
       } catch {
         // keep empty -> fallback below still shows user reviews
@@ -61,7 +162,20 @@ export const reviewService = {
       verified: true,
     }))
 
-    const combined = [...userRevs, ...backendReviews]
+    if (backendReviews.length > 0 || backendStats) {
+      const existingIds = new Set(backendReviews.map((r) => r.id))
+      const extraLocal = userRevs.filter((ur) => !existingIds.has(ur.id))
+      const allItems = [...backendReviews, ...extraLocal]
+
+      const finalStats: ReviewStats = backendStats ?? normalizeStats(reviewStats(allItems), hintAvg)
+      return {
+        items: allItems,
+        stats: finalStats,
+        total: backendTotal + extraLocal.length,
+      }
+    }
+
+    const combined = [...userRevs]
     if (combined.length === 0) {
       return {
         items: [],
@@ -78,14 +192,27 @@ export const reviewService = {
     return { items: filtered.slice(start, start + limit), stats: finalStats, total: filtered.length }
   },
 
-  async createReview(productId: string, input: { rating: ReviewRating; comment: string }): Promise<Review> {
-    const res = await api.post<{ success: boolean; message: string; data?: Review }>(`/ecommerce/products/${productId}/reviews`, {
-      rating: input.rating,
-      comment: input.comment,
-    })
-    const data = unwrapData<Review>(res.data as unknown as { success: boolean; message: string; data?: Review }) ?? res.data.data
+  async createReview(
+    productId: string,
+    input: {
+      rating: ReviewRating
+      comment: string
+      order_item_uuid?: string
+      image_urls?: string[]
+    },
+  ): Promise<Review> {
+    const res = await api.post<{ success: boolean; message: string; data?: BackendReviewItem }>(
+      `/ecommerce/products/${productId}/reviews`,
+      {
+        rating: input.rating,
+        comment: input.comment,
+        order_item_uuid: input.order_item_uuid,
+        image_urls: input.image_urls,
+      },
+    )
+    const data = unwrapData<BackendReviewItem>(res.data as unknown as { success: boolean; message: string; data?: BackendReviewItem }) ?? res.data.data
     if (!data) throw new Error(res.data.message || 'Gagal membuat review')
-    return data
+    return mapBackendReview(data)
   },
 
   async deleteReview(productId: string, reviewId: string): Promise<void> {

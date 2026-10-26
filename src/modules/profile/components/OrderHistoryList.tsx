@@ -140,6 +140,7 @@ export function OrderHistoryList({
   const [reviewingItem, setReviewingItem] = useState<{
     product: { id: string; name: string; cover_image_url?: string }
     orderNumber: string
+    orderItemId?: string
     variantName?: string
   } | null>(null)
   const [reviewsVersion, setReviewsVersion] = useState(0)
@@ -340,6 +341,7 @@ export function OrderHistoryList({
                                         cover_image_url: img,
                                       },
                                       orderNumber: order.order_number,
+                                      orderItemId: line.id,
                                       variantName: line.variant_name_snapshot,
                                     })
                                   }
@@ -491,6 +493,7 @@ export function OrderHistoryList({
           onOpenChange={(open) => !open && setReviewingItem(null)}
           product={reviewingItem.product}
           orderNumber={reviewingItem.orderNumber}
+          orderItemId={reviewingItem.orderItemId}
           variantName={reviewingItem.variantName}
           onSubmitted={() => setReviewsVersion((v) => v + 1)}
         />
