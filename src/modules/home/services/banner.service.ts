@@ -93,7 +93,7 @@ export function sanitizeCtaUrl(raw?: string, fallback = '/products'): string {
   if (/^https?:\/\//i.test(clean)) return clean
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/i.test(clean)) return fallback
   if (clean.startsWith('/') || clean.startsWith('#')) return clean
-  return fallback
+  return `/${clean}`
 }
 
 export function resolveImageUrl(url: string | null | undefined): string | null {
@@ -105,6 +105,9 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
   if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(trimmed)) return trimmed
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/i.test(trimmed)) return null
   const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  if (clean === '/logo.svg' || clean === '/logo-dark.svg' || clean === '/favicon.svg') {
+    return clean
+  }
   const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080/api/v1').replace(/\/api\/v1\/?$/, '')
   return `${baseUrl}${clean}`
 }
