@@ -10,10 +10,10 @@ interface WsUpdatePayload {
   resource?: string
 }
 
-export function useBannerSlides() {
-  const [slides, setSlides] = useState<RichBannerSlide[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+/**
+ * Shared hook to synchronize settings and banners in real time via WebSockets and window focus.
+ */
+function useCmsRefreshTrigger(includeBanners = false): number {
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -23,39 +23,60 @@ export function useBannerSlides() {
     }
     const triggerFocusRefetch = () => setAttempt((a) => a + 1)
 
-    const unsub1 = websocketService.on('banners_updated', triggerRealtimeRefetch)
-    const unsub2 = websocketService.on('settings_updated', triggerRealtimeRefetch)
-    const unsub3 = websocketService.on('data_updated', (payload: unknown) => {
-      const p = payload as WsUpdatePayload | undefined
-      if (!p || p.resource === 'settings' || p.resource === 'banners') {
-        triggerRealtimeRefetch()
-      }
-    })
+    const unsubs: Array<() => void> = []
+
+    if (includeBanners) {
+      unsubs.push(websocketService.on('banners_updated', triggerRealtimeRefetch))
+    }
+    unsubs.push(websocketService.on('settings_updated', triggerRealtimeRefetch))
+    unsubs.push(
+      websocketService.on('data_updated', (payload: unknown) => {
+        const p = payload as WsUpdatePayload | undefined
+        if (!p || p.resource === 'settings' || (includeBanners && p.resource === 'banners')) {
+          triggerRealtimeRefetch()
+        }
+      })
+    )
     window.addEventListener('focus', triggerFocusRefetch)
 
     return () => {
-      unsub1()
-      unsub2()
-      unsub3()
+      unsubs.forEach((unsub) => unsub())
       window.removeEventListener('focus', triggerFocusRefetch)
     }
-  }, [])
+  }, [includeBanners])
+
+  return attempt
+}
+
+export function useBannerSlides() {
+  const [slides, setSlides] = useState<RichBannerSlide[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const attempt = useCmsRefreshTrigger(true)
 
   useEffect(() => {
+    let isMounted = true
     const fetchBanners = async () => {
       try {
         setLoading(true)
         const loadedSlides = await bannerService.getHeroBannerSlides()
-        setSlides(loadedSlides)
-        setError(null)
+        if (isMounted) {
+          setSlides(loadedSlides)
+          setError(null)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load banners')
-        setSlides([])
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load banners')
+          setSlides([])
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchBanners()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { slides, loading, error }
@@ -65,48 +86,31 @@ export function useBannerImages() {
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(true)
 
   useEffect(() => {
-    const triggerRealtimeRefetch = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocusRefetch = () => setAttempt((a) => a + 1)
-
-    const unsub1 = websocketService.on('banners_updated', triggerRealtimeRefetch)
-    const unsub2 = websocketService.on('settings_updated', triggerRealtimeRefetch)
-    const unsub3 = websocketService.on('data_updated', (payload: unknown) => {
-      const p = payload as WsUpdatePayload | undefined
-      if (!p || p.resource === 'settings' || p.resource === 'banners') {
-        triggerRealtimeRefetch()
-      }
-    })
-    window.addEventListener('focus', triggerFocusRefetch)
-
-    return () => {
-      unsub1()
-      unsub2()
-      unsub3()
-      window.removeEventListener('focus', triggerFocusRefetch)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetchBanners = async () => {
       try {
         setLoading(true)
         const banners = await bannerService.getHeroBanner()
-        setImages(banners)
-        setError(null)
+        if (isMounted) {
+          setImages(banners)
+          setError(null)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load banners')
-        setImages([])
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load banners')
+          setImages([])
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchBanners()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { images, loading, error }
@@ -115,44 +119,25 @@ export function useBannerImages() {
 export function useLogo() {
   const [logo, setLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtimeRefetch = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocusRefetch = () => setAttempt((a) => a + 1)
-
-    const unsub1 = websocketService.on('settings_updated', triggerRealtimeRefetch)
-    const unsub2 = websocketService.on('data_updated', (payload: unknown) => {
-      const p = payload as WsUpdatePayload | undefined
-      if (!p || p.resource === 'settings') {
-        triggerRealtimeRefetch()
-      }
-    })
-    window.addEventListener('focus', triggerFocusRefetch)
-
-    return () => {
-      unsub1()
-      unsub2()
-      window.removeEventListener('focus', triggerFocusRefetch)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetchLogo = async () => {
       try {
         setLoading(true)
         const logoUrl = await bannerService.getLogo()
-        setLogo(logoUrl)
+        if (isMounted) setLogo(logoUrl)
       } catch {
-        setLogo(null)
+        if (isMounted) setLogo(null)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchLogo()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { logo, loading }
@@ -161,44 +146,25 @@ export function useLogo() {
 export function useSiteTitle() {
   const [title, setTitle] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtimeRefetch = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocusRefetch = () => setAttempt((a) => a + 1)
-
-    const unsub1 = websocketService.on('settings_updated', triggerRealtimeRefetch)
-    const unsub2 = websocketService.on('data_updated', (payload: unknown) => {
-      const p = payload as WsUpdatePayload | undefined
-      if (!p || p.resource === 'settings') {
-        triggerRealtimeRefetch()
-      }
-    })
-    window.addEventListener('focus', triggerFocusRefetch)
-
-    return () => {
-      unsub1()
-      unsub2()
-      window.removeEventListener('focus', triggerFocusRefetch)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetchTitle = async () => {
       try {
         setLoading(true)
         const siteTitle = await bannerService.getSiteTitle()
-        setTitle(siteTitle)
+        if (isMounted) setTitle(siteTitle)
       } catch {
-        setTitle(null)
+        if (isMounted) setTitle(null)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchTitle()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { title, loading }
@@ -207,44 +173,25 @@ export function useSiteTitle() {
 export function useSiteTagline() {
   const [tagline, setTagline] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtimeRefetch = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocusRefetch = () => setAttempt((a) => a + 1)
-
-    const unsub1 = websocketService.on('settings_updated', triggerRealtimeRefetch)
-    const unsub2 = websocketService.on('data_updated', (payload: unknown) => {
-      const p = payload as WsUpdatePayload | undefined
-      if (!p || p.resource === 'settings') {
-        triggerRealtimeRefetch()
-      }
-    })
-    window.addEventListener('focus', triggerFocusRefetch)
-
-    return () => {
-      unsub1()
-      unsub2()
-      window.removeEventListener('focus', triggerFocusRefetch)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetchTagline = async () => {
       try {
         setLoading(true)
         const siteTagline = await bannerService.getSiteTagline()
-        setTagline(siteTagline)
+        if (isMounted) setTagline(siteTagline)
       } catch {
-        setTagline(null)
+        if (isMounted) setTagline(null)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchTagline()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { tagline, loading }
@@ -255,23 +202,10 @@ export function useContactInfo() {
   const [phone, setPhone] = useState<string | null>(null)
   const [address, setAddress] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtime = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocus = () => setAttempt((a) => a + 1)
-    const unsub = websocketService.on('settings_updated', triggerRealtime)
-    window.addEventListener('focus', triggerFocus)
-    return () => {
-      unsub()
-      window.removeEventListener('focus', triggerFocus)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetch = async () => {
       try {
         setLoading(true)
@@ -280,18 +214,25 @@ export function useContactInfo() {
           bannerService.getContactPhone(),
           bannerService.getContactAddress(),
         ])
-        setEmail(e)
-        setPhone(p)
-        setAddress(a)
+        if (isMounted) {
+          setEmail(e)
+          setPhone(p)
+          setAddress(a)
+        }
       } catch {
-        setEmail(null)
-        setPhone(null)
-        setAddress(null)
+        if (isMounted) {
+          setEmail(null)
+          setPhone(null)
+          setAddress(null)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetch()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { email, phone, address, loading }
@@ -299,30 +240,21 @@ export function useContactInfo() {
 
 export function usePopupBanner() {
   const [popupBanner, setPopupBanner] = useState<string | null>(null)
+  const [popupMobileImage, setPopupMobileImage] = useState<string | null>(null)
   const [popupLink, setPopupLink] = useState<string>('/products')
   const [isPopupEnabled, setIsPopupEnabled] = useState<boolean>(true)
+  const [desktopTemplate, setDesktopTemplate] = useState<string>('square')
+  const [desktopMaxWidth, setDesktopMaxWidth] = useState<number>(480)
+  const [desktopAspectRatio, setDesktopAspectRatio] = useState<string>('1 / 1')
   const [mobileTemplate, setMobileTemplate] = useState<string>('square')
   const [mobileMaxWidth, setMobileMaxWidth] = useState<number>(320)
   const [mobileAspectRatio, setMobileAspectRatio] = useState<string>('1 / 1')
   const [objectFit, setObjectFit] = useState<'cover' | 'contain'>('cover')
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtime = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocus = () => setAttempt((a) => a + 1)
-    const unsub = websocketService.on('settings_updated', triggerRealtime)
-    window.addEventListener('focus', triggerFocus)
-    return () => {
-      unsub()
-      window.removeEventListener('focus', triggerFocus)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetch = async () => {
       try {
         setLoading(true)
@@ -330,28 +262,44 @@ export function usePopupBanner() {
           bannerService.getPopupBannerData(),
           bannerService.isPopupEnabled(),
         ])
-        setPopupBanner(bannerData?.image ?? null)
-        setPopupLink(bannerData?.link ?? '/products')
-        setIsPopupEnabled(enabled)
-        setMobileTemplate(bannerData?.mobileTemplate ?? 'square')
-        setMobileMaxWidth(bannerData?.mobileMaxWidth ?? 320)
-        setMobileAspectRatio(bannerData?.mobileAspectRatio ?? '1 / 1')
-        setObjectFit(bannerData?.objectFit ?? 'cover')
+        if (isMounted) {
+          setPopupBanner(bannerData?.image ?? null)
+          setPopupMobileImage(bannerData?.mobileImage ?? null)
+          setPopupLink(bannerData?.link ?? '/products')
+          setIsPopupEnabled(enabled)
+          setDesktopTemplate(bannerData?.desktopTemplate ?? 'square')
+          setDesktopMaxWidth(bannerData?.desktopMaxWidth ?? 480)
+          setDesktopAspectRatio(bannerData?.desktopAspectRatio ?? '1 / 1')
+          setMobileTemplate(bannerData?.mobileTemplate ?? 'square')
+          setMobileMaxWidth(bannerData?.mobileMaxWidth ?? 320)
+          setMobileAspectRatio(bannerData?.mobileAspectRatio ?? '1 / 1')
+          setObjectFit(bannerData?.objectFit ?? 'cover')
+        }
       } catch {
-        setPopupBanner(null)
-        setPopupLink('/products')
-        setIsPopupEnabled(false)
+        if (isMounted) {
+          setPopupBanner(null)
+          setPopupMobileImage(null)
+          setPopupLink('/products')
+          setIsPopupEnabled(false)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetch()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return {
     popupBanner,
+    popupMobileImage,
     popupLink,
     isPopupEnabled,
+    desktopTemplate,
+    desktopMaxWidth,
+    desktopAspectRatio,
     mobileTemplate,
     mobileMaxWidth,
     mobileAspectRatio,
@@ -371,33 +319,23 @@ export function useLogoConfig() {
     maxWidthPx: 180,
   })
   const [loading, setLoading] = useState(true)
-  const [attempt, setAttempt] = useState(0)
+  const attempt = useCmsRefreshTrigger(false)
 
   useEffect(() => {
-    const triggerRealtime = () => {
-      bannerService.invalidateCache()
-      setAttempt((a) => a + 1)
-    }
-    const triggerFocus = () => setAttempt((a) => a + 1)
-    const unsub = websocketService.on('settings_updated', triggerRealtime)
-    window.addEventListener('focus', triggerFocus)
-    return () => {
-      unsub()
-      window.removeEventListener('focus', triggerFocus)
-    }
-  }, [])
-
-  useEffect(() => {
+    let isMounted = true
     const fetchConfig = async () => {
       try {
         setLoading(true)
         const cfg = await bannerService.getLogoConfig()
-        setConfig(cfg)
+        if (isMounted) setConfig(cfg)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchConfig()
+    return () => {
+      isMounted = false
+    }
   }, [attempt])
 
   return { config, loading }

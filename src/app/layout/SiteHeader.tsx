@@ -169,7 +169,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
+        <div className="flex min-h-16 py-1.5 items-center justify-between gap-4">
           <Link to="/" className="shrink-0 flex items-center gap-2">
             {dynamicLogoUrl ? (
               <img

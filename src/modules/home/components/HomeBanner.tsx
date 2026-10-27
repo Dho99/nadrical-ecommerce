@@ -10,9 +10,12 @@ interface BannerSlide {
   title: string
   subtitle: string
   image: string
+  imageMobile?: string
   href: string
   cta: string
   align?: 'left' | 'center'
+  desktopTemplate?: string
+  desktopHeightPx?: number
   mobileTemplate?: string
   mobileHeightPx?: number
 }
@@ -75,8 +78,11 @@ export function HomeBanner() {
           title: s.title || '',
           subtitle: s.subtitle || '',
           image: s.image,
+          imageMobile: s.imageMobile,
           href: s.ctaHref || '/products',
           cta: s.ctaLabel || '',
+          desktopTemplate: s.desktopTemplate,
+          desktopHeightPx: s.desktopHeightPx,
           mobileTemplate: s.mobileTemplate,
           mobileHeightPx: s.mobileHeightPx,
         }))
@@ -132,20 +138,36 @@ export function HomeBanner() {
 
   const currentSlide = slides[active] || slides[0]
   const mobileTemplate = currentSlide?.mobileTemplate || 'widescreen_16_9'
-  let mobileHeightClass = 'h-[50vh] sm:h-[75vh]'
-  let mobileStyleHeight: string | undefined = undefined
+  const desktopTemplate = currentSlide?.desktopTemplate
+
+  let mobileHeightClass = 'aspect-[16/9] sm:aspect-auto'
+  let desktopHeightClass = 'sm:h-[480px]'
+  const inlineStyles: Record<string, string> = {}
 
   if (mobileTemplate === 'marketplace_2_1') {
-    mobileHeightClass = 'h-[200px] sm:h-[75vh]'
+    mobileHeightClass = 'aspect-[2/1] sm:aspect-auto'
   } else if (mobileTemplate === 'widescreen_16_9') {
-    mobileHeightClass = 'h-[220px] sm:h-[75vh]'
+    mobileHeightClass = 'aspect-[16/9] sm:aspect-auto'
   } else if (mobileTemplate === 'showcase_4_3') {
-    mobileHeightClass = 'h-[280px] sm:h-[75vh]'
+    mobileHeightClass = 'aspect-[4/3] sm:aspect-auto'
   } else if (mobileTemplate === 'editorial_4_5') {
-    mobileHeightClass = 'h-[420px] sm:h-[75vh]'
+    mobileHeightClass = 'aspect-[4/5] sm:aspect-auto'
   } else if (mobileTemplate === 'custom') {
-    mobileHeightClass = 'h-[var(--banner-mobile-h)] sm:h-[75vh]'
-    mobileStyleHeight = `${currentSlide?.mobileHeightPx || 220}px`
+    mobileHeightClass = 'h-[var(--banner-mobile-h)]'
+    inlineStyles['--banner-mobile-h'] = `${currentSlide?.mobileHeightPx || 220}px`
+  }
+
+  if (desktopTemplate === 'compact') {
+    desktopHeightClass = 'sm:h-[380px]'
+  } else if (desktopTemplate === 'standard') {
+    desktopHeightClass = 'sm:h-[480px]'
+  } else if (desktopTemplate === 'large') {
+    desktopHeightClass = 'sm:h-[600px]'
+  } else if (desktopTemplate === 'cinematic') {
+    desktopHeightClass = 'sm:h-[720px]'
+  } else if (desktopTemplate === 'custom') {
+    desktopHeightClass = 'sm:h-[var(--banner-desktop-h)]'
+    inlineStyles['--banner-desktop-h'] = `${currentSlide?.desktopHeightPx || 480}px`
   }
 
   return (
@@ -161,12 +183,8 @@ export function HomeBanner() {
       aria-label="Featured collections"
     >
       <div
-        className={`relative ${mobileHeightClass} max-h-[85vh] transition-all duration-300`}
-        style={
-          mobileStyleHeight
-            ? ({ ['--banner-mobile-h' as string]: mobileStyleHeight } as React.CSSProperties)
-            : undefined
-        }
+        className={`relative ${mobileHeightClass} ${desktopHeightClass} max-h-[85vh] transition-all duration-300`}
+        style={Object.keys(inlineStyles).length > 0 ? (inlineStyles as React.CSSProperties) : undefined}
       >
         {slides.map((slide, idx) => {
           const hasContent = Boolean(
@@ -181,13 +199,20 @@ export function HomeBanner() {
               }`}
               aria-hidden={idx !== active}
             >
-              <img
-                src={slide.image}
-                alt=""
-                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out ${idx === active ? 'scale-100' : 'scale-105'}`}
-                loading={idx === 0 ? 'eager' : 'lazy'}
-                draggable={false}
-              />
+              <picture className="absolute inset-0 h-full w-full">
+                {slide.imageMobile && (
+                  <source media="(max-width: 639px)" srcSet={slide.imageMobile} />
+                )}
+                <img
+                  src={slide.image}
+                  alt=""
+                  className={`h-full w-full object-cover transition-transform duration-[1200ms] ease-out ${
+                    idx === active ? 'scale-100' : 'scale-105'
+                  }`}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  draggable={false}
+                />
+              </picture>
               {/* bro.do style: subtle dark overlay + left gradient for legibility */}
               {hasContent && (
                 <>
