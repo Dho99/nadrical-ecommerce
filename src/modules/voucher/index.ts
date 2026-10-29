@@ -1,4 +1,5 @@
 export { VoucherField } from './components/VoucherField'
 export { useVoucher } from './hooks/useVoucher'
+export { useCustomerVouchers } from './hooks/useCustomerVouchers'
 export { voucherService } from './services/voucher.service'
-export type { Voucher, AppliedVoucher } from './types/voucher.type'
+export type { Voucher, AppliedVoucher, CustomerVoucher, ClaimableLoyaltyVoucher, VoucherTargetType } from './types/voucher.type'

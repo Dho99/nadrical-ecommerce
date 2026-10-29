@@ -1,6 +1,6 @@
 import api, { getErrorMessage, unwrapData } from '../../../shared/lib/api'
 import { formatPrice } from '../../../shared/utils/format'
-import type { Voucher } from '../types/voucher.type'
+import type { Voucher, CustomerVoucher, ClaimableLoyaltyVoucher } from '../types/voucher.type'
 
 export function normalizeVoucher(raw: unknown): Voucher | null {
   if (!raw || typeof raw !== 'object') return null
@@ -73,6 +73,7 @@ export function normalizeVoucher(raw: unknown): Voucher | null {
     valid_from_date: typeof item.valid_from_date === 'string' ? item.valid_from_date : undefined,
     valid_to_date: expires_at,
     is_active: active,
+    target_type: typeof item.target_type === 'string' ? (item.target_type as any) : 'all',
   }
 }
 
@@ -168,4 +169,39 @@ export const voucherService = {
     const finalDiscount = Math.min(voucher.value, sub)
     return isNaN(finalDiscount) ? 0 : Math.max(0, finalDiscount)
   },
+
+  async getMyVouchers(): Promise<CustomerVoucher[]> {
+    try {
+      const res = await api.get<{ success: boolean; data?: any[] }>('/ecommerce/vouchers/my-vouchers')
+      const raw = unwrapData<any[]>(res.data as any) ?? res.data?.data ?? []
+      if (!Array.isArray(raw)) return []
+      return raw.map((item) => ({
+        ...item,
+        voucher: normalizeVoucher(item.voucher) as Voucher,
+      }))
+    } catch {
+      return []
+    }
+  },
+
+  async getClaimableLoyaltyVouchers(): Promise<ClaimableLoyaltyVoucher[]> {
+    try {
+      const res = await api.get<{ success: boolean; data?: any[] }>('/ecommerce/vouchers/claimable-loyalty')
+      const raw = unwrapData<any[]>(res.data as any) ?? res.data?.data ?? []
+      if (!Array.isArray(raw)) return []
+      return raw.map((item) => ({
+        voucher: normalizeVoucher(item.voucher) as Voucher,
+        is_claimed: Boolean(item.is_claimed),
+        tier_name: String(item.tier_name || ''),
+      }))
+    } catch {
+      return []
+    }
+  },
+
+  async claimLoyaltyVoucher(voucherId: string): Promise<{ success: boolean; message: string }> {
+    const res = await api.post<{ success: boolean; message: string }>(`/ecommerce/vouchers/${voucherId}/claim`)
+    return res.data
+  },
 }
+

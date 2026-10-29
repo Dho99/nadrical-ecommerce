@@ -20,6 +20,11 @@ export function VoucherField({ subtotal, shipping }: VoucherFieldProps) {
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
+        const myVouchers = await voucherService.getMyVouchers()
+        if (myVouchers.length > 0) {
+          setSuggestions(myVouchers.map((mv) => mv.voucher).filter((v): v is Voucher => Boolean(v && v.code)))
+          return
+        }
         const list = await voucherService.list()
         setSuggestions(list)
       } catch {
