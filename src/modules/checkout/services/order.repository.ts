@@ -1,4 +1,4 @@
-import api, { unwrapData } from '../../../shared/lib/api'
+import api, { getAuthToken, unwrapData } from '../../../shared/lib/api'
 import type { OrderWithItems } from '../../../shared/types/order.type'
 import type { DbOrder, DbOrderItem } from '../../../shared/types/database.type'
 
@@ -139,13 +139,17 @@ interface ApiOrderItem {
 
 export const orderRepository = {
   async list(): Promise<OrderWithItems[]> {
-    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number } }>('/ecommerce/orders')
+    if (!getAuthToken()) return []
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number } }>('/ecommerce/orders', {
+      params: { scope: 'my' },
+    })
     const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
     return list.map(toOrderWithItems)
   },
 
   async listPage(cursor: number | null, limit: number): Promise<{ items: OrderWithItems[]; total: number; nextCursor: number | null; prevCursor: number | null }> {
-    const params: Record<string, string> = { limit: String(limit) }
+    if (!getAuthToken()) return { items: [], total: 0, nextCursor: null, prevCursor: null }
+    const params: Record<string, string> = { limit: String(limit), scope: 'my' }
     if (cursor !== null) params.page = String(Math.floor(cursor / limit) + 1)
     const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', { params })
     const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
@@ -159,7 +163,10 @@ export const orderRepository = {
   },
 
   async get(id: string): Promise<OrderWithItems | null> {
-    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder }>('/ecommerce/orders/' + id)
+    if (!getAuthToken()) return null
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder }>('/ecommerce/orders/' + id, {
+      params: { scope: 'my' },
+    })
     const order = unwrapData<ApiOrder>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder }) ?? res.data.data
     return order ? toOrderWithItems(order) : null
   },

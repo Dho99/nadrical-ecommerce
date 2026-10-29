@@ -1,4 +1,5 @@
 import { formatPrice } from '../../../shared/utils/format'
+import { getAuthToken } from '../../../shared/lib/api'
 import { orderRepository } from '../../checkout/services/order.repository'
 import { SEED_ANNOUNCEMENTS } from '../constants/notification.constants'
 import type { AppNotification } from '../types/notification.type'
@@ -58,11 +59,17 @@ export const notificationService = {
       changed = true
     }
 
-    try {
-      const allOrders = await orderRepository.list()
-      const orders = allOrders.filter((o) => (o.user_id ?? '').toLowerCase() === email.toLowerCase())
+    if (email && getAuthToken()) {
+      try {
+        const allOrders = await orderRepository.list()
+        const orders = allOrders.filter(
+          (o) =>
+            (o.email ?? '').toLowerCase() === email.toLowerCase() ||
+            (o.user_id ?? '').toLowerCase() === email.toLowerCase() ||
+            !o.email,
+        )
 
-      for (const order of orders) {
+        for (const order of orders) {
         const current = order.status ?? 'pending_payment'
         const last = store.lastStatus[order.order_number]
         const etaDays = order.shipping_method === 'express' ? 1 : 4
@@ -131,10 +138,11 @@ export const notificationService = {
             store.items.push(item)
             websocketService.send({ type: 'notification', payload: item })
           }
+          }
         }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
 
     if (changed) notificationRepository.save(store)
