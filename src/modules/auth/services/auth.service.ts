@@ -1,4 +1,4 @@
-import api, { getErrorMessage, setAuthToken, unwrapData } from '../../../shared/lib/api'
+import api, { getAuthToken, getErrorMessage, setAuthToken, unwrapData } from '../../../shared/lib/api'
 import type { AuthResult, AuthRoleName, AuthUser } from '../types/auth.type'
 
 export interface UpdateProfileInput {
@@ -125,7 +125,7 @@ export const authService = {
   },
 
   async getProfile(): Promise<AuthUser | null> {
-    // Source of truth: HttpOnly session cookie validated by backend.
+    if (!getAuthToken()) return null
     try {
       const res = await api.get<StandardApiResponse<BackendAkun>>('/auth/profile')
       const akun = unwrapData<BackendAkun>(res.data) ?? res.data.data

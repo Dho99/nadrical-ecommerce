@@ -1,7 +1,6 @@
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ThemeProvider } from '../../shared/components/ThemeProvider'
 import { GlobalAlertDialog } from '../../shared/components/GlobalAlertDialog'
-import { PromoDialog } from '../../modules/promo'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '../routes'
 
@@ -12,7 +11,6 @@ export function AppProviders() {
     <>
       <RouterProvider router={router} />
       <GlobalAlertDialog />
-      <PromoDialog />
     </>
   )
 

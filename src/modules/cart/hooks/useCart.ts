@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 import type { ProductBrief } from '../../../shared/types/product.type'
 import type { CartItem } from '../types/cart.type'
 import { cartService } from '../services/cart.service'
+import { getAuthToken } from '../../../shared/lib/api'
 import { useAuthStore } from '../../auth/hooks/useAuth'
 
 interface CartStore {
@@ -33,10 +34,7 @@ export const useCartStore = create<CartStore>()(
       setItems: (items) => set({ items }),
 
       syncFromBackend: async () => {
-        // Cookie session: backend decides auth via HttpOnly cookie.
-        // Skip only when UI is explicitly unauthenticated to avoid
-        // pointless 401 noise; never gate on a client-side token.
-        if (!useAuthStore.getState().isAuthenticated) return
+        if (!getAuthToken() || !useAuthStore.getState().isAuthenticated) return
         set({ syncing: true })
         try {
           const remote = await cartService.fetchCart()
