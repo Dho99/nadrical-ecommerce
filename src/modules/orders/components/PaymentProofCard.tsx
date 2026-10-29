@@ -12,12 +12,6 @@ interface PaymentProofCardProps {
   onUpdated: () => void
 }
 
-const MANUAL_ACCOUNTS = [
-  { bank: 'BCA', number: '8001234567', name: 'PT Nadrical Compro' },
-  { bank: 'Mandiri', number: '1370012345678', name: 'PT Nadrical Compro' },
-  { bank: 'BRI', number: '012301001234567', name: 'PT Nadrical Compro' },
-]
-
 function resolveProofUrl(url?: string | null): string {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -32,10 +26,12 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
   const hasProof = Boolean(payment?.payment_proof_url)
   const isPendingVerification = !isPaid && hasProof && !isRejected
 
-  const [accounts, setAccounts] = useState(MANUAL_ACCOUNTS)
+  const [accounts, setAccounts] = useState<Array<{ bank: string; number: string; name: string }>>([])
+  const [accountsLoading, setAccountsLoading] = useState(true)
+  const [accountsError, setAccountsError] = useState<string | null>(null)
   const [showUploadForm, setShowUploadForm] = useState(!hasProof || isRejected)
   const [senderName, setSenderName] = useState(payment?.sender_name || payment?.payer_name || order.recipient_name || '')
-  const [senderBank, setSenderBank] = useState(payment?.sender_bank || payment?.payer_bank || 'BCA')
+  const [senderBank, setSenderBank] = useState(payment?.sender_bank || payment?.payer_bank || '')
   const [referenceNumber, setReferenceNumber] = useState(payment?.reference_number || '')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -43,20 +39,35 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
-    orderRepository.fetchPaymentMethods().then((methods) => {
-      if (methods && methods.length > 0) {
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch lifecycle
+    setAccountsLoading(true)
+    setAccountsError(null)
+    orderRepository
+      .fetchPaymentMethods()
+      .then((methods) => {
+        if (cancelled) return
         const banks = methods
           .filter((m) => (m.gateway_code === 'manual' || m.category === 'BANK_TRANSFER') && m.account_number)
           .map((m) => ({
             bank: m.bank_name || m.name,
             number: m.account_number || '',
-            name: m.account_holder_name || m.account_holder || 'PT Nadrical Compro',
+            name: m.account_holder_name || m.account_holder || '',
           }))
-        if (banks.length > 0) {
-          setAccounts(banks)
+        setAccounts(banks)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setAccounts([])
+          setAccountsError(err instanceof Error ? err.message : 'Gagal memuat rekening tujuan')
         }
-      }
-    }).catch(() => {})
+      })
+      .finally(() => {
+        if (!cancelled) setAccountsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const copyText = (text: string, label: string) => {
@@ -249,34 +260,42 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Silakan transfer tepat sesuai nominal tagihan ke salah satu rekening resmi kami di bawah ini:
+            Silakan transfer tepat sesuai nominal tagihan ke rekening resmi kami di bawah ini:
           </p>
 
-          <div className="grid gap-2.5 sm:grid-cols-3">
-            {accounts.map((acc) => (
-              <div
-                key={acc.bank}
-                className="relative flex flex-col justify-between rounded-md border bg-card p-3 shadow-2xs hover:border-primary/50 transition-colors"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs uppercase tracking-wider text-primary">{acc.bank}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={`Salin no rek ${acc.bank}`}
-                      onClick={() => copyText(acc.number.replace(/-/g, ''), `Nomor rekening ${acc.bank}`)}
-                    >
-                      <Copy className="size-3" />
-                    </Button>
+          {accountsLoading ? (
+            <p className="text-xs text-muted-foreground">Memuat rekening tujuan…</p>
+          ) : accounts.length === 0 ? (
+            <p className="text-xs text-destructive">
+              Rekening tujuan belum tersedia. {accountsError || 'Hubungi admin toko.'}
+            </p>
+          ) : (
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              {accounts.map((acc) => (
+                <div
+                  key={`${acc.bank}-${acc.number}`}
+                  className="relative flex flex-col justify-between rounded-md border bg-card p-3 shadow-2xs transition-colors hover:border-primary/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-wider text-primary uppercase">{acc.bank}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Salin no rek ${acc.bank}`}
+                        onClick={() => copyText(acc.number.replace(/-/g, ''), `Nomor rekening ${acc.bank}`)}
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    </div>
+                    <p className="mt-1 font-mono text-sm font-semibold tracking-tight">{acc.number}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{acc.name}</p>
                   </div>
-                  <p className="mt-1 font-mono text-sm font-semibold tracking-tight">{acc.number}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{acc.name}</p>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

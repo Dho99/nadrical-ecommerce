@@ -42,7 +42,7 @@ export const customerSchema = z.object({
 })
 
 export const shippingSchema = z.object({
-  shipping_method: z.enum(['standard', 'express', 'jne', 'jnt', 'sicepat']),
+  shipping_method: z.string().trim().min(1, 'Pilih metode pengiriman'),
 })
 
 export const cardSchema = z.object({
@@ -59,8 +59,8 @@ export const cardSchema = z.object({
 })
 
 export const paymentMethodSchema = z.object({
-  payment_method: z.enum(['bank', 'e-money', 'card'] as const).default('card'),
-  payment_provider: z.string().trim().optional(),
+  payment_method: z.enum(['bank', 'e-money', 'card'] as const).default('bank'),
+  payment_provider: z.string().trim().min(1, 'Pilih rekening tujuan'),
 })
 
 export const checkoutSchema = customerSchema

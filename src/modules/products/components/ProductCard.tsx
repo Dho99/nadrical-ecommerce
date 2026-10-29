@@ -101,7 +101,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       <CardContent className="flex min-w-0 grow flex-col gap-0.5 px-3.5 pt-2 pb-3">
         <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
-          {CATEGORY_LABEL[product.category_id]}
+          {CATEGORY_LABEL[product.category_id] ?? product.category_name}
         </p>
 
         <h3 className="line-clamp-2 break-words font-display text-[15px] font-semibold leading-snug tracking-tight">

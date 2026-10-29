@@ -10,6 +10,8 @@ export interface AuthUser {
   phone?: string
   avatar_url?: string
   role_name: AuthRoleName
+  loyalty_points?: number
+  loyalty_id?: string
 }
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';

@@ -13,7 +13,7 @@ export function useAnnouncements() {
     const unsub1 = websocketService.on('announcement_updated', triggerRefetch)
     const unsub2 = websocketService.on('announcement', triggerRefetch)
     const unsub3 = websocketService.on('announcements_updated', triggerRefetch)
-    const unsub4 = websocketService.on('data_updated', (payload: any) => {
+    const unsub4 = websocketService.on('data_updated', (payload: { resource?: string } | null) => {
       if (!payload || payload.resource === 'announcements' || payload.resource === 'pengumuman') {
         triggerRefetch()
       }

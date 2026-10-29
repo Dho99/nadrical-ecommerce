@@ -24,6 +24,8 @@ interface BackendAkun {
   avatar_url?: string
   image?: string
   status?: string
+  loyalty_points?: number
+  loyalty_id?: string
   roles?: BackendRole[]
 }
 
@@ -59,6 +61,8 @@ function toAuthUser(akun: BackendAkun): AuthUser {
     phone: akun.phone || undefined,
     avatar_url: akun.avatar_url || akun.image || undefined,
     role_name: parseRole(akun.roles),
+    loyalty_points: Number(akun.loyalty_points ?? 0),
+    loyalty_id: akun.loyalty_id || undefined,
   }
 }
 

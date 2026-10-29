@@ -28,7 +28,7 @@ const STEP_FIELDS: Array<Array<keyof CheckoutInput>> = [
     'shipping_postal_code',
   ],
   ['shipping_method'],
-  ['card_name', 'card_number', 'expiry', 'cvc'],
+  ['payment_method', 'payment_provider'],
 ]
 
 interface UseCheckoutResult {
@@ -55,7 +55,7 @@ export function useCheckout(
     mode: 'onTouched',
     defaultValues: {
       shipping_method: 'standard',
-      payment_method: 'card',
+      payment_method: 'bank',
       ...initialValues,
     },
   })
@@ -65,18 +65,14 @@ export function useCheckout(
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null)
   const { applied, discount } = useVoucher()
   const shippingMethod = useCheckoutRuntime((s) => s.shippingMethod)
+  const shippingMethodData = useCheckoutRuntime((s) => s.shippingMethodData)
+  const paymentMethod = useCheckoutRuntime((s) => s.paymentMethod)
   const paymentKind = useCheckoutRuntime((s) => s.paymentKind)
 
   const isFirstStep = step === 0
   const isLastStep = step === CHECKOUT_STEPS.length - 1
 
-  const fieldsForStep = (): Array<keyof CheckoutInput> => {
-    if (step !== 2) return STEP_FIELDS[step]
-    const method = (form.getValues('payment_method') ?? 'card') as CheckoutInput['payment_method']
-    return method === 'card'
-      ? [...STEP_FIELDS[2], 'payment_method']
-      : ['payment_method']
-  }
+  const fieldsForStep = (): Array<keyof CheckoutInput> => STEP_FIELDS[step]
 
   const next = async () => {
     const fields = fieldsForStep().map((f) => f as Path<CheckoutInput>)
@@ -101,7 +97,7 @@ export function useCheckout(
     setStep(0)
     form.reset({
       shipping_method: 'standard',
-      payment_method: 'card',
+      payment_method: 'bank',
       ...initialValues,
     })
     useCheckoutRuntime.getState().reset()
@@ -112,11 +108,16 @@ export function useCheckout(
     setIsSubmitting(true)
     setError(null)
     try {
+      if (!paymentMethod) {
+        throw new Error('Pilih metode pembayaran terlebih dahulu')
+      }
       const subtotal = Number(payloadBase.totals.subtotal) || 0
-      const quote = shippingService.quote(shippingMethod, subtotal)
+      const quote = shippingMethodData
+        ? shippingService.quoteGateway(shippingMethodData)
+        : shippingService.quote(shippingMethod, subtotal)
       const rawDiscount = applied ? discount(subtotal, quote.cost) : 0
       const voucherDiscount = Math.max(0, Number(rawDiscount) || 0)
-      const paymentFee = Math.max(0, Number(paymentService.fee(paymentKind, subtotal)) || 0)
+      const paymentFee = Math.max(0, Number(paymentService.fee(paymentMethod, subtotal)) || 0)
 
       let taxTotal = 0
       try {
@@ -137,17 +138,18 @@ export function useCheckout(
 
       const payment: PaymentDetail = {
         kind: values.payment_method ?? paymentKind,
-        provider:
-          values.payment_provider ||
-          useCheckoutRuntime.getState().paymentProvider ||
-          undefined,
+        provider: paymentMethod.code,
+        method_code: paymentMethod.code,
+        method_name: paymentMethod.name,
+        bank_name: paymentMethod.bank_name,
+        account_number: paymentMethod.account_number,
+        account_holder: paymentMethod.account_holder_name || paymentMethod.account_holder,
+        instructions: paymentMethod.instructions,
       }
-      if (payment.kind === 'card') {
-        payment.card_name = values.card_name
-        payment.card_number = values.card_number
-        payment.expiry = values.expiry
-        payment.cvc = values.cvc
-      }
+
+      const etaDays = shippingMethodData
+        ? shippingService.gatewayEtaDays(shippingMethodData)
+        : shippingService.etaDays(shippingMethod)
 
       const payload: OrderPayload = {
         customer: {
@@ -161,7 +163,11 @@ export function useCheckout(
           shipping_postal_code: values.shipping_postal_code,
           shipping_country_code: values.shipping_country_code,
         },
-        shipping_method: shippingMethod,
+        shipping_method: shippingMethodData?.uuid ?? shippingMethod,
+        shipping_method_id: shippingMethodData?.uuid,
+        shipping_method_name: shippingMethodData?.full_name,
+        shipping_etd: shippingMethodData?.etd,
+        eta_days: etaDays,
         payment,
         items: payloadBase.items,
         totals: {

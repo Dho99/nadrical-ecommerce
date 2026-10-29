@@ -21,12 +21,15 @@ export const userReviewStorage = {
     }
   },
 
-  addReview(data: Omit<UserReview, 'id' | 'createdAt'>): UserReview {
+  addReview(
+    data: Omit<UserReview, 'id' | 'createdAt'>,
+    meta?: { id?: string; createdAt?: string },
+  ): UserReview {
     const list = this.getReviews()
     const newReview: UserReview = {
       ...data,
-      id: `usr-rev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      createdAt: new Date().toISOString(),
+      id: meta?.id || `usr-rev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: meta?.createdAt || new Date().toISOString(),
     }
     const updated = [newReview, ...list]
     try {

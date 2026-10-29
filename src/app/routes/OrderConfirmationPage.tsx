@@ -1,92 +1,22 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CreditCard, Loader2, ShieldCheck } from 'lucide-react'
-import { toast } from '@/shared/lib/alert'
 import { Button, Card, Separator } from '../../shared/components/ui'
 import { formatPrice } from '../../shared/utils/format'
-import type { OrderConfirmation } from '../../modules/checkout/types/checkout.type'
-
-const STORAGE_KEY = 'last-order-confirmation'
-
-type StoredConfirmation = {
-  order_number: string
-  placed_at: string
-  email: string
-  eta_days: number
-  grand_total: number
-}
-
-function isStoredConfirmation(v: unknown): v is StoredConfirmation {
-  if (v === null || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  return (
-    typeof o.order_number === 'string' &&
-    typeof o.placed_at === 'string' &&
-    typeof o.email === 'string' &&
-    typeof o.eta_days === 'number' &&
-    typeof o.grand_total === 'number'
-  )
-}
-
-function isOrderConfirmationState(v: unknown): v is OrderConfirmation {
-  if (v === null || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  const placed = o.placed_at
-  const validDate = placed instanceof Date || typeof placed === 'string'
-  return (
-    typeof o.order_number === 'string' &&
-    validDate &&
-    typeof o.email === 'string' &&
-    typeof o.eta_days === 'number' &&
-    typeof o.grand_total === 'number'
-  )
-}
-
-function reviveConfirmation(v: OrderConfirmation | StoredConfirmation): OrderConfirmation {
-  const placed = (v as { placed_at: unknown }).placed_at
-  const date = placed instanceof Date ? placed : new Date(typeof placed === 'string' ? placed : new Date().toISOString())
-  return {
-    order_number: v.order_number,
-    email: v.email,
-    eta_days: v.eta_days,
-    grand_total: v.grand_total,
-    placed_at: date,
-  }
-}
+import { readOrderConfirmation } from '../../modules/checkout/utils/confirmation.utils'
 
 export function OrderConfirmationPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [confirming, setConfirming] = useState(false)
 
-  const confirmation = useMemo<OrderConfirmation | null>(() => {
-    const state = location.state as unknown
-    if (isOrderConfirmationState(state)) return reviveConfirmation(state as OrderConfirmation | StoredConfirmation)
-    if (state !== null && typeof state === 'object') {
-      const maybeWrapped = (state as Record<string, unknown>).confirmation as unknown
-      if (isOrderConfirmationState(maybeWrapped)) return reviveConfirmation(maybeWrapped as OrderConfirmation | StoredConfirmation)
-      if (isStoredConfirmation(maybeWrapped)) return reviveConfirmation(maybeWrapped)
-    }
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw)
-        if (isStoredConfirmation(parsed)) return reviveConfirmation(parsed)
-        if (isOrderConfirmationState(parsed)) return reviveConfirmation(parsed as OrderConfirmation | StoredConfirmation)
-      }
-    } catch {
-      // ignore
-    }
-    return null
-  }, [location.state])
+  const confirmation = useMemo(() => readOrderConfirmation(location.state), [location.state])
 
   const handleConfirm = async () => {
     if (!confirmation) return
     setConfirming(true)
-    // Mock payment delay — simulate gateway processing
-    await new Promise((r) => setTimeout(r, 1200))
-    toast.success('Pembayaran berhasil dikonfirmasi')
-    navigate('/checkout/success', { state: confirmation, replace: true })
+    navigate('/checkout/upload-proof', { state: confirmation, replace: true })
+    setConfirming(false)
   }
 
   if (!confirmation) {
@@ -117,7 +47,7 @@ export function OrderConfirmationPage() {
         </span>
         <h1 className="mt-4 font-display text-3xl font-bold tracking-tight">Konfirmasi Pembayaran</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Periksa detail pesanan di bawah ini sebelum menyelesaikan pembayaran. Ini adalah simulasi mock payment.
+          Periksa detail pesanan di bawah ini, lalu lanjutkan ke upload bukti transfer.
         </p>
 
         <Separator className="my-5" />
@@ -140,9 +70,17 @@ export function OrderConfirmationPage() {
               <dd className="break-words font-semibold">{formatPrice(confirmation.grand_total)}</dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Estimasi pengiriman</dt>
-              <dd className="font-medium">
-                {confirmation.eta_days} hari{confirmation.eta_days === 1 ? '' : ''}
+              <dt className="text-muted-foreground">Pengiriman</dt>
+              <dd className="text-right font-medium">
+                {confirmation.shipping_method_name || 'Kurir'}
+                {confirmation.shipping_etd ? ` · ${confirmation.shipping_etd}` : ` · ${confirmation.eta_days} hari`}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Pembayaran</dt>
+              <dd className="text-right font-medium">
+                {confirmation.payment_bank_name || confirmation.payment_method_name || 'Transfer Bank'}
+                {confirmation.payment_account_number ? ` · ${confirmation.payment_account_number}` : ''}
               </dd>
             </div>
             <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
@@ -153,14 +91,15 @@ export function OrderConfirmationPage() {
         </div>
 
         <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-          Dengan menekan <span className="font-semibold text-foreground">Konfirmasi Pesanan</span>, pembayaran mock akan diproses dan pesanan akan diteruskan ke halaman sukses.
+          Dengan menekan <span className="font-semibold text-foreground">Konfirmasi Pesanan</span>, kamu akan diarahkan
+          ke halaman upload bukti transfer, lalu transaksi masuk ke status <span className="font-semibold text-foreground">pending konfirmasi dari admin</span>.
         </div>
 
         <div className="mt-6 flex flex-col gap-3">
           <Button size="lg" className="w-full" disabled={confirming} onClick={handleConfirm}>
             {confirming ? (
               <>
-                <Loader2 className="size-4 animate-spin" /> Memproses pembayaran…
+                <Loader2 className="size-4 animate-spin" /> Melanjutkan…
               </>
             ) : (
               <>Konfirmasi Pesanan</>

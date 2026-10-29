@@ -16,6 +16,9 @@ import { ProductImage } from '../../shared/components/ProductImage'
 import { useDebounce } from '../../shared/hooks/useDebounce'
 import { productService } from '../../modules/products/services/product.service'
 import { useCurrency } from '../../modules/currency'
+import { useAuth } from '../../modules/auth'
+import { useGlobalSearch } from '../../modules/search'
+import type { GlobalSearchItem } from '../../modules/search'
 
 interface SearchDialogProps {
   open: boolean
@@ -25,9 +28,11 @@ interface SearchDialogProps {
 export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const navigate = useNavigate()
   const { format } = useCurrency()
+  const { isAuthed } = useAuth()
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const debounced = useDebounce(query, 300)
+  const globalSearch = useGlobalSearch(debounced, open && isAuthed)
 
   const [results, setResults] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
   const [related, setRelated] = useState<Awaited<ReturnType<typeof productService.getProducts>>>([])
@@ -103,6 +108,18 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   const handleProductClick = (id: string) => {
     navigate(`/products/${id}`)
+    reset()
+  }
+
+  const handleGlobalClick = (item: GlobalSearchItem) => {
+    const id = item.uuid || item.id
+    const resource = item.resource.toLowerCase()
+    if (resource === 'produk') navigate(`/products/${id}`)
+    else if (resource === 'pesanan') navigate(`/profile/orders/${id}`)
+    else if (resource === 'berita') navigate('/news')
+    else if (resource === 'faq') navigate('/faq')
+    else if (resource === 'voucher') navigate('/profile')
+    else return
     reset()
   }
 
@@ -319,6 +336,39 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                   </ul>
                 </div>
               )}
+            </div>
+          )}
+          {isAuthed && query.trim().length >= 2 && globalSearch.items.length > 0 && (
+            <div className="mt-3 border-t px-2 pt-3 pb-1">
+              <div className="flex items-center gap-1.5 px-1 pb-2">
+                <Sparkles className="size-3.5 text-primary" />
+                <p className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                  Hasil lain
+                </p>
+              </div>
+              <ul className="space-y-0.5">
+                {globalSearch.items.slice(0, 5).map((item) => (
+                  <li key={`${item.resource}-${item.uuid || item.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleGlobalClick(item)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
+                    >
+                      <span className="min-w-0 grow">
+                        <span className="block truncate text-sm font-medium">{item.title}</span>
+                        {item.subtitle && (
+                          <span className="block truncate text-xs text-muted-foreground">{item.subtitle}</span>
+                        )}
+                      </span>
+                      {item.badge && (
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

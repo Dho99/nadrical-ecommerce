@@ -3,7 +3,7 @@ import { formatPrice } from '../../../shared/utils/format'
 import { Card, Separator } from '../../../shared/components/ui'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
 import { VoucherField } from '../../voucher/components/VoucherField'
-import { shippingService } from '../services/shipping.service'
+import { useLoyaltyRate } from '../../loyalty/hooks/useLoyaltyRate'
 import { useCheckoutCalculation } from '../hooks/useCheckoutCalculation'
 import type { CartItem } from '../../cart/types/cart.type'
 import { CheckoutProductItem } from './CheckoutProductItem'
@@ -14,6 +14,7 @@ interface OrderSummaryProps {
 
 export function OrderSummary({ items }: OrderSummaryProps) {
   const { applied } = useVoucher()
+  const loyaltyRate = useLoyaltyRate()
   const {
     subtotal,
     shippingTotal,
@@ -21,19 +22,20 @@ export function OrderSummary({ items }: OrderSummaryProps) {
     voucherDiscount,
     taxes,
     grandTotal,
-    shippingMethod,
+    shippingMethodName,
+    shippingEta,
+    shippingEtaDays,
   } = useCheckoutCalculation({ items })
-  const etaDays = shippingService.etaDays(shippingMethod)
-  const method = shippingService.getMethod(shippingMethod)
+  const etaDays = shippingEtaDays
 
   const estimatedDate = new Date(
     // eslint-disable-next-line react-hooks/purity -- delivery estimate uses current time
     Date.now() + etaDays * 86400000,
   )
-  const loyaltyPoints = Math.max(0, Math.floor(grandTotal / 10)) || 0
+  const loyaltyPoints = Math.max(0, Math.floor(grandTotal / loyaltyRate)) || 0
 
   return (
-    <Card className="h-fit p-5 sm:p-6">
+    <Card className="h-fit p-4 sm:p-6">
       <h2 className="font-display text-lg font-bold tracking-tight">Your order</h2>
 
       <ul className="mt-4 divide-y">
@@ -56,7 +58,7 @@ export function OrderSummary({ items }: OrderSummaryProps) {
           <dd>{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">Shipping · {method.label}</dt>
+          <dt className="text-muted-foreground">Shipping · {shippingMethodName}</dt>
           <dd>{shippingTotal === 0 ? 'FREE' : formatPrice(shippingTotal)}</dd>
         </div>
         {paymentFee > 0 && (
@@ -93,7 +95,9 @@ export function OrderSummary({ items }: OrderSummaryProps) {
       <div className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed">
         <p className="font-medium">Delivery detail preview</p>
         <p className="mt-1 text-muted-foreground">Deliver to: <span className="text-foreground">your saved address</span></p>
-        <p className="text-muted-foreground">Estimated delivery {estimatedDate.toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+        <p className="text-muted-foreground">
+          Estimasi {shippingEta} · {estimatedDate.toLocaleDateString('en-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
         <p className="text-muted-foreground">Loyalty points you&apos;ll get: <span className="font-semibold text-foreground">{loyaltyPoints} pts</span></p>
         <p className="mt-1 text-muted-foreground">Shipping within 24 hours upon confirmation of payment</p>
       </div>

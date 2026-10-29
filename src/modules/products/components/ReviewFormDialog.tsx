@@ -70,24 +70,30 @@ export function ReviewFormDialog({
           style: { marginTop: '72px' },
           closeButton: true,
         })
+        const author = created.author && created.author !== 'Customer'
+          ? created.author
+          : reviewerName
         onSubmitted?.({
           id: created.id,
           productId: product.id,
           orderNumber,
           rating: created.rating,
           comment: created.comment,
-          reviewerName: created.author || reviewerName,
+          reviewerName: author,
           createdAt: created.created_at,
           variantName,
         })
-        userReviewStorage.addReview({
-          productId: product.id,
-          orderNumber,
-          rating,
-          comment: text,
-          reviewerName,
-          variantName,
-        })
+        userReviewStorage.addReview(
+          {
+            productId: product.id,
+            orderNumber,
+            rating,
+            comment: text,
+            reviewerName: author,
+            variantName,
+          },
+          { id: created.id, createdAt: created.created_at },
+        )
       } else {
         const review = userReviewStorage.addReview({
           productId: product.id,

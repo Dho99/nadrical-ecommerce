@@ -88,13 +88,7 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
 
   const normalizeCategory = (v: string | undefined) => {
     if (!v || v === 'all') return 'all'
-    const lower = v.toLowerCase().trim()
-    if (lower === 'home' || lower === 'home-living' || lower === 'home & living' || lower === 'homeliving') return 'home'
-    if (lower === 'electronics' || lower === 'electronic') return 'electronics'
-    if (lower === 'apparel' || lower === 'clothing') return 'apparel'
-    if (lower === 'accessories' || lower === 'accessory') return 'accessories'
-    if (lower === 'outdoors' || lower === 'outdoor') return 'outdoors'
-    return lower
+    return v.toLowerCase().trim()
   }
   const activeCategory = normalizeCategory(filters.category_id)
   const hasActiveFilters =

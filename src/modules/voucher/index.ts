@@ -1,4 +1,6 @@
 export { VoucherField } from './components/VoucherField'
+export { VoucherCatalogPage } from './pages/VoucherCatalogPage'
+export { VoucherDetailPage } from './pages/VoucherDetailPage'
 export { useVoucher } from './hooks/useVoucher'
 export { useCustomerVouchers } from './hooks/useCustomerVouchers'
 export { voucherService } from './services/voucher.service'

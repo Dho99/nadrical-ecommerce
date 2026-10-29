@@ -8,11 +8,14 @@ import { ProductRatingsPage } from './ProductRatingsPage'
 import { CartPage } from './CartPage'
 import { CheckoutPage } from './CheckoutPage'
 import { OrderConfirmationPage } from './OrderConfirmationPage'
+import { UploadProofPage } from './UploadProofPage'
+import { CheckoutPendingPage } from './CheckoutPendingPage'
 import { CheckoutSuccessPage } from './CheckoutSuccessPage'
 import { LoginPage } from './LoginPage'
 import { RegisterPage } from './RegisterPage'
 import { NotFoundPage } from './NotFoundPage'
 import { RequireAuth } from './RequireAuth'
+import { RequireAdmin } from './RequireAdmin'
 import { ProfilePage } from './ProfilePage'
 import { OrdersHistoryPage } from './OrdersHistoryPage'
 import { OrderDetailPage } from './OrderDetailPage'
@@ -25,6 +28,10 @@ import { FAQPage } from '../../modules/faq'
 import { TaxAdminPage } from '../../modules/tax'
 import { DashboardPage } from '../../modules/dashboard'
 import { CustomersPage } from '../../modules/customers'
+import { NewsListPage, NewsDetailPage } from '../../modules/news'
+import { AnnouncementsPage, AnnouncementDetailPage } from '../../modules/announcements'
+import { VoucherCatalogPage, VoucherDetailPage } from '../../modules/voucher'
+import { ReviewsPage } from './ReviewsPage'
 
 export const router = createBrowserRouter([
   {
@@ -61,6 +68,22 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/checkout/upload-proof',
+        element: (
+          <RequireAuth>
+            <UploadProofPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/checkout/pending',
+        element: (
+          <RequireAuth>
+            <CheckoutPendingPage />
+          </RequireAuth>
+        ),
+      },
+      {
         path: '/checkout/success',
         element: (
           <RequireAuth>
@@ -71,9 +94,9 @@ export const router = createBrowserRouter([
       {
         path: '/admin/settings',
         element: (
-          <RequireAuth>
+          <RequireAdmin>
             <SiteSettingsPage />
-          </RequireAuth>
+          </RequireAdmin>
         ),
       },
       {
@@ -97,28 +120,63 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/faq', element: <FAQPage /> },
+      { path: '/news', element: <NewsListPage /> },
+      { path: '/news/:slug', element: <NewsDetailPage /> },
+      { path: '/reviews', element: <ReviewsPage /> },
+      {
+        path: '/vouchers',
+        element: (
+          <RequireAuth>
+            <VoucherCatalogPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/vouchers/:id',
+        element: (
+          <RequireAuth>
+            <VoucherDetailPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/announcements',
+        element: (
+          <RequireAuth>
+            <AnnouncementsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/announcements/:id',
+        element: (
+          <RequireAuth>
+            <AnnouncementDetailPage />
+          </RequireAuth>
+        ),
+      },
       {
         path: '/admin/dashboard',
         element: (
-          <RequireAuth>
+          <RequireAdmin>
             <DashboardPage />
-          </RequireAuth>
+          </RequireAdmin>
         ),
       },
       {
         path: '/admin/tax',
         element: (
-          <RequireAuth>
+          <RequireAdmin>
             <TaxAdminPage />
-          </RequireAuth>
+          </RequireAdmin>
         ),
       },
       {
         path: '/admin/customers',
         element: (
-          <RequireAuth>
+          <RequireAdmin>
             <CustomersPage />
-          </RequireAuth>
+          </RequireAdmin>
         ),
       },
       { path: '*', element: <NotFoundPage /> },

@@ -3,8 +3,11 @@ import { useVoucher } from '../../voucher/hooks/useVoucher'
 import { useActiveTaxes } from '../../tax'
 import { paymentService } from '../services/payment.service'
 import { shippingService } from '../services/shipping.service'
+import { useShippingMethods } from './useShippingMethods'
 import type { CartItem } from '../../cart/types/cart.type'
 import type { PaymentKind, ShippingMethod } from '../types/checkout.type'
+import type { GatewayPaymentMethod } from '../services/order.repository'
+import { etaLabelFromEtd, shippingCourierLabel } from '../utils/gateway'
 import { useCheckoutRuntime } from './useCheckoutRuntime'
 
 interface UseCheckoutCalculationParams {
@@ -28,25 +31,36 @@ export interface CheckoutCalculation {
   grandTotal: number
   freeShipping: boolean
   shippingMethod: ShippingMethod
+  shippingMethodName: string
+  shippingEta: string
+  shippingEtaDays: number
+  paymentMethod: GatewayPaymentMethod | null
   paymentKind: PaymentKind
   taxesLoading: boolean
 }
 
 export function useCheckoutCalculation({ items }: UseCheckoutCalculationParams) {
   const shippingMethod = useCheckoutRuntime((s) => s.shippingMethod)
+  const shippingMethodData = useCheckoutRuntime((s) => s.shippingMethodData)
+  const paymentMethod = useCheckoutRuntime((s) => s.paymentMethod)
   const paymentKind = useCheckoutRuntime((s) => s.paymentKind)
   const { applied, discount } = useVoucher()
   const { taxes: activeTaxes, loading: taxesLoading } = useActiveTaxes()
+  const { methods } = useShippingMethods()
 
   return useMemo<CheckoutCalculation>(() => {
     const subtotal = items.reduce(
       (sum, item) => sum + (Number(item.unit_price) || 0) * (Number(item.quantity) || 0),
       0,
     )
-    const quote = shippingService.quote(shippingMethod, subtotal)
+    const gatewayMethod =
+      shippingMethodData ?? methods.find((method) => method.uuid === shippingMethod) ?? null
+    const quote = gatewayMethod
+      ? shippingService.quoteGateway(gatewayMethod)
+      : shippingService.quote(shippingMethod, subtotal)
     const rawDiscount = applied ? discount(subtotal, quote.cost) : 0
     const voucherDiscount = Math.max(0, Number(rawDiscount) || 0)
-    const paymentFee = Math.max(0, Number(paymentService.fee(paymentKind, subtotal)) || 0)
+    const paymentFee = Math.max(0, Number(paymentService.fee(paymentMethod, subtotal)) || 0)
 
     const taxableBase = Math.max(0, subtotal - voucherDiscount)
     const taxes: ActiveTaxLine[] = activeTaxes.map((t) => {
@@ -65,6 +79,10 @@ export function useCheckoutCalculation({ items }: UseCheckoutCalculationParams) 
       0,
       subtotal - voucherDiscount + taxTotal + quote.cost + paymentFee,
     )
+    const etaDays = gatewayMethod
+      ? shippingService.gatewayEtaDays(gatewayMethod)
+      : shippingService.etaDays(shippingMethod)
+
     return {
       subtotal,
       shippingTotal: quote.cost,
@@ -75,8 +93,16 @@ export function useCheckoutCalculation({ items }: UseCheckoutCalculationParams) 
       grandTotal,
       freeShipping: quote.free,
       shippingMethod,
+      shippingMethodName: gatewayMethod
+        ? shippingCourierLabel(gatewayMethod)
+        : shippingService.getMethod(shippingMethod).label,
+      shippingEta: gatewayMethod
+        ? etaLabelFromEtd(gatewayMethod.etd, etaDays)
+        : shippingService.getMethod(shippingMethod).eta,
+      shippingEtaDays: etaDays,
+      paymentMethod,
       paymentKind,
       taxesLoading,
     }
-  }, [items, shippingMethod, paymentKind, applied, discount, activeTaxes, taxesLoading])
+  }, [items, shippingMethod, shippingMethodData, paymentMethod, paymentKind, applied, discount, activeTaxes, taxesLoading, methods])
 }

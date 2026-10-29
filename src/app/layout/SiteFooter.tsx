@@ -1,10 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Mail, Phone, MapPin } from 'lucide-react'
-import { useState } from 'react'
-import { CATEGORIES } from '../../modules/products/constants/product.constants'
+import { useState, type CSSProperties } from 'react'
+import { useCategories } from '../../modules/products/hooks/useCategories'
 import { Input, Button } from '../../shared/components/ui'
 import { toast } from '../../shared/lib/alert'
 import { useLogo, useLogoConfig, useContactInfo, useSiteTagline } from '../../modules/home/hooks/useBanner'
+
+function logoVars(mobile: number, desktop: number): CSSProperties {
+  return {
+    '--logo-foot-h-mobile': `${mobile}px`,
+    '--logo-foot-h-desktop': `${desktop}px`,
+  } as CSSProperties
+}
 
 export function SiteFooter() {
   const [email, setEmail] = useState('')
@@ -13,8 +20,9 @@ export function SiteFooter() {
   const { config: logoConfig } = useLogoConfig()
   const { email: contactEmail, phone: contactPhone, address: contactAddress } = useContactInfo()
   const { tagline } = useSiteTagline()
+  const categories = useCategories()
 
-  const handleSubscribe = async (e: React.FormEvent) => {
+  const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) {
       toast.error('Please enter your email')
@@ -26,11 +34,7 @@ export function SiteFooter() {
     }
     setLoading(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success('Thanks for subscribing!')
-      setEmail('')
-    } catch {
-      toast.error('Failed to subscribe')
+      toast.info('Newsletter belum tersedia di backend saat ini.')
     } finally {
       setLoading(false)
     }
@@ -44,10 +48,7 @@ export function SiteFooter() {
             <img
               src={dynamicLogo}
               alt="Nadrical"
-              style={{
-                ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
-                ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
-              }}
+              style={logoVars(logoConfig.footerMobileHeightPx || 32, logoConfig.footerDesktopHeightPx || 44)}
               className="h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto object-contain transition-all"
             />
           ) : (
@@ -55,19 +56,13 @@ export function SiteFooter() {
               <img
                 src="/logo.svg"
                 alt="Nadrical"
-                style={{
-                  ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
-                  ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
-                }}
+                style={logoVars(logoConfig.footerMobileHeightPx || 32, logoConfig.footerDesktopHeightPx || 44)}
                 className="h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto dark:hidden transition-all"
               />
               <img
                 src="/logo-dark.svg"
                 alt="Nadrical"
-                style={{
-                  ['--logo-foot-h-mobile' as any]: `${logoConfig.footerMobileHeightPx || 32}px`,
-                  ['--logo-foot-h-desktop' as any]: `${logoConfig.footerDesktopHeightPx || 44}px`,
-                }}
+                style={logoVars(logoConfig.footerMobileHeightPx || 32, logoConfig.footerDesktopHeightPx || 44)}
                 className="hidden h-[var(--logo-foot-h-mobile)] sm:h-[var(--logo-foot-h-desktop)] w-auto dark:block transition-all"
               />
             </>
@@ -90,7 +85,7 @@ export function SiteFooter() {
                 All products
               </Link>
             </li>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <li key={cat.id}>
                 <Link
                   to={`/products?category=${cat.id}`}
@@ -100,6 +95,30 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                to="/news"
+                className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                News & Journal
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/announcements"
+                className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Pengumuman
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/reviews"
+                className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Ulasan Pelanggan
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

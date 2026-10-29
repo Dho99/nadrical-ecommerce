@@ -1,9 +1,6 @@
 import api, { getErrorMessage, unwrapData } from '../../../shared/lib/api'
 import type { CartItem, CartTotals } from '../types/cart.type'
 
-export const FREE_SHIPPING_THRESHOLD = 75
-export const SHIPPING_FLAT = 8
-
 interface BackendCartItem {
   uuid: string
   product_uuid: string
@@ -43,9 +40,11 @@ function mapCartItem(raw: BackendCartItem): CartItem {
     product_id: raw.product_uuid,
     sku: p?.sku || raw.product_uuid,
     product_name: p?.name || raw.product_uuid,
-    unit_price: Number(raw.unit_price_snapshot ?? 0),
+    // BE menyimpan harga produk dasar di snapshot; price_delta varian baru
+    // ditambahkan saat order dibuat. Tampilkan harga efektif yang sama.
+    unit_price: Number(raw.unit_price_snapshot ?? 0) + Number(v?.price_delta ?? 0),
     quantity: Number(raw.quantity ?? 1),
-    stock: Number(p?.stock ?? v?.stock ?? 99),
+    stock: Number(v?.stock ?? p?.stock ?? 99),
     cover_image_url: p?.image || (p as unknown as { cover_image_url?: string })?.cover_image_url || '',
     category_id: (p?.category?.slug as CartItem['category_id']) || 'electronics',
     variant_id: raw.variant_uuid || v?.uuid || undefined,
@@ -58,20 +57,14 @@ export const cartService = {
     return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
   },
 
-  shipping(subtotal: number): number {
-    if (subtotal === 0) return 0
-    return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT
-  },
-
   totals(items: CartItem[], discount = 0): CartTotals {
     const subtotal = this.subtotal(items)
-    const shipping_total = this.shipping(subtotal)
     const safeDiscount = Math.min(discount, subtotal)
     return {
       subtotal,
-      shipping_total,
+      shipping_total: 0,
       discount: safeDiscount,
-      grand_total: Math.max(0, subtotal - safeDiscount + shipping_total),
+      grand_total: Math.max(0, subtotal - safeDiscount),
     }
   },
 

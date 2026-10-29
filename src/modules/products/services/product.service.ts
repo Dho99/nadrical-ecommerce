@@ -19,7 +19,7 @@ interface BackendProduct {
   description?: string
   image?: string
   cover_image_url?: string
-  images?: string[]
+  images?: Array<string | { image_url?: string; url?: string }>
   price?: number
   base_price?: number
   original_price?: number
@@ -113,6 +113,11 @@ function mapBackendProduct(bp: BackendProduct): Product {
 
   const categorySlug = bp.category?.slug || bp.category_id || bp.category_uuid || 'electronics'
   const categoryName = bp.category?.name || bp.category?.slug || undefined
+  const images = Array.isArray(bp.images)
+    ? bp.images
+        .map((image) => (typeof image === 'string' ? image : image.image_url || image.url || ''))
+        .filter(Boolean)
+    : []
 
   const backendDiscount = bp.discount_percent !== undefined ? Number(bp.discount_percent) : undefined
   const origPrice = Number(bp.original_price ?? bp.compare_price ?? 0)
@@ -135,12 +140,13 @@ function mapBackendProduct(bp: BackendProduct): Product {
     slug: bp.slug || (bp.uuid || bp.id || ''),
     description: bp.description || bp.summary || '',
     category_id: toProductCategoryId(categorySlug),
+    category_slug: categorySlug,
     category_name: categoryName,
     base_price: curPrice,
     original_price: resolvedDiscountPercent && origPrice > curPrice && origPrice > 0 ? origPrice : undefined,
     stock: Number(bp.stock ?? 0),
     cover_image_url: bp.image || bp.cover_image_url || '',
-    images: Array.isArray(bp.images) && bp.images.length > 0 ? bp.images : undefined,
+    images: images.length > 0 ? images : undefined,
     is_featured: Boolean(bp.is_featured),
     is_preorder: Boolean(bp.is_preorder),
     preorder_eta: bp.preorder_eta,

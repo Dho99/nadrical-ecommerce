@@ -26,25 +26,28 @@ function mapSetting(b: BackendPageSetting): SiteSetting {
   }
 }
 
+async function fetchAllSettings(): Promise<Record<string, SiteSetting>> {
+  const res = await api.get<{ success: boolean; message: string; data?: BackendPageSetting[] }>('/cms/page-settings')
+  const data = unwrapData<BackendPageSetting[]>(res.data as unknown as { success: boolean; message: string; data?: BackendPageSetting[] }) ?? res.data.data ?? []
+  const out: Record<string, SiteSetting> = {}
+  for (const item of data) out[item.key] = mapSetting(item)
+  return out
+}
+
 export const siteSettingsService = {
   async getSettings(keys?: string[]): Promise<Record<string, SiteSetting>> {
-    if (keys && keys.length > 0) {
-      const out: Record<string, SiteSetting> = {}
-      for (const k of keys) {
-        const s = await this.getSetting(k)
-        if (s) out[k] = s
-      }
-      return out
-    }
-    const res = await api.get<{ success: boolean; message: string; data?: BackendPageSetting[] }>('/cms/page-settings')
-    const data = unwrapData<BackendPageSetting[]>(res.data as unknown as { success: boolean; message: string; data?: BackendPageSetting[] }) ?? res.data.data ?? []
+    const all = await fetchAllSettings()
+    if (!keys || keys.length === 0) return all
     const out: Record<string, SiteSetting> = {}
-    for (const b of data) out[b.key] = mapSetting(b)
+    for (const key of keys) {
+      if (all[key]) out[key] = all[key]
+    }
     return out
   },
 
   async updateSetting(key: string, value: string): Promise<SiteSetting> {
-    const existing = await this.getSetting(key).catch(() => null)
+    const all = await fetchAllSettings()
+    const existing = all[key]
     if (existing?.uuid) {
       const res = await api.put<{ success: boolean; message: string; data?: BackendPageSetting }>(`/cms/page-settings/${existing.uuid}`, { value })
       const data = unwrapData<BackendPageSetting>(res.data as unknown as { success: boolean; message: string; data?: BackendPageSetting }) ?? res.data.data
@@ -57,16 +60,20 @@ export const siteSettingsService = {
     return mapSetting(data)
   },
 
+  async getById(id: string): Promise<SiteSetting | null> {
+    try {
+      const res = await api.get<{ success: boolean; message: string; data?: BackendPageSetting }>(`/cms/page-settings/${id}`)
+      const data = unwrapData<BackendPageSetting>(res.data as unknown as { success: boolean; message: string; data?: BackendPageSetting }) ?? res.data.data
+      return data ? mapSetting(data) : null
+    } catch {
+      return null
+    }
+  },
+
   async getSetting(key: string): Promise<SiteSetting | null> {
     try {
-      const res = await api.get<{ success: boolean; message: string; data?: BackendPageSetting }>(`/cms/page-settings`, { params: { key } })
-      const data = unwrapData<BackendPageSetting>(res.data as unknown as { success: boolean; message: string; data?: BackendPageSetting }) ?? res.data.data
-      if (!data) return null
-      if (Array.isArray(data)) {
-        const first = (data as unknown as BackendPageSetting[])[0]
-        return first ? mapSetting(first) : null
-      }
-      return mapSetting(data as BackendPageSetting)
+      const all = await fetchAllSettings()
+      return all[key] ?? null
     } catch {
       return null
     }

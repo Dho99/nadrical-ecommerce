@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Camera, ChevronLeft, Film, PackageOpen } from 'lucide-react'
-import { profileService } from '../../modules/profile'
+import { orderRepository } from '../../modules/checkout/services/order.repository'
 import { useAuth } from '../../modules/auth'
 import { refundService } from '../../modules/orders/services/refund.service'
+import { normalizeOrderStatus } from '../../shared/utils/order-status'
 import { RefundRequestForm } from '../../modules/orders/components/RefundRequestForm'
 import type { RefundRecord } from '../../modules/orders/types/refund.type'
 import type { OrderWithItems } from '../../modules/orders/types/order.type'
@@ -101,8 +102,7 @@ export function RefundPage() {
     }
     setStatus('loading')
     try {
-      const all = await profileService.getOrderHistory(email)
-      const found = all.find((o) => o.order_number === id || o.id === id) ?? null
+      const found = await orderRepository.get(id)
       setOrder(found)
       setRecord(found ? refundService.getByOrderId(found.id) : null)
       setStatus(found ? 'success' : 'error')
@@ -140,8 +140,8 @@ export function RefundPage() {
     )
   }
 
-  const norm = (order.status ?? '').toLowerCase()
-  const eligible = norm === 'completed' || norm === 'delivering'
+  const norm = normalizeOrderStatus(order.status)
+  const eligible = norm === 'completed' || norm === 'shipped'
 
   return (
     <div className="space-y-6">

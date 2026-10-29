@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, Copy, PackageOpen, Repeat2, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
+import { orderRepository } from '../../modules/checkout/services/order.repository'
 import { useCart } from '../../modules/cart/hooks/useCart'
 import { useAuth } from '../../modules/auth'
-import { PRODUCT_CATALOG } from '../../modules/products/services/mock-data'
 import { ReviewFormDialog, userReviewStorage } from '../../modules/products'
+import type { ProductBrief } from '../../shared/types/product.type'
 import { websocketService } from '../../shared/lib/websocket'
 import {
   InvoiceButton,
@@ -15,7 +16,6 @@ import {
   useRefund,
 } from '../../modules/orders'
 import { shipmentService } from '../../modules/orders/services/shipment.service'
-import { orderRepository } from '../../modules/checkout/services/order.repository'
 import type { OrderWithItems } from '../../modules/orders/types/order.type'
 import { ProductImage } from '../../shared/components/ProductImage'
 import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '../../shared/components/ui/alert-dialog'
 import { formatPrice } from '../../shared/utils/format'
+import { normalizeOrderStatus } from '../../shared/utils/order-status'
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -106,12 +107,13 @@ export function OrderDetailPage() {
     }
   }, [id, load])
 
-  const normStatus = (order?.status ?? '').toLowerCase()
+  const normStatus = normalizeOrderStatus(order?.status)
   const canCancel =
     normStatus === 'pending_payment' || normStatus === 'paid' || normStatus === 'processing'
-  const canReorder = normStatus === 'completed' || normStatus === 'delivering'
-  const canInvoice = ['paid', 'processing', 'shipped', 'completed', 'delivering'].includes(normStatus)
-  const canRefund = normStatus === 'completed' || normStatus === 'delivering'
+  const canReorder = normStatus === 'completed' || normStatus === 'shipped'
+  const canInvoice = ['paid', 'processing', 'shipped', 'completed'].includes(normStatus)
+  // Refund belum punya endpoint backend; jangan tampilkan aksi palsu.
+  const canRefund = false
 
   const cancelOrder = async () => {
     if (!order) return
@@ -121,6 +123,9 @@ export function OrderDetailPage() {
       setOrder({ ...order, status: 'cancelled', cancelled_at: new Date().toISOString() })
       toast.success('Order cancelled')
       setCancelOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal membatalkan pesanan')
+      void load()
     } finally {
       setCancelling(false)
     }
@@ -129,28 +134,27 @@ export function OrderDetailPage() {
   const reorder = () => {
     if (!order) return
     for (const line of order.order_items) {
-      const prod = PRODUCT_CATALOG.find((p) => p.id === line.product_id)
-      if (prod) {
-        const variant = line.variant_name_snapshot
-          ? prod.variants?.find((v) => v.variant_name === line.variant_name_snapshot)
-          : undefined
-        add(
-          {
-            ...prod,
-            variant_id: variant?.id,
-            variant_name: line.variant_name_snapshot ?? undefined,
-            variant_stock: variant?.stock,
-            variant_price_delta: variant?.price_delta,
-          },
-          line.quantity,
-        )
+      const brief: ProductBrief = {
+        id: line.product_id,
+        sku: line.sku_snapshot ?? '',
+        name: line.product_name_snapshot,
+        base_price: line.unit_price,
+        stock: line.quantity,
+        cover_image_url: line.image_url ?? '',
+        category_id: '',
+        summary: '',
+        specs: [],
+        rating: 0,
+        review_count: 0,
+        variant_id: line.variant_id,
+        variant_name: line.variant_name_snapshot ?? undefined,
+        variant_stock: line.quantity,
       }
+      add(brief, line.quantity)
     }
     toast.success('Items added to cart', { position: 'top-center', style: { marginTop: '72px' }, closeButton: true })
     navigate('/cart')
   }
-
-  const productImage = (productId: string) => PRODUCT_CATALOG.find((p) => p.id === productId)?.cover_image_url
 
   if (status === 'loading') {
     return (
@@ -238,8 +242,8 @@ export function OrderDetailPage() {
                   <li key={`${line.id}-${i}`} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="flex flex-1 items-center gap-3 min-w-[200px]">
                       <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted">
-                        {productImage(line.product_id) ? (
-                          <ProductImage src={productImage(line.product_id)!} alt={line.product_name_snapshot} className="h-full w-full" />
+                        {line.image_url ? (
+                          <ProductImage src={line.image_url} alt={line.product_name_snapshot} className="h-full w-full" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                             <PackageOpen className="size-4" />
@@ -277,7 +281,7 @@ export function OrderDetailPage() {
                                 product: {
                                   id: line.product_id,
                                   name: line.product_name_snapshot,
-                                  cover_image_url: productImage(line.product_id),
+                                  cover_image_url: line.image_url,
                                 },
                                 orderNumber: order.order_number,
                                 orderItemId: line.id,

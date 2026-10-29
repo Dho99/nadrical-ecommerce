@@ -11,7 +11,7 @@ export function useFAQ(category?: string) {
   useEffect(() => {
     const triggerRefetch = () => setAttempt((a) => a + 1)
     const unsub1 = websocketService.on('faq_updated', triggerRefetch)
-    const unsub2 = websocketService.on('data_updated', (payload: any) => {
+    const unsub2 = websocketService.on('data_updated', (payload: { resource?: string } | null) => {
       if (!payload || payload.resource === 'faqs') {
         triggerRefetch()
       }
@@ -30,8 +30,11 @@ export function useFAQ(category?: string) {
     const fetch = async () => {
       try {
         setLoading(true)
-        const list = category ? await faqService.getByCategory(category) : await faqService.list()
-        setData(list)
+        const list = await faqService.list()
+        const filtered = category
+          ? list.filter((item) => (item.category || '').toLowerCase() === category.toLowerCase())
+          : list
+        setData(filtered)
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load FAQs')

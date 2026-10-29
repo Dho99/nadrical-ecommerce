@@ -5,6 +5,7 @@ export interface Review {
   product_id: string
   rating: ReviewRating
   author: string
+  author_id?: string
   comment: string
   created_at: string
   verified: boolean

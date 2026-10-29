@@ -17,25 +17,15 @@ export const shipmentService = {
   },
 
   trackingNumber(order: OrderWithItems): string {
-    if (order.tracking_number && order.tracking_number.trim() !== '') {
-      return order.tracking_number
-    }
-    const seed = order.order_number.replace(/\D/g, '') || order.id.replace(/\D/g, '')
-    return `RESI${seed.padStart(6, '0')}`
+    return order.tracking_number?.trim() || ''
   },
 
   trackingUrl(courier?: string, trackingNumber?: string): string | null {
     if (!trackingNumber || !trackingNumber.trim()) return null
     const c = (courier || '').toLowerCase()
-    if (c.includes('jne')) {
-      return `https://www.jne.co.id/id/tracking/trace`
-    }
-    if (c.includes('sicepat')) {
-      return `https://www.sicepat.com/checkAwb`
-    }
-    if (c.includes('j&t') || c.includes('jnt')) {
-      return `https://www.jet.co.id/track`
-    }
+    if (c.includes('jne')) return 'https://www.jne.co.id/id/tracking/trace'
+    if (c.includes('sicepat')) return 'https://www.sicepat.com/checkAwb'
+    if (c.includes('j&t') || c.includes('jnt')) return 'https://www.jet.co.id/track'
     return `https://cekresi.com/?noresi=${encodeURIComponent(trackingNumber.trim())}`
   },
 
@@ -48,37 +38,33 @@ export const shipmentService = {
   },
 
   isTrackable(order: OrderWithItems): boolean {
-    const s = (order.status ?? '').toLowerCase()
-    return s === 'shipped' || s === 'delivering' || s === 'completed'
+    return Boolean(order.tracking_number?.trim())
   },
 
   events(order: OrderWithItems): ShipmentEvent[] {
-    const s = (order.status ?? '').toLowerCase()
-    const placed = Date.parse(order.placed_at ?? '') || Date.now()
-    const shippedAt = Date.parse(order.shipped_at ?? '') || placed + 6 * 3600_000
-    const deliveredAt = Date.parse(order.delivered_at ?? '') || shippedAt + 3 * 86400_000
-    const doneStates =
-      s === 'completed' || s === 'delivering'
-        ? 4
-        : s === 'shipped'
-          ? 2
-          : 0
-    const iso = (t: number) => new Date(t).toISOString()
-
-    const base = [
-      { title: 'Package received', location: 'Jakarta Hub', time: iso(placed + 3600_000) },
-      { title: 'In Transit', location: 'Bekasi Sorting Center', time: iso(shippedAt) },
-      { title: 'Out for Delivery', location: 'Jakarta Selatan', time: iso(shippedAt + 8 * 3600_000) },
-      { title: 'Delivered', location: 'Destination', time: iso(deliveredAt) },
-    ]
-
-    return base.map((e, i) => ({
-      id: `evt-${order.id}-${i}`,
-      title: e.title,
-      location: e.location,
-      time: e.time,
-      done: i < doneStates,
-    }))
+    const events: ShipmentEvent[] = []
+    if (order.placed_at) {
+      events.push({ id: `placed-${order.id}`, title: 'Order placed', location: '', time: order.placed_at, done: true })
+    }
+    if (order.shipped_at || order.tracking_number) {
+      events.push({
+        id: `shipped-${order.id}`,
+        title: 'Package handed to courier',
+        location: '',
+        time: order.shipped_at || order.placed_at || '',
+        done: true,
+      })
+    }
+    if (order.delivered_at) {
+      events.push({
+        id: `delivered-${order.id}`,
+        title: 'Delivered',
+        location: '',
+        time: order.delivered_at,
+        done: true,
+      })
+    }
+    return events
   },
 
   info(order: OrderWithItems): ShipmentInfo {

@@ -3,7 +3,32 @@ import type { ProductChatContext } from '../../../shared/constants/chat.constant
 import { BOT_REPLIES, BOT_REPLY_DELAY_MS, GUEST_ID_KEY } from '../constants/chat.constants'
 import { chatRepository } from './chat.repository'
 import { websocketService } from '../../../shared/lib/websocket'
-import { api } from '../../../shared/lib/api'
+import { api, unwrapData } from '../../../shared/lib/api'
+
+interface RemoteChatMessage {
+  id: string
+  sender_role: ChatMessage['sender_role']
+  sender_user_id?: string
+  sender_name?: string
+  sender_avatar?: string
+  message: string
+  reply_to_id?: string | null
+  reply_to?: ChatMessage['reply_to']
+  is_read?: boolean
+  created_at: string
+}
+
+interface RemoteChatConversation {
+  id: string
+  messages?: RemoteChatMessage[]
+}
+
+interface ChatApiResponse<T> {
+  success: boolean
+  message: string
+  data?: T
+  meta?: { has_more?: boolean }
+}
 
 function makeMessage(
   conversation_id: string,
@@ -68,25 +93,20 @@ export const chatService = {
 
   async syncConversationRemote(identity: ChatIdentity, localConv: ChatConversation): Promise<ChatConversation> {
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-      const res = await fetch(`${apiBase}/ecommerce/chats`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_user_id:
-            identity.customer_user_id && !identity.customer_user_id.startsWith('guest-')
-              ? identity.customer_user_id
-              : null,
-          customer_name: identity.customer_name || localConv.customer_name || 'Tamu',
-          customer_email: identity.customer_email || localConv.customer_email || '',
-          customer_phone: identity.customer_phone || localConv.customer_phone || '',
-        }),
+      const res = await api.post<ChatApiResponse<RemoteChatConversation>>('/ecommerce/chats', {
+        customer_user_id:
+          identity.customer_user_id && !identity.customer_user_id.startsWith('guest-')
+            ? identity.customer_user_id
+            : null,
+        customer_name: identity.customer_name || localConv.customer_name || 'Tamu',
+        customer_email: identity.customer_email || localConv.customer_email || '',
+        customer_phone: identity.customer_phone || localConv.customer_phone || '',
       })
 
-      if (!res.ok) return localConv
-      const data = await res.json()
-      const remoteConv = data?.data
-      if (!remoteConv || !remoteConv.id) return localConv
+      const remoteConv = unwrapData<RemoteChatConversation>(
+        res.data as unknown as { success: boolean; message: string; data?: RemoteChatConversation },
+      ) ?? res.data.data
+      if (!remoteConv?.id) return localConv
 
       const oldId = localConv.id
       const remoteId = remoteConv.id
@@ -95,9 +115,13 @@ export const chatService = {
         chatRepository.syncConversationId(oldId, remoteId)
       }
 
+      // GET /chats/{id} is the canonical conversation detail endpoint.
+      const detail = await this.getConversation(remoteId)
+      const resolved = detail?.messages?.length ? detail : remoteConv
+
       // Populate remote messages into local repository
-      if (Array.isArray(remoteConv.messages) && remoteConv.messages.length > 0) {
-        for (const rm of remoteConv.messages) {
+      if (Array.isArray(resolved.messages) && resolved.messages.length > 0) {
+        for (const rm of resolved.messages) {
           chatRepository.insertMessage(remoteId, {
             id: rm.id,
             conversation_id: remoteId,
@@ -142,11 +166,9 @@ export const chatService = {
       }
     }
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-      const res = await fetch(`${apiBase}/ecommerce/chats/${targetId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const res = await api.post<{ success: boolean; message: string; data?: RemoteChatMessage | { message?: RemoteChatMessage } }>(
+        `/ecommerce/chats/${targetId}/messages`,
+        {
           sender_role: 'customer',
           sender_user_id:
             identity.customer_user_id && !identity.customer_user_id.startsWith('guest-')
@@ -155,15 +177,14 @@ export const chatService = {
           message: messageText,
           reply_to_id: replyToId || undefined,
           client_temp_id: localMsgId || undefined,
-        }),
-      })
-
-      if (res.ok) {
-        const json = await res.json().catch(() => null)
-        const serverMsg = json?.data?.message || json?.data
-        if (serverMsg && serverMsg.id && localMsgId) {
-          chatRepository.reconcileMessage(targetId, localMsgId, serverMsg)
-        }
+        },
+      )
+      const body = unwrapData<RemoteChatMessage | { message?: RemoteChatMessage }>(
+        res.data as unknown as { success: boolean; message: string; data?: RemoteChatMessage | { message?: RemoteChatMessage } },
+      ) ?? res.data.data
+      const serverMsg = (body as { message?: RemoteChatMessage } | undefined)?.message ?? body as RemoteChatMessage | undefined
+      if (serverMsg?.id && localMsgId) {
+        chatRepository.reconcileMessage(targetId, localMsgId, serverMsg)
       }
     } catch (err) {
       console.warn('[ChatService] Failed to persist message to PostgreSQL:', err)
@@ -240,6 +261,27 @@ export const chatService = {
       reader_role: by === 'customer' ? 'customer' : 'admin',
       read_at: new Date().toISOString(),
     })
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversation_id)
+    if (isUUID) {
+      try {
+        await api.post(`/ecommerce/chats/${conversation_id}/read`)
+      } catch {
+        // Local receipt is still authoritative for the widget.
+      }
+    }
+  },
+
+  async getConversation(conversationId: string): Promise<RemoteChatConversation | null> {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
+    if (!isUUID) return null
+    try {
+      const res = await api.get<ChatApiResponse<RemoteChatConversation>>(`/ecommerce/chats/${conversationId}`)
+      return unwrapData<RemoteChatConversation>(
+        res.data as unknown as { success: boolean; message: string; data?: RemoteChatConversation },
+      ) ?? res.data.data ?? null
+    } catch {
+      return null
+    }
   },
 
   handleIncomingReadReceipt(
@@ -316,21 +358,13 @@ export const chatService = {
     }
 
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-      let url = `${apiBase}/ecommerce/chats/${conversationId}/messages?limit=${limit}`
-      if (before) {
-        url += `&before=${encodeURIComponent(before)}`
-      }
-
-      const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) {
-        return this.getLocalMessagesPage(conversationId, limit, before)
-      }
-
-      const json = await res.json()
-      const remoteMsgs = json?.data
+      const res = await api.get<ChatApiResponse<RemoteChatMessage[]>>(
+        `/ecommerce/chats/${conversationId}/messages`,
+        { params: { limit, ...(before ? { before } : {}) } },
+      )
+      const remoteMsgs = unwrapData<RemoteChatMessage[]>(
+        res.data as unknown as { success: boolean; message: string; data?: RemoteChatMessage[] },
+      ) ?? res.data.data
       if (!Array.isArray(remoteMsgs)) {
         return this.getLocalMessagesPage(conversationId, limit, before)
       }
@@ -354,8 +388,8 @@ export const chatService = {
       }
 
       const hasMore =
-        typeof json?.meta?.has_more === 'boolean'
-          ? json.meta.has_more
+        typeof res.data.meta?.has_more === 'boolean'
+          ? res.data.meta.has_more
           : mappedMsgs.length >= limit
 
       return {

@@ -26,6 +26,7 @@ export interface BackendReviewItem {
     avatar_url?: string
   } | string
   account?: {
+    uuid?: string
     full_name?: string
     username?: string
     avatar_url?: string
@@ -55,6 +56,7 @@ export function mapBackendReview(item: BackendReviewItem): Review {
     product_id: item.product_uuid || item.product_id || '',
     rating: clampedRating,
     author: authorName,
+    author_id: (typeof item.author !== 'string' ? item.author?.uuid : undefined) || item.account?.uuid,
     comment: item.comment || '',
     created_at: item.created_at || new Date().toISOString(),
     verified: Boolean(item.is_verified_purchase || item.order_item_uuid),
@@ -192,6 +194,22 @@ export const reviewService = {
     return { items: filtered.slice(start, start + limit), stats: finalStats, total: filtered.length }
   },
 
+  async getAllReviews(page = 1, limit = 20): Promise<ReviewPage> {
+    const res = await api.get<{
+      success: boolean
+      message: string
+      data?: BackendReviewItem[]
+      meta?: { total?: number; stats?: Record<string, unknown> }
+    }>('/ecommerce/reviews', { params: { page, limit } })
+    const rawItems = res.data.data ?? []
+    const items = Array.isArray(rawItems) ? rawItems.map(mapBackendReview) : []
+    return {
+      items,
+      stats: parseBackendStats(res.data.meta?.stats) ?? reviewStats(items),
+      total: Number(res.data.meta?.total ?? items.length),
+    }
+  },
+
   async createReview(
     productId: string,
     input: {
@@ -212,6 +230,20 @@ export const reviewService = {
     )
     const data = unwrapData<BackendReviewItem>(res.data as unknown as { success: boolean; message: string; data?: BackendReviewItem }) ?? res.data.data
     if (!data) throw new Error(res.data.message || 'Gagal membuat review')
+    return mapBackendReview(data)
+  },
+
+  async updateReview(
+    productId: string,
+    reviewId: string,
+    input: { rating?: ReviewRating; comment?: string; image_urls?: string[] },
+  ): Promise<Review> {
+    const res = await api.put<{ success: boolean; message: string; data?: BackendReviewItem }>(
+      `/ecommerce/products/${productId}/reviews/${reviewId}`,
+      input,
+    )
+    const data = unwrapData<BackendReviewItem>(res.data as unknown as { success: boolean; message: string; data?: BackendReviewItem }) ?? res.data.data
+    if (!data) throw new Error(res.data.message || 'Gagal memperbarui review')
     return mapBackendReview(data)
   },
 

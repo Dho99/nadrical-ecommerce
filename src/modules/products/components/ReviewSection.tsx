@@ -1,24 +1,46 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, MessageSquareQuote } from 'lucide-react'
 import type { Product } from '../types/product.type'
 import { useReviews } from '../hooks/useReviews'
 import { EmptyState, Skeleton } from '../../../shared/components/ui'
+import { toast } from '../../../shared/lib/alert'
+import { useAuth } from '../../auth'
+import { reviewService } from '../services/review.service'
 import { StarRating } from './StarRating'
 import { ReviewCard } from './ReviewCard'
+import { ReviewEditDialog } from './ReviewEditDialog'
 import { RatingSummary } from './RatingSummary'
+import type { Review } from '../types/review.type'
 
 interface ReviewSectionProps {
   product: Product
 }
 
 export function ReviewSection({ product }: ReviewSectionProps) {
-  const { items, stats, status } = useReviews(product.id, {
+  const { user } = useAuth()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingReview, setEditingReview] = useState<Review | null>(null)
+  const { items, stats, status, refetch } = useReviews(product.id, {
     limit: 5,
     rating: 'all',
     sort: 'rating-desc',
     hintRating: product.rating,
     hintCount: product.review_count,
   })
+
+  const deleteReview = async (reviewId: string) => {
+    setDeletingId(reviewId)
+    try {
+      await reviewService.deleteReview(product.id, reviewId)
+      toast.success('Ulasan dihapus')
+      refetch()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menghapus ulasan')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <section className="mt-14" aria-labelledby="reviews-heading">
@@ -71,10 +93,26 @@ export function ReviewSection({ product }: ReviewSectionProps) {
               className="py-8"
             />
           ) : (
-            items.map((review) => <ReviewCard key={review.id} review={review} />)
+            items.map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
+                deleting={deletingId === review.id}
+                onEdit={user?.id && review.author_id === user.id ? () => setEditingReview(review) : undefined}
+                onDelete={user?.id && review.author_id === user.id ? () => void deleteReview(review.id) : undefined}
+              />
+            ))
           )}
         </div>
       </div>
+
+      <ReviewEditDialog
+        open={Boolean(editingReview)}
+        onOpenChange={(open) => !open && setEditingReview(null)}
+        productId={product.id}
+        review={editingReview}
+        onUpdated={refetch}
+      />
     </section>
   )
 }

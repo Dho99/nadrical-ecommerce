@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, PackageOpen, RefreshCw, Repeat2, Star, Truck, X } from 'lucide-react'
 import { ProductImage } from '../../../shared/components/ProductImage'
-import { PRODUCT_CATALOG } from '../../products/services/mock-data'
 import { ReviewFormDialog, userReviewStorage } from '../../products'
+import type { ProductBrief } from '../../../shared/types/product.type'
 import { useCart } from '../../cart/hooks/useCart'
 import { toast } from '@/shared/lib/alert'
 import type { AsyncStatus } from '../../../shared/types/common.type'
@@ -120,10 +120,6 @@ function TerminalBanner({ status }: { status: DbOrderStatus }) {
       </span>
     </div>
   )
-}
-
-function productImage(productId: string): string | undefined {
-  return PRODUCT_CATALOG.find((p) => p.id === productId)?.cover_image_url
 }
 
 export function OrderHistoryList({
@@ -293,7 +289,7 @@ export function OrderHistoryList({
 
                   <ul className="space-y-2">
                     {order.order_items.map((line, i) => {
-                      const img = productImage(line.product_id)
+                      const img = line.image_url
                       const existingReview = reviewsVersion >= 0 ? userReviewStorage.findReview(order.order_number, line.product_id, line.variant_name_snapshot) : undefined
                       const isCompleted = oStatus === 'completed'
                       return (
@@ -420,22 +416,23 @@ export function OrderHistoryList({
                         className="h-7 text-xs"
                         onClick={() => {
                           for (const line of order.order_items) {
-                            const prod = PRODUCT_CATALOG.find((p) => p.id === line.product_id)
-                            if (prod) {
-                              const variant = line.variant_name_snapshot
-                                ? prod.variants?.find((v) => v.variant_name === line.variant_name_snapshot)
-                                : undefined
-                              add(
-                                {
-                                  ...prod,
-                                  variant_id: variant?.id,
-                                  variant_name: line.variant_name_snapshot ?? undefined,
-                                  variant_stock: variant?.stock,
-                                  variant_price_delta: variant?.price_delta,
-                                },
-                                line.quantity,
-                              )
+                            const brief: ProductBrief = {
+                              id: line.product_id,
+                              sku: line.sku_snapshot ?? '',
+                              name: line.product_name_snapshot,
+                              base_price: line.unit_price,
+                              stock: line.quantity,
+                              cover_image_url: line.image_url ?? '',
+                              category_id: '',
+                              summary: '',
+                              specs: [],
+                              rating: 0,
+                              review_count: 0,
+                              variant_id: line.variant_id,
+                              variant_name: line.variant_name_snapshot ?? undefined,
+                              variant_stock: line.quantity,
                             }
+                            add(brief, line.quantity)
                           }
                           toast.success('Items added to cart', { position: 'top-center', style: { marginTop: '72px' }, closeButton: true })
                           navigate('/cart')
@@ -478,7 +475,11 @@ export function OrderHistoryList({
                 if (!cancelTarget) return
                 const id = cancelTarget.id
                 setCancelTarget(null)
-                await onCancel(id)
+                try {
+                  await onCancel(id)
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Gagal membatalkan pesanan')
+                }
               }}
             >
               Yes, cancel order

@@ -6,7 +6,7 @@ import { productService } from '../../products/services/product.service'
 export const checkoutService = {
   async placeOrder(payload: OrderPayload): Promise<OrderConfirmation> {
     const now = new Date()
-    const etaDays = shippingService.etaDays(payload.shipping_method)
+    const etaDays = payload.eta_days ?? shippingService.etaDays(payload.shipping_method)
 
     const itemsInput = payload.items.map((i) => ({
       product_uuid: i.product_id,
@@ -25,14 +25,13 @@ export const checkoutService = {
       shipping_postal_code: payload.customer.shipping_postal_code || undefined,
       city: payload.customer.shipping_city,
       shipping_city: payload.customer.shipping_city,
-      shipping_courier: payload.shipping_method,
-      shipping_method: payload.shipping_method,
+      shipping_courier: payload.shipping_method_name || payload.shipping_method,
+      shipping_method: payload.shipping_method_name || payload.shipping_method,
+      shipping_method_id: payload.shipping_method_id,
       shipping_cost: Math.round(payload.totals.shipping_total),
       discount: Math.round(payload.totals.discount ?? 0),
       voucher_code: payload.voucher_code || payload.totals.voucher_code || undefined,
       service_fee: Math.round(payload.totals.payment_fee ?? 0),
-      payment_method: (payload.payment as any)?.method || payload.payment?.kind || 'BANK_TRANSFER',
-      payment_channel: payload.payment?.provider,
       items: itemsInput,
     }
 
@@ -45,11 +44,21 @@ export const checkoutService = {
         productService.clearCache()
         const createdAt = typeof orderData?.created_at === 'string' ? (orderData.created_at as string) : typeof data?.created_at === 'string' ? (data.created_at as string) : undefined
         const totalRaw = (orderData?.total ?? data?.total) as unknown
+        const rawOrderId = orderData?.uuid ?? orderData?.id ?? data?.uuid ?? data?.id
         return {
+          order_id: typeof rawOrderId === 'string' ? rawOrderId : undefined,
           order_number: orderNumber,
           placed_at: new Date(createdAt ?? now.toISOString()),
           email: payload.customer.email,
           eta_days: etaDays,
+          shipping_etd: payload.shipping_etd,
+          shipping_method_name: payload.shipping_method_name,
+          payment_method_code: payload.payment?.provider,
+          payment_method_name: payload.payment?.method_name || (payload.payment?.kind === 'bank' ? 'Transfer Bank' : payload.payment?.kind),
+          payment_bank_name: payload.payment?.bank_name,
+          payment_account_number: payload.payment?.account_number,
+          payment_account_holder: payload.payment?.account_holder,
+          payment_instructions: payload.payment?.instructions,
           grand_total: typeof totalRaw === 'number' || typeof totalRaw === 'string' ? Number(totalRaw) : payload.totals.grand_total,
         }
       }

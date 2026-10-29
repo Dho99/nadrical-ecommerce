@@ -1,45 +1,43 @@
 import api, { unwrapData } from '../../../shared/lib/api'
 
-export interface LoyaltyAccount {
-  uuid: string
-  account_uuid: string
-  current_points: number
-  total_earned: number
-  total_redeemed: number
-  current_tier: 'bronze' | 'silver' | 'gold' | 'platinum'
-  points_expire_at?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface LoyaltyTransaction {
-  uuid: string
-  loyalty_account_uuid: string
-  transaction_type: 'earn' | 'redeem' | 'expire'
-  points: number
-  description?: string
-  order_uuid?: string
-  created_at: string
+export interface LoyaltyTier {
+  id: string
+  name: string
+  min_point: number
+  voucher_id?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export const loyaltyService = {
-  async getAccount(): Promise<LoyaltyAccount> {
-    const res = await api.get('/ecommerce/loyalty/me')
-    const data = unwrapData<LoyaltyAccount>(res.data) ?? (res.data as { data?: LoyaltyAccount })?.data
-    if (!data) throw new Error('Failed to load loyalty account')
-    return data
-  },
-
-  async getTransactions(): Promise<LoyaltyTransaction[]> {
-    const res = await api.get('/ecommerce/loyalty/transactions')
-    const data = unwrapData<LoyaltyTransaction[]>(res.data) ?? (res.data as { data?: LoyaltyTransaction[] })?.data ?? []
+  async getTiers(): Promise<LoyaltyTier[]> {
+    const res = await api.get<{ success: boolean; message: string; data?: LoyaltyTier[] }>('/ecommerce/loyalties')
+    const data = unwrapData<LoyaltyTier[]>(res.data as unknown as { success: boolean; message: string; data?: LoyaltyTier[] }) ?? res.data.data ?? []
     return Array.isArray(data) ? data : []
   },
 
-  async redeem(points: number, description: string): Promise<LoyaltyAccount> {
-    const res = await api.post('/ecommerce/loyalty/redeem', { points, description })
-    const data = unwrapData<LoyaltyAccount>(res.data) ?? (res.data as { data?: LoyaltyAccount })?.data
-    if (!data) throw new Error('Failed to redeem points')
-    return data
+  async getTier(id: string): Promise<LoyaltyTier | null> {
+    try {
+      const res = await api.get<{ success: boolean; message: string; data?: LoyaltyTier }>(`/ecommerce/loyalties/${id}`)
+      return unwrapData<LoyaltyTier>(res.data as unknown as { success: boolean; message: string; data?: LoyaltyTier }) ?? res.data.data ?? null
+    } catch {
+      return null
+    }
+  },
+
+  resolveTier(tiers: LoyaltyTier[], points: number, loyaltyId?: string): LoyaltyTier | null {
+    if (loyaltyId) {
+      const byId = tiers.find((tier) => tier.id === loyaltyId)
+      if (byId) return byId
+    }
+    return [...tiers]
+      .filter((tier) => tier.min_point <= points)
+      .sort((a, b) => b.min_point - a.min_point)[0] ?? tiers[0] ?? null
+  },
+
+  nextTier(tiers: LoyaltyTier[], points: number): LoyaltyTier | null {
+    return [...tiers]
+      .filter((tier) => tier.min_point > points)
+      .sort((a, b) => a.min_point - b.min_point)[0] ?? null
   },
 }

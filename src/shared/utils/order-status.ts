@@ -2,6 +2,39 @@ import type { DbOrderStatus } from '../types/database.type'
 
 export type OrderStatus = DbOrderStatus
 
+/**
+ * Backend memakai enum uppercase (WAITING_ONGKIR, WAITING_CONFIRMATION,
+ * DELIVERING, COMPLETED, CANCELED). UI memakai satu set status lowercase.
+ * Normalisasi di boundary supaya tab, badge, dan aturan aksi konsisten.
+ */
+export function normalizeOrderStatus(status?: string | null): DbOrderStatus {
+  const raw = (status ?? '').trim()
+  const upper = raw.toUpperCase()
+
+  switch (upper) {
+    case 'WAITING_ONGKIR':
+    case 'PENDING_PAYMENT':
+      return 'pending_payment'
+    case 'WAITING_CONFIRMATION':
+    case 'PROCESSING':
+      return 'processing'
+    case 'DELIVERING':
+    case 'SHIPPED':
+      return 'shipped'
+    case 'COMPLETED':
+      return 'completed'
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'cancelled'
+    case 'REFUNDED':
+      return 'refunded'
+    case 'PAID':
+      return 'paid'
+    default:
+      return (raw.toLowerCase() || 'pending_payment') as DbOrderStatus
+  }
+}
+
 export const ORDER_STATUS_LABEL: Record<string, string> = {
   pending_payment: 'Pending payment',
   WAITING_ONGKIR: 'Waiting for shipping fee',

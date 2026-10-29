@@ -47,10 +47,19 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
     if (!confirmation) return
     try {
       const storable = {
+        order_id: confirmation.order_id,
         order_number: confirmation.order_number,
         placed_at: confirmation.placed_at instanceof Date ? confirmation.placed_at.toISOString() : String(confirmation.placed_at),
         email: confirmation.email,
         eta_days: confirmation.eta_days,
+        shipping_etd: confirmation.shipping_etd,
+        shipping_method_name: confirmation.shipping_method_name,
+        payment_method_code: confirmation.payment_method_code,
+        payment_method_name: confirmation.payment_method_name,
+        payment_bank_name: confirmation.payment_bank_name,
+        payment_account_number: confirmation.payment_account_number,
+        payment_account_holder: confirmation.payment_account_holder,
+        payment_instructions: confirmation.payment_instructions,
         grand_total: confirmation.grand_total,
       }
       sessionStorage.setItem(CONFIRMATION_STORAGE_KEY, JSON.stringify(storable))
@@ -143,7 +152,7 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
 
         <div className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
           {step === 0 && <StepContact email={initialValues?.email} />}
-          {step === 1 && <StepShipping subtotal={payloadBase.totals.subtotal} />}
+          {step === 1 && <StepShipping />}
           {step === 2 && <PaymentAccordion />}
 
           {error && (

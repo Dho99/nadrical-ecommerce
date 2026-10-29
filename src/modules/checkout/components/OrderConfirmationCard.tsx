@@ -58,7 +58,7 @@ export function OrderConfirmationCard({ confirmation, onBackToCheckout }: OrderC
         .
       </p>
       <p className="mt-2 font-mono text-sm">
-        Total charged (demo): <span className="font-semibold">{formatPrice(confirmation.grand_total)}</span>
+        Total: <span className="font-semibold">{formatPrice(confirmation.grand_total)}</span>
       </p>
 
       <div className="mt-6 flex flex-wrap justify-center gap-3">

@@ -25,7 +25,7 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
   const decrement = () => setQty(line.product_id, line.variant_id, Math.max(line.quantity - 1, 1))
 
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className="flex flex-wrap items-center gap-3 py-2">
       <Link
         to={`/products/${line.product_id}`}
         className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted"
@@ -48,34 +48,40 @@ export function CheckoutProductItem({ line }: CheckoutProductItemProps) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1" aria-label={`Quantity for ${line.product_name}`}>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={decrement}
-          disabled={line.quantity <= 1}
-          aria-label={`Decrease quantity of ${line.product_name}`}
-        >
-          −
-        </Button>
-        <span className="w-6 text-center text-sm font-medium">{line.quantity}</span>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={increment}
-          aria-label={`Increase quantity of ${line.product_name}`}
-        >
-          +
-        </Button>
-      </div>
+      {/* Mobile: qty stepper + subtotal ambil baris sendiri di bawah info produk.
+          sm ke atas: wrapper transparan (display:contents) agar layout 1 baris. */}
+      <div className="flex w-full items-center justify-between gap-3 sm:contents">
+        <div className="flex items-center gap-1" aria-label={`Quantity for ${line.product_name}`}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-7 sm:size-9"
+            onClick={decrement}
+            disabled={line.quantity <= 1}
+            aria-label={`Decrease quantity of ${line.product_name}`}
+          >
+            −
+          </Button>
+          <span className="w-6 text-center text-sm font-medium">{line.quantity}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-7 sm:size-9"
+            onClick={increment}
+            aria-label={`Increase quantity of ${line.product_name}`}
+          >
+            +
+          </Button>
+        </div>
 
-      <div className="w-24 shrink-0 text-right">
-        <p className="break-words font-mono text-sm font-semibold">
-          {formatPrice(line.unit_price * line.quantity)}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">subtotal</p>
+        <div className="text-right sm:w-24 sm:shrink-0">
+          <p className="break-words font-mono text-sm font-semibold">
+            {formatPrice(line.unit_price * line.quantity)}
+          </p>
+          <p className="font-mono text-xs text-muted-foreground">subtotal</p>
+        </div>
       </div>
     </div>
   )

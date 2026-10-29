@@ -19,15 +19,6 @@ export const taxService = {
     return this.list({ status: 'active' })
   },
 
-  async getById(id: string): Promise<Tax | null> {
-    try {
-      const res = await api.get<{ success: boolean; message: string; data?: Tax }>(`/ecommerce/taxes/${id}`)
-      return unwrapData<Tax>(res.data as unknown as { success: boolean; message: string; data?: Tax }) ?? res.data.data ?? null
-    } catch {
-      return null
-    }
-  },
-
   async create(tax: Omit<Tax, 'uuid' | 'created_at' | 'updated_at'>): Promise<Tax> {
     const res = await api.post<{ success: boolean; message: string; data?: Tax }>('/ecommerce/taxes', tax)
     const data = unwrapData<Tax>(res.data as unknown as { success: boolean; message: string; data?: Tax }) ?? res.data.data

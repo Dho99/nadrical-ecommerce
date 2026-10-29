@@ -18,6 +18,12 @@ export interface CheckoutLine {
 export interface PaymentDetail {
   kind: PaymentKind
   provider?: string
+  method_code?: string
+  method_name?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  instructions?: string
   card_name?: string
   card_number?: string
   expiry?: string
@@ -37,6 +43,10 @@ export interface OrderPayload {
     shipping_country_code?: string
   }
   shipping_method: ShippingMethod
+  shipping_method_id?: string
+  shipping_method_name?: string
+  shipping_etd?: string
+  eta_days?: number
   payment: PaymentDetail
   items: CheckoutLine[]
   totals: {
@@ -52,10 +62,19 @@ export interface OrderPayload {
 }
 
 export interface OrderConfirmation {
+  order_id?: string
   order_number: string
   placed_at: Date
   email: string
   eta_days: number
+  shipping_etd?: string
+  shipping_method_name?: string
+  payment_method_code?: string
+  payment_method_name?: string
+  payment_bank_name?: string
+  payment_account_number?: string
+  payment_account_holder?: string
+  payment_instructions?: string
   grand_total: number
 }
 

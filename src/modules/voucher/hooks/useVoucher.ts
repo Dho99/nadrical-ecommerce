@@ -7,14 +7,17 @@ import { websocketService } from '../../../shared/lib/websocket'
 
 interface VoucherStore {
   applied: Voucher | null
-  setApplied: (v: Voucher | null) => void
+  discountAmount: number
+  setApplied: (v: Voucher | null, discountAmount?: number) => void
 }
 
 const useVoucherStore = create<VoucherStore>()(
   persist(
     (set) => ({
       applied: null,
-      setApplied: (v) => set({ applied: v ? normalizeVoucher(v) : null }),
+      discountAmount: 0,
+      setApplied: (v, discountAmount = 0) =>
+        set({ applied: v ? normalizeVoucher(v) : null, discountAmount: v ? Math.max(0, discountAmount) : 0 }),
     }),
     { name: 'store-voucher-v1' },
   ),
@@ -22,6 +25,7 @@ const useVoucherStore = create<VoucherStore>()(
 
 export function useVoucher() {
   const appliedRaw = useVoucherStore((s) => s.applied)
+  const backendDiscount = useVoucherStore((s) => s.discountAmount)
   const setApplied = useVoucherStore((s) => s.setApplied)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -36,7 +40,7 @@ export function useVoucher() {
           setApplied(null)
           setError('Voucher tidak lagi tersedia atau telah dinonaktifkan')
         } else {
-          setApplied(fresh)
+          setApplied(fresh, useVoucherStore.getState().discountAmount)
         }
       } catch {
         // keep current
@@ -44,7 +48,7 @@ export function useVoucher() {
     }
 
     const unsub1 = websocketService.on('voucher_updated', revalidate)
-    const unsub2 = websocketService.on('data_updated', (payload: any) => {
+    const unsub2 = websocketService.on('data_updated', (payload: { resource?: string } | null) => {
       if (!payload || payload.resource === 'vouchers') {
         revalidate()
       }
@@ -62,8 +66,14 @@ export function useVoucher() {
     setLoading(true)
     setError(null)
     try {
-      const voucher = await voucherService.validate(code, subtotal)
-      setApplied(voucher)
+      const [voucher, application] = await Promise.all([
+        voucherService.validate(code, subtotal),
+        voucherService.apply(code, subtotal),
+      ])
+      if (!application.valid) {
+        throw new Error(application.message || 'Voucher tidak dapat digunakan')
+      }
+      setApplied(voucher, application.discount_amount)
       return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid voucher')
@@ -83,6 +93,7 @@ export function useVoucher() {
     const sub = Math.max(0, Number(subtotal) || 0)
     const ship = Math.max(0, Number(shipping) || 0)
     if (applied.min_subtotal !== undefined && sub < applied.min_subtotal) return 0
+    if (backendDiscount > 0) return Math.min(sub, backendDiscount)
     const val = voucherService.calcDiscount(applied, sub, ship)
     return isNaN(val) ? 0 : Math.max(0, val)
   }

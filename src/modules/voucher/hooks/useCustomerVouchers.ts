@@ -26,6 +26,7 @@ export function useCustomerVouchers() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial wallet fetch
     fetchAll()
 
     const handleUpdate = () => {
@@ -33,7 +34,7 @@ export function useCustomerVouchers() {
     }
 
     const unsub1 = websocketService.on('voucher_updated', handleUpdate)
-    const unsub2 = websocketService.on('data_updated', (payload: any) => {
+    const unsub2 = websocketService.on('data_updated', (payload: { resource?: string } | null) => {
       if (!payload || payload.resource === 'vouchers' || payload.resource === 'customer_vouchers') {
         handleUpdate()
       }

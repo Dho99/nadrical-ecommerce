@@ -72,7 +72,7 @@ function loadContexts(): ProductChatContext[] {
     return parsed
       .filter((p): p is ProductChatContext => Boolean(p && typeof (p as ProductChatContext).id === 'string'))
       .map((p) => ({ ...p, added_at: p.added_at ?? now }))
-      .slice(-5)
+      .slice(-1)
   } catch {
     return []
   }
@@ -238,8 +238,10 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
       const detail = (e as CustomEvent<ChatOpenDetail>).detail
       if (detail?.product) {
         const incoming: ProductChatContext = { ...detail.product, added_at: new Date().toISOString() }
-        setProductCtxs((prev) => [...prev, incoming].slice(-5))
+        // Hanya produk terakhir yang ditanyakan — replace produk lama
+        setProductCtxs([incoming])
       }
+      // Tanpa produk: sticky produk terakhir tetap tampil sampai diganti/dipuscet ✕
       if (detail?.message) setDraft(detail.message)
       setOpen(true)
     }
@@ -322,14 +324,12 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
           )}
 
           {productCtxs.length > 0 && (
-            <div className="border-b bg-card px-3 py-2 space-y-1.5 max-h-36 overflow-y-auto">
-              {productCtxs.map((ctx) => (
-                <ProductContextPreview
-                  key={`${ctx.id}-${ctx.added_at ?? ''}`}
-                  product={ctx}
-                  onClear={() => removeCtx(ctx.added_at, ctx.id)}
-                />
-              ))}
+            <div className="border-b bg-card px-3 py-2">
+              <ProductContextPreview
+                key={`${productCtxs[0].id}-${productCtxs[0].added_at ?? ''}`}
+                product={productCtxs[0]}
+                onClear={() => removeCtx(productCtxs[0].added_at, productCtxs[0].id)}
+              />
             </div>
           )}
 
@@ -554,18 +554,6 @@ export function ChatWidget({ identity, isGuest }: ChatWidgetProps) {
             {sending && <p className="text-xs text-muted-foreground italic">Sending…</p>}
             <div ref={bottomRef} />
           </div>
-
-          {productCtxs.length > 1 && (
-            <div className="border-t bg-background px-3 py-1.5">
-              <button
-                type="button"
-                onClick={() => setProductCtxs([])}
-                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
-              >
-                Clear all products
-              </button>
-            </div>
-          )}
 
           {sendFailed && (
             <div className="border-t bg-destructive/10 px-4 py-2">

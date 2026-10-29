@@ -37,19 +37,10 @@ export function useOrderHistory(email: string | null) {
     let cancelled = false
     profileService
       .getOrderHistory(email)
-      .then(async (items) => {
+      .then((items) => {
         if (cancelled) return
-        if (items.length === 0) {
-          await profileService.ensureUserSeeded(email)
-          const seeded = await profileService.getOrderHistory(email)
-          if (!cancelled) {
-            setOrders(seeded)
-            setLoaded(true)
-          }
-        } else {
-          setOrders(items)
-          setLoaded(true)
-        }
+        setOrders(items)
+        setLoaded(true)
       })
       .catch((err: unknown) => {
         if (!cancelled) {

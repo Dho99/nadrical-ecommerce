@@ -23,6 +23,7 @@ export interface Product {
   slug?: string
   description?: string
   category_id: ProductCategoryId
+  category_slug?: string
   category_name?: string
   base_price: number
   original_price?: number

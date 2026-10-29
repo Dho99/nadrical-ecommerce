@@ -1,6 +1,7 @@
 import api, { getAuthToken, unwrapData } from '../../../shared/lib/api'
 import type { OrderWithItems } from '../../../shared/types/order.type'
-import type { DbOrder, DbOrderItem } from '../../../shared/types/database.type'
+import type { DbOrder, DbOrderItem, DbPayment } from '../../../shared/types/database.type'
+import { normalizeOrderStatus } from '../../../shared/utils/order-status'
 
 function toOrderWithItems(order: ApiOrder): OrderWithItems {
   return {
@@ -38,20 +39,31 @@ function toDbOrder(order: ApiOrder): DbOrder {
     recipient_name: order.recipient_name,
     recipient_phone: order.phone,
     shipping_address_line_1: order.address,
+    shipping_address_line_2: order.shipping_address_line_2,
     shipping_city: order.city,
+    shipping_province: order.shipping_province,
+    shipping_postal_code: order.postal_code,
+    shipping_country_code: order.shipping_country_code,
     shipping_courier: order.shipping_courier,
     shipping_method: order.shipping_courier,
     shipping_method_id: order.shipping_method_id,
     tracking_number: order.tracking_number,
-    status: order.order_status as DbOrder['status'],
+    status: normalizeOrderStatus(order.order_status),
     subtotal: Number(order.subtotal ?? 0),
     discount_total: Number(order.discount_total ?? 0),
     shipping_total: Number(order.shipping_cost ?? 0),
     service_fee_total: Number(order.service_fee ?? 0),
     tax_total: Number(order.tax_total ?? 0),
     grand_total: Number(order.total ?? 0),
-    placed_at: order.created_at,
+    currency_code: order.currency_code,
+    paid_at: order.paid_at,
+    placed_at: order.placed_at ?? order.created_at,
+    shipped_at: order.shipped_at,
+    delivered_at: order.delivered_at,
+    cancelled_at: order.cancelled_at,
+    notes: order.notes,
     created_at: order.created_at,
+    updated_at: order.updated_at,
     payment: order.payment
       ? {
           id: order.payment.uuid || order.payment.id || '',
@@ -64,7 +76,7 @@ function toDbOrder(order: ApiOrder): DbOrder {
           sender_bank: order.payment.sender_bank || order.payment.payer_bank,
           reference_number: order.payment.reference_number,
           amount: Number(order.payment.amount ?? 0),
-          status: (order.payment.status as any) || 'pending',
+          status: (order.payment.status as DbPayment['status']) || 'pending',
           payment_proof_url: order.payment.payment_proof_url,
           rejection_reason: order.payment.rejection_reason,
           verified_at: order.payment.verified_at,
@@ -100,8 +112,12 @@ export interface ApiOrder {
   email?: string
   recipient_name: string
   address: string
+  shipping_address_line_2?: string
   phone: string
   city: string
+  shipping_province?: string
+  postal_code?: string
+  shipping_country_code?: string
   shipping_courier: string
   shipping_method_id?: string
   tracking_number?: string
@@ -112,7 +128,15 @@ export interface ApiOrder {
   service_fee?: number
   tax_total?: number
   total: number
+  currency_code?: string
+  paid_at?: string
+  placed_at?: string
+  shipped_at?: string
+  delivered_at?: string
+  cancelled_at?: string
+  notes?: string
   created_at: string
+  updated_at?: string
   order_items?: ApiOrderItem[]
   payment?: ApiPayment
 }
@@ -140,11 +164,20 @@ interface ApiOrderItem {
 export const orderRepository = {
   async list(): Promise<OrderWithItems[]> {
     if (!getAuthToken()) return []
-    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number } }>('/ecommerce/orders', {
-      params: { scope: 'my' },
-    })
-    const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
-    return list.map(toOrderWithItems)
+    const all: ApiOrder[] = []
+    let page = 1
+    while (page <= 20) {
+      const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', {
+        params: { page, limit: 100, scope: 'my' },
+      })
+      const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
+      all.push(...list)
+      const meta = (res.data as { meta?: { total: number; per_page: number; current_page: number } }).meta
+      const total = meta?.total ?? all.length
+      if (list.length < 100 || all.length >= total) break
+      page += 1
+    }
+    return all.map(toOrderWithItems)
   },
 
   async listPage(cursor: number | null, limit: number): Promise<{ items: OrderWithItems[]; total: number; nextCursor: number | null; prevCursor: number | null }> {
@@ -190,7 +223,7 @@ export const orderRepository = {
   },
 
   async submitPaymentWithProof(id: string, form: FormData): Promise<void> {
-    await api.post(`/ecommerce/orders/${id}/payments`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await api.post(`/ecommerce/orders/${id}/payments`, form)
   },
 
   async updateShipping(id: string, tracking_number: string, courier?: string): Promise<OrderWithItems | null> {
@@ -210,21 +243,13 @@ export const orderRepository = {
   },
 
   async fetchPaymentMethods(): Promise<GatewayPaymentMethod[]> {
-    try {
-      const res = await api.get<{ success: boolean; message: string; data?: GatewayPaymentMethod[] }>('/ecommerce/payment-methods?is_enabled=true')
-      return unwrapData<GatewayPaymentMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayPaymentMethod[] }) ?? res.data.data ?? []
-    } catch {
-      return []
-    }
+    const res = await api.get<{ success: boolean; message: string; data?: GatewayPaymentMethod[] }>('/ecommerce/payment-methods?is_enabled=true')
+    return unwrapData<GatewayPaymentMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayPaymentMethod[] }) ?? res.data.data ?? []
   },
 
   async fetchShippingMethods(): Promise<GatewayShippingMethod[]> {
-    try {
-      const res = await api.get<{ success: boolean; message: string; data?: GatewayShippingMethod[] }>('/ecommerce/shipping-methods?is_enabled=true')
-      return unwrapData<GatewayShippingMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayShippingMethod[] }) ?? res.data.data ?? []
-    } catch {
-      return []
-    }
+    const res = await api.get<{ success: boolean; message: string; data?: GatewayShippingMethod[] }>('/ecommerce/shipping-methods?is_enabled=true')
+    return unwrapData<GatewayShippingMethod[]>(res.data as unknown as { success: boolean; message: string; data?: GatewayShippingMethod[] }) ?? res.data.data ?? []
   },
 
   async reset(): Promise<void> {

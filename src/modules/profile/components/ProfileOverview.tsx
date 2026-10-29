@@ -8,6 +8,7 @@ import { initialsOf } from '../utils/profile.utils'
 import { EditProfileDialog } from './EditProfileDialog'
 import { useWishlistCatalog } from '../../wishlist/hooks/useWishlistCatalog'
 import { useCustomerVouchers } from '../../voucher'
+import { useLoyalty } from '../../loyalty'
 
 interface ProfileOverviewProps {
   user: AuthUser
@@ -24,6 +25,7 @@ const JOINED_YEAR = String(new Date(Date.now() - 1000 * 86400 * 90).getFullYear(
 export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
   const { products: wishlistProducts, ready: wishlistReady } = useWishlistCatalog()
   const { vouchers, claimableLoyalty, loading: vouchersLoading, claimingId, claim } = useCustomerVouchers()
+  const { points: loyaltyPoints } = useLoyalty()
   const wishlistCount = wishlistProducts.length
   return (
     <Card className="p-6 sm:p-8">
@@ -70,7 +72,7 @@ export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
             <Award className="size-3" /> Loyalty points
           </dt>
           <dd className="mt-1 font-display text-2xl font-bold tracking-tight">
-            {stats ? Math.floor(stats.totalSpent / 10).toLocaleString() : '—'}
+            {stats ? Math.floor(loyaltyPoints).toLocaleString() : '—'}
           </dd>
         </div>
         <div>
@@ -166,6 +168,9 @@ export function ProfileOverview({ user, stats }: ProfileOverviewProps) {
               </div>
             </div>
           )}
+          <Button variant="outline" size="sm" asChild className="mt-4 w-full">
+            <Link to="/vouchers">Lihat semua voucher</Link>
+          </Button>
         </Card>
         <Card className="p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold">

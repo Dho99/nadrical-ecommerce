@@ -1,7 +1,6 @@
 import { formatPrice } from '../../../shared/utils/format'
 import { getAuthToken } from '../../../shared/lib/api'
 import { orderRepository } from '../../checkout/services/order.repository'
-import { SEED_ANNOUNCEMENTS } from '../constants/notification.constants'
 import type { AppNotification } from '../types/notification.type'
 import { notificationRepository } from './notification.repository'
 import { websocketService } from '../../../shared/lib/websocket'
@@ -18,12 +17,6 @@ function makeId(prefix: string): string {
 export const notificationService = {
   getStoredNotifications(): AppNotification[] {
     const store = notificationRepository.load()
-    if (store.items.length === 0 && Object.keys(store.lastStatus).length === 0) {
-      SEED_ANNOUNCEMENTS.forEach((a, i) => {
-        store.items.push({ ...a, id: `ann-seed-${i}`, created_at: now(), is_read: false })
-      })
-      notificationRepository.save(store)
-    }
     return [...store.items].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
   },
 
@@ -52,24 +45,18 @@ export const notificationService = {
       // ignore
     }
 
-    if (store.items.length === 0 && Object.keys(store.lastStatus).length === 0) {
-      SEED_ANNOUNCEMENTS.forEach((a, i) => {
-        store.items.push({ ...a, id: `ann-seed-${i}`, created_at: now(), is_read: false })
-      })
-      changed = true
-    }
-
     if (email && getAuthToken()) {
       try {
-        const allOrders = await orderRepository.list()
-        const orders = allOrders.filter(
-          (o) =>
-            (o.email ?? '').toLowerCase() === email.toLowerCase() ||
-            (o.user_id ?? '').toLowerCase() === email.toLowerCase() ||
-            !o.email,
+        const orders = await orderRepository.list()
+        const target = email.toLowerCase()
+        const visibleOrders = orders.filter(
+          (order) =>
+            (order.email ?? '').toLowerCase() === target ||
+            (order.user_id ?? '').toLowerCase() === target ||
+            !order.email,
         )
 
-        for (const order of orders) {
+        for (const order of visibleOrders) {
         const current = order.status ?? 'pending_payment'
         const last = store.lastStatus[order.order_number]
         const etaDays = order.shipping_method === 'express' ? 1 : 4

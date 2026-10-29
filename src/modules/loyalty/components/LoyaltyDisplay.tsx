@@ -2,8 +2,29 @@ import { Gift, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '../../../shared/components/ui'
 import { useLoyalty } from '../hooks/useLoyalty'
 
+const TIER_COLORS: Record<string, string> = {
+  bronze: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
+  silver: 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+  gold: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200',
+  platinum: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200',
+}
+
+function tierColor(name?: string): string {
+  const key = (name || '').toLowerCase()
+  return TIER_COLORS[key] || 'bg-primary/10 text-primary'
+}
+
 export function LoyaltyDisplay() {
-  const { account, loading, error } = useLoyalty()
+  const { points, tier, nextTier, pointsToNext, loading, error } = useLoyalty()
+
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-2 rounded-lg border border-border/40 p-3">
+        <div className="h-4 w-2/3 rounded bg-muted" />
+        <div className="h-10 rounded bg-muted" />
+      </div>
+    )
+  }
 
   if (error) {
     return (
@@ -11,34 +32,6 @@ export function LoyaltyDisplay() {
         Loyalty belum dapat dimuat
       </div>
     )
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-2 rounded-lg border border-border/40 p-3 animate-pulse">
-        <div className="h-4 w-2/3 bg-muted rounded" />
-        <div className="grid grid-cols-2 gap-2">
-          <div className="h-10 bg-muted rounded" />
-          <div className="h-10 bg-muted rounded" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!account) return null
-
-  const tierColors: Record<string, string> = {
-    bronze: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-    silver: 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-    gold: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200',
-    platinum: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200',
-  }
-
-  const tierLabels: Record<string, string> = {
-    bronze: 'Bronze',
-    silver: 'Silver',
-    gold: 'Gold',
-    platinum: 'Platinum',
   }
 
   return (
@@ -49,41 +42,27 @@ export function LoyaltyDisplay() {
             <Gift className="size-4 text-primary" />
             Loyalty Points
           </CardTitle>
-          <Badge className={`text-[10px] font-semibold px-2 py-0.5 ${tierColors[account.current_tier]}`}>
-            {tierLabels[account.current_tier]}
+          <Badge className={`px-2 py-0.5 text-[10px] font-semibold ${tierColor(tier?.name)}`}>
+            {tier?.name || 'Member'}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-md bg-card/80 border border-border/40 p-2">
-            <p className="text-[10px] text-muted-foreground">Current Points</p>
-            <p className="mt-0.5 text-base font-bold text-primary">{account.current_points.toLocaleString()}</p>
-          </div>
-          <div className="rounded-md bg-card/80 border border-border/40 p-2">
-            <p className="text-[10px] text-muted-foreground">Total Earned</p>
-            <p className="mt-0.5 text-sm font-semibold">{account.total_earned.toLocaleString()}</p>
-          </div>
+      <CardContent className="space-y-2 p-3 pt-0">
+        <div className="rounded-md border border-border/40 bg-card/80 p-2">
+          <p className="text-[10px] text-muted-foreground">Poin saat ini</p>
+          <p className="mt-0.5 text-base font-bold text-primary">{points.toLocaleString('id-ID')}</p>
         </div>
-        <div className="rounded-md bg-card/80 border border-border/40 p-2">
+        <div className="rounded-md border border-border/40 bg-card/80 p-2">
           <div className="flex items-center gap-1.5">
-            <TrendingUp className="size-3.5 text-green-600 shrink-0" />
-            <span className="text-[11px] text-muted-foreground leading-tight">
-              Earn {getTierPercentage(account.current_tier)}% per purchase
+            <TrendingUp className="size-3.5 shrink-0 text-green-600" />
+            <span className="text-[11px] leading-tight text-muted-foreground">
+              {nextTier
+                ? `${pointsToNext.toLocaleString('id-ID')} poin lagi menuju ${nextTier.name}`
+                : 'Level loyalty tertinggi tercapai'}
             </span>
           </div>
         </div>
-        {account.points_expire_at && (
-          <p className="text-[10px] text-amber-600">
-            ⚠️ Exp: {new Date(account.points_expire_at).toLocaleDateString()}
-          </p>
-        )}
       </CardContent>
     </Card>
   )
-}
-
-function getTierPercentage(tier: string): number {
-  const rates: Record<string, number> = { bronze: 1, silver: 2, gold: 3, platinum: 5 }
-  return rates[tier] ?? 1
 }

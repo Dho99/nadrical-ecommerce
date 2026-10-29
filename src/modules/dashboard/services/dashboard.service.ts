@@ -17,7 +17,13 @@ export interface DashboardStatsRaw {
   total_categories: number
   total_orders: number
   pending_orders: number
+  processing_orders: number
+  completed_orders: number
   total_revenue: number
+  low_stock_products: number
+  unread_chats: number
+  active_vouchers: number
+  total_loyalty_tiers: number
   total_news: number
   total_faqs: number
 }
@@ -49,12 +55,14 @@ export const dashboardService = {
     const res = await api.get<{ success: boolean; message: string; data?: DashboardStatsRaw & DashboardSummary }>('/dashboard/stats')
     const data = unwrapData<DashboardStatsRaw & DashboardSummary>(res.data as unknown as { success: boolean; message: string; data?: DashboardStatsRaw }) ?? res.data.data
     if (!data) throw new Error(res.data.message || 'Failed to fetch dashboard stats')
+    const completed = Number((data as DashboardStatsRaw).completed_orders ?? 0)
+    const totalRevenue = Number((data as DashboardStatsRaw).total_revenue ?? (data as DashboardSummary).total_revenue ?? 0)
     return {
-      total_revenue: Number((data as DashboardStatsRaw).total_revenue ?? (data as DashboardSummary).total_revenue ?? 0),
+      total_revenue: totalRevenue,
       total_orders: Number((data as DashboardStatsRaw).total_orders ?? (data as DashboardSummary).total_orders ?? 0),
       total_customers: Number((data as DashboardStatsRaw).total_users ?? (data as DashboardSummary).total_customers ?? 0),
       total_products: Number((data as DashboardStatsRaw).total_products ?? (data as DashboardSummary).total_products ?? 0),
-      avg_order_value: Number((data as DashboardSummary).avg_order_value ?? 0),
+      avg_order_value: completed > 0 ? totalRevenue / completed : 0,
       top_products: (data as DashboardSummary).top_products,
       recent_orders: (data as DashboardSummary).recent_orders,
       revenue_by_date: (data as DashboardSummary).revenue_by_date,
@@ -82,8 +90,8 @@ export const dashboardService = {
     }
     const summary = await dashboardService.getSummary()
     const type = params.type
-    let rows: Record<string, unknown>[] = []
-    let columns: string[] = []
+    let rows: Record<string, unknown>[]
+    let columns: string[]
     if (type === 'orders' && summary.recent_orders) {
       rows = summary.recent_orders as Record<string, unknown>[]
       columns = ['order_number', 'status', 'grand_total', 'created_at']

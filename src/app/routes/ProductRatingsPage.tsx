@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PackageX, Star } from 'lucide-react'
 import { useProduct } from '../../modules/products'
-import { useReviews } from '../../modules/products'
+import { useReviews, useRatingSummary } from '../../modules/products'
 import { ReviewCard } from '../../modules/products'
 import { RatingSummary } from '../../modules/products'
 import { StarRating } from '../../modules/products'
@@ -43,7 +43,8 @@ export function ProductRatingsPage() {
     hintCount: product?.review_count,
   })
 
-  const stats = reviews.stats
+  const ratingSummary = useRatingSummary(id)
+  const stats = ratingSummary.stats ?? reviews.stats
   const countsFor = (value: ReviewRating | 'all') =>
     value === 'all'
       ? stats?.count ?? 0

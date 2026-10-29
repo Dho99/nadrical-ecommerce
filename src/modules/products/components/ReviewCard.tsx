@@ -1,5 +1,6 @@
-import { BadgeCheck } from 'lucide-react'
+import { BadgeCheck, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../../../shared/utils/cn'
+import { Button } from '../../../shared/components/ui'
 import type { Review } from '../types/review.type'
 import { StarRating } from './StarRating'
 
@@ -29,9 +30,12 @@ function avatarColor(name: string): string {
 
 interface ReviewCardProps {
   review: Review
+  onEdit?: () => void
+  onDelete?: () => void
+  deleting?: boolean
 }
 
-export function ReviewCard({ review }: ReviewCardProps) {
+export function ReviewCard({ review, onEdit, onDelete, deleting = false }: ReviewCardProps) {
   const date = new Date(review.created_at).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -59,6 +63,29 @@ export function ReviewCard({ review }: ReviewCardProps) {
             </span>
           )}
           <span className="ml-auto font-mono text-[11px] text-muted-foreground">{date}</span>
+          {onEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Edit ulasan"
+              onClick={onEdit}
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Hapus ulasan"
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              <Trash2 className="size-3.5 text-destructive" />
+            </Button>
+          )}
         </div>
         <StarRating rating={review.rating} className="mt-1" />
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{review.comment}</p>

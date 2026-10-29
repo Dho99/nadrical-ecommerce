@@ -1,3 +1,3 @@
-export { AnnouncementPopup } from './components/AnnouncementPopup'
-export { useAnnouncements } from './hooks/useAnnouncements'
-export { announcementService, type Announcement } from './services/announcement.service'
+export { AnnouncementsPage, AnnouncementDetailPage } from './pages/AnnouncementsPage'
+export { announcementService } from './services/announcement.service'
+export type { Announcement } from './services/announcement.service'

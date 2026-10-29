@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button, Card } from '../../../shared/components/ui'
 import { formatPrice } from '../../../shared/utils/format'
-import { FREE_SHIPPING_THRESHOLD } from '../services/cart.service'
 import type { CartTotals } from '../types/cart.type'
 import { useVoucher } from '../../voucher/hooks/useVoucher'
 import { VoucherField } from '../../voucher/components/VoucherField'
@@ -22,8 +21,6 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
     voucher_code: applied?.code,
     grand_total: Math.max(0, Number(totals.subtotal) - voucherDiscount + Number(totals.shipping_total)),
   }
-  const toFreeShip = Math.max(0, FREE_SHIPPING_THRESHOLD - totals.subtotal)
-
   return (
     <Card className="h-fit p-5 sm:p-6 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-auto">
       <h2 className="font-display text-xl font-bold tracking-tight">Order summary</h2>
@@ -43,19 +40,13 @@ export function CartSummary({ totals, totalQty }: CartSummaryProps) {
         </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Shipping</dt>
-          <dd className="font-medium">{totals.shipping_total === 0 ? 'FREE' : formatPrice(totals.shipping_total)}</dd>
+          <dd className="font-medium text-muted-foreground">Dihitung saat checkout</dd>
         </div>
         {voucherDiscount > 0 && (
           <div className="flex justify-between text-emerald-600">
             <dt>Discount{applied ? ` · ${applied.code}` : ''}</dt>
             <dd className="font-medium">-{formatPrice(voucherDiscount)}</dd>
           </div>
-        )}
-        {toFreeShip > 0 && (
-          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Add <span className="font-semibold text-foreground">{formatPrice(toFreeShip)}</span> more
-            to unlock free shipping
-          </p>
         )}
         <div className="flex items-center justify-between border-t pt-3">
           <dt className="font-semibold">Total</dt>

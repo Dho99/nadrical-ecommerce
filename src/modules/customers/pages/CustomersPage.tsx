@@ -48,7 +48,7 @@ export function CustomersPage() {
         {error && (
           <div className="mx-4 mb-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
             {error}
-            <p className="mt-1 text-xs text-muted-foreground">Backend endpoint belum ada = tidak dibuat di repo ini. Aktifkan GET /auth/users di nadrical-compro-be dan set VITE_API_BASE_URL.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Pastikan akun memiliki role admin/operator. Endpoint: GET /ecommerce/customers.</p>
           </div>
         )}
 

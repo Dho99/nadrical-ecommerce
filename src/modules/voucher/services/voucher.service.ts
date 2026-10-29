@@ -73,11 +73,29 @@ export function normalizeVoucher(raw: unknown): Voucher | null {
     valid_from_date: typeof item.valid_from_date === 'string' ? item.valid_from_date : undefined,
     valid_to_date: expires_at,
     is_active: active,
-    target_type: typeof item.target_type === 'string' ? (item.target_type as any) : 'all',
+    target_type: typeof item.target_type === 'string' ? (item.target_type as Voucher['target_type']) : 'all',
   }
 }
 
 export const voucherService = {
+  async getAll(): Promise<Voucher[]> {
+    const res = await api.get<{ success: boolean; message: string; data?: unknown[] }>('/ecommerce/vouchers')
+    const rawList = unwrapData<unknown[]>(res.data as unknown as { success: boolean; message: string; data?: unknown[] }) ?? res.data.data ?? []
+    return Array.isArray(rawList)
+      ? rawList.map(normalizeVoucher).filter((v): v is Voucher => v !== null && Boolean(v.code))
+      : []
+  },
+
+  async getById(id: string): Promise<Voucher | null> {
+    try {
+      const res = await api.get<{ success: boolean; message: string; data?: unknown }>(`/ecommerce/vouchers/${id}`)
+      const raw = unwrapData<unknown>(res.data as unknown as { success: boolean; message: string; data?: unknown }) ?? res.data.data ?? null
+      return normalizeVoucher(raw)
+    } catch {
+      return null
+    }
+  },
+
   async list(): Promise<Voucher[]> {
     const res = await api.get<{ success: boolean; message: string; data?: unknown[] }>('/ecommerce/vouchers/active')
     const rawList = unwrapData<unknown[]>(res.data as unknown as { success: boolean; message: string; data?: unknown[] }) ?? res.data.data ?? []
@@ -118,6 +136,29 @@ export const voucherService = {
 
   async reset(): Promise<void> {
     throw new Error('reset tidak tersedia di BE mode')
+  },
+
+  async apply(code: string, subtotal: number): Promise<{ valid: boolean; discount_amount: number; final_total: number; message?: string }> {
+    const normalized = code.trim().toUpperCase()
+    if (!normalized) throw new Error('Enter voucher code')
+    const res = await api.post<{
+      success: boolean
+      message: string
+      data?: { valid?: boolean; discount_amount?: number; final_total?: number; message?: string }
+    }>('/ecommerce/vouchers/apply', {
+      code: normalized,
+      order_total: subtotal,
+    })
+    const data = unwrapData<{ valid?: boolean; discount_amount?: number; final_total?: number; message?: string }>(
+      res.data as unknown as { success: boolean; message: string; data?: { valid?: boolean; discount_amount?: number; final_total?: number; message?: string } },
+    ) ?? res.data.data
+    if (!data) throw new Error(res.data.message || 'Gagal menerapkan voucher')
+    return {
+      valid: Boolean(data.valid),
+      discount_amount: Number(data.discount_amount ?? 0),
+      final_total: Number(data.final_total ?? subtotal),
+      message: data.message,
+    }
   },
 
   async validate(code: string, subtotal: number): Promise<Voucher> {
@@ -172,13 +213,16 @@ export const voucherService = {
 
   async getMyVouchers(): Promise<CustomerVoucher[]> {
     try {
-      const res = await api.get<{ success: boolean; data?: any[] }>('/ecommerce/vouchers/my-vouchers')
-      const raw = unwrapData<any[]>(res.data as any) ?? res.data?.data ?? []
+      const res = await api.get<{ success: boolean; data?: unknown[] }>('/ecommerce/vouchers/my-vouchers')
+      const raw = unwrapData<unknown[]>(res.data as { data?: unknown[] }) ?? res.data?.data ?? []
       if (!Array.isArray(raw)) return []
-      return raw.map((item) => ({
-        ...item,
-        voucher: normalizeVoucher(item.voucher) as Voucher,
-      }))
+      return raw.map((entry) => {
+        const item = entry as Record<string, unknown> & { voucher?: unknown }
+        return {
+          ...item,
+          voucher: normalizeVoucher(item.voucher) as Voucher,
+        } as CustomerVoucher
+      })
     } catch {
       return []
     }
@@ -186,14 +230,17 @@ export const voucherService = {
 
   async getClaimableLoyaltyVouchers(): Promise<ClaimableLoyaltyVoucher[]> {
     try {
-      const res = await api.get<{ success: boolean; data?: any[] }>('/ecommerce/vouchers/claimable-loyalty')
-      const raw = unwrapData<any[]>(res.data as any) ?? res.data?.data ?? []
+      const res = await api.get<{ success: boolean; data?: unknown[] }>('/ecommerce/vouchers/claimable-loyalty')
+      const raw = unwrapData<unknown[]>(res.data as { data?: unknown[] }) ?? res.data?.data ?? []
       if (!Array.isArray(raw)) return []
-      return raw.map((item) => ({
-        voucher: normalizeVoucher(item.voucher) as Voucher,
-        is_claimed: Boolean(item.is_claimed),
-        tier_name: String(item.tier_name || ''),
-      }))
+      return raw.map((entry) => {
+        const item = entry as Record<string, unknown> & { voucher?: unknown }
+        return {
+          voucher: normalizeVoucher(item.voucher) as Voucher,
+          is_claimed: Boolean(item.is_claimed),
+          tier_name: String(item.tier_name || ''),
+        }
+      })
     } catch {
       return []
     }

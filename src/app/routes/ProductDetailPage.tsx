@@ -126,8 +126,8 @@ export function ProductDetailPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/products?category=${product.category_id}`}>
-                {CATEGORY_LABEL[product.category_id]}
+              <Link to={`/products?category=${product.category_slug || product.category_id}`}>
+                {CATEGORY_LABEL[product.category_id] ?? product.category_name}
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -144,7 +144,7 @@ export function ProductDetailPage() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
             <p className="font-mono text-xs tracking-[0.12em] text-muted-foreground uppercase">
-              {CATEGORY_LABEL[product.category_id]}
+              {CATEGORY_LABEL[product.category_id] ?? product.category_name}
             </p>
             {product.badge === 'SALE' && (
               <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-xs shadow-sm border-none px-2.5 py-0.5 rounded-md flex items-center gap-1">
@@ -236,8 +236,8 @@ export function ProductDetailPage() {
               You might also like
             </p>
             <h2 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              {product.category_id && CATEGORY_LABEL[product.category_id]
-                ? `More in ${CATEGORY_LABEL[product.category_id]}`
+              {CATEGORY_LABEL[product.category_id] || product.category_name
+                ? `More in ${CATEGORY_LABEL[product.category_id] ?? product.category_name}`
                 : 'Related products'}
             </h2>
           </header>

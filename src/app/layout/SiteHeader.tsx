@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -18,13 +18,12 @@ import { useAuth } from "../../modules/auth/hooks/useAuth";
 import { NotificationBell, useNotifications } from "../../modules/notifications";
 import { useLogo, useLogoConfig } from "../../modules/home/hooks/useBanner";
 import { useWishlist } from "../../modules/wishlist";
-import { LoyaltyDisplay } from "../../modules/loyalty";
 import {
   useCurrency,
   CURRENCIES,
   type CurrencyCode,
 } from "../../modules/currency";
-import { CATEGORIES } from "../../modules/products/constants/product.constants";
+import { useCategories } from "../../modules/products/hooks/useCategories";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +47,13 @@ import {
 import { SearchDialog } from "./SearchDialog";
 import { cn } from "../../shared/utils/cn";
 
+function logoVars(mobile: number, desktop: number): CSSProperties {
+  return {
+    '--logo-nav-h-mobile': `${mobile}px`,
+    '--logo-nav-h-desktop': `${desktop}px`,
+  } as CSSProperties
+}
+
 export function SiteHeader() {
   const { totalQty } = useCart();
   const { user, isAuthed, logout } = useAuth();
@@ -62,6 +68,7 @@ export function SiteHeader() {
   const { code: currencyCode, set: setCurrency } = useCurrency();
   const { logo: dynamicLogoUrl } = useLogo();
   const { config: logoConfig } = useLogoConfig();
+  const categories = useCategories();
 
   const dark = resolvedTheme === "dark";
 
@@ -91,7 +98,7 @@ export function SiteHeader() {
       >
         All products
       </Link>
-      {CATEGORIES.map((cat) => {
+      {categories.map((cat) => {
         const isActive = activeCategory === cat.id;
         return (
           <Link
@@ -175,10 +182,7 @@ export function SiteHeader() {
               <img
                 src={dynamicLogoUrl}
                 alt="Nadrical"
-                style={{
-                  ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
-                  ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
-                }}
+                style={logoVars(logoConfig.navbarMobileHeightPx || 28, logoConfig.navbarDesktopHeightPx || 40)}
                 className="h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto object-contain transition-all"
               />
             ) : (
@@ -186,19 +190,13 @@ export function SiteHeader() {
                 <img
                   src="/logo.svg"
                   alt="Nadrical"
-                  style={{
-                    ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
-                    ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
-                  }}
+                  style={logoVars(logoConfig.navbarMobileHeightPx || 28, logoConfig.navbarDesktopHeightPx || 40)}
                   className="h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto dark:hidden transition-all"
                 />
                 <img
                   src="/logo-dark.svg"
                   alt="Nadrical"
-                  style={{
-                    ['--logo-nav-h-mobile' as any]: `${logoConfig.navbarMobileHeightPx || 28}px`,
-                    ['--logo-nav-h-desktop' as any]: `${logoConfig.navbarDesktopHeightPx || 40}px`,
-                  }}
+                  style={logoVars(logoConfig.navbarMobileHeightPx || 28, logoConfig.navbarDesktopHeightPx || 40)}
                   className="hidden h-[var(--logo-nav-h-mobile)] sm:h-[var(--logo-nav-h-desktop)] w-auto dark:block transition-all"
                 />
               </>
@@ -272,9 +270,6 @@ export function SiteHeader() {
                      <p className="truncate px-2 pb-2 text-xs text-muted-foreground">
                        {user?.email}
                      </p>
-                     <div className="px-2 py-2">
-                       <LoyaltyDisplay />
-                     </div>
                      <Separator />
                      <Link
                        to="/profile"
@@ -446,7 +441,7 @@ export function SiteHeader() {
                      >
                        <span>All Products</span>
                      </Link>
-                     {CATEGORIES.map((cat) => {
+                     {categories.map((cat) => {
                        const isActive = activeCategory === cat.id;
                        return (
                          <Link

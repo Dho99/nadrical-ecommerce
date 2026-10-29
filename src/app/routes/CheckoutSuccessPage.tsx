@@ -6,58 +6,10 @@ import { Button, Card, Separator } from '../../shared/components/ui'
 import { formatPrice } from '../../shared/utils/format'
 import { orderRepository } from '../../modules/checkout/services/order.repository'
 import { invoiceService } from '../../modules/orders/services/invoice.service'
-import type { OrderConfirmation } from '../../modules/checkout/types/checkout.type'
+import { readOrderConfirmation } from '../../modules/checkout/utils/confirmation.utils'
 import { ProductCard } from '../../modules/products'
 import { productService } from '../../modules/products/services/product.service'
 import type { Product } from '../../modules/products/types/product.type'
-
-const STORAGE_KEY = 'last-order-confirmation'
-
-type StoredConfirmation = {
-  order_number: string
-  placed_at: string
-  email: string
-  eta_days: number
-  grand_total: number
-}
-
-function isStoredConfirmation(v: unknown): v is StoredConfirmation {
-  if (v === null || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  return (
-    typeof o.order_number === 'string' &&
-    typeof o.placed_at === 'string' &&
-    typeof o.email === 'string' &&
-    typeof o.eta_days === 'number' &&
-    typeof o.grand_total === 'number'
-  )
-}
-
-function isOrderConfirmationState(v: unknown): v is OrderConfirmation {
-  if (v === null || typeof v !== 'object') return false
-  const o = v as Record<string, unknown>
-  const placed = o.placed_at
-  const validDate = placed instanceof Date || typeof placed === 'string'
-  return (
-    typeof o.order_number === 'string' &&
-    validDate &&
-    typeof o.email === 'string' &&
-    typeof o.eta_days === 'number' &&
-    typeof o.grand_total === 'number'
-  )
-}
-
-function reviveConfirmation(v: OrderConfirmation | StoredConfirmation): OrderConfirmation {
-  const placed = (v as { placed_at: unknown }).placed_at
-  const date = placed instanceof Date ? placed : new Date(typeof placed === 'string' ? placed : new Date().toISOString())
-  return {
-    order_number: v.order_number,
-    email: v.email,
-    eta_days: v.eta_days,
-    grand_total: v.grand_total,
-    placed_at: date,
-  }
-}
 
 export function CheckoutSuccessPage() {
   const navigate = useNavigate()
@@ -80,33 +32,15 @@ export function CheckoutSuccessPage() {
     }
   }, [])
 
-  const confirmation = useMemo<OrderConfirmation | null>(() => {
-    const state = location.state as unknown
-    if (isOrderConfirmationState(state)) return reviveConfirmation(state as OrderConfirmation | StoredConfirmation)
-    if (state !== null && typeof state === 'object') {
-      const maybeWrapped = (state as Record<string, unknown>).confirmation as unknown
-      if (isOrderConfirmationState(maybeWrapped)) return reviveConfirmation(maybeWrapped as OrderConfirmation | StoredConfirmation)
-      if (isStoredConfirmation(maybeWrapped)) return reviveConfirmation(maybeWrapped)
-    }
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw)
-        if (isStoredConfirmation(parsed)) return reviveConfirmation(parsed)
-        if (isOrderConfirmationState(parsed)) return reviveConfirmation(parsed as OrderConfirmation | StoredConfirmation)
-      }
-    } catch {
-      // ignore
-    }
-    return null
-  }, [location.state])
+  const confirmation = useMemo(() => readOrderConfirmation(location.state), [location.state])
 
   const handleDownloadInvoice = async () => {
     if (!confirmation) return
     setDownloading(true)
     try {
-      const orders = await orderRepository.list()
-      const found = orders.find((o) => o.order_number === confirmation.order_number || o.id === confirmation.order_number)
+      const found = await orderRepository.get(
+        confirmation.order_id || confirmation.order_number,
+      )
       if (found) {
         const invoiceData = invoiceService.build(found, confirmation.email)
         await invoiceService.download(invoiceData)
@@ -151,7 +85,7 @@ export function CheckoutSuccessPage() {
           <PackageCheck className="size-4" aria-hidden="true" />
         </span>
         <h1 className="mt-4 font-display text-3xl font-bold tracking-tight">Pembayaran berhasil</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Pesanan kamu sudah kami terima. Pembayaran mock berhasil dikonfirmasi.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Pesanan kamu sudah kami terima. Pembayaran menunggu verifikasi admin.</p>
 
         <Separator className="my-5" />
 
