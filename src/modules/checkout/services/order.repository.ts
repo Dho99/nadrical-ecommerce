@@ -161,28 +161,38 @@ interface ApiOrderItem {
   updated_at: string
 }
 
+// In-flight promise deduplication for order list requests (prevents duplicate API requests during concurrent renders)
+let inflightOrderListPromise: Promise<OrderWithItems[]> | null = null
+
 export const orderRepository = {
   async list(): Promise<OrderWithItems[]> {
     if (!getAuthToken()) return []
-    const all: ApiOrder[] = []
-    let page = 1
-    while (page <= 20) {
-      const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', {
-        params: { page, limit: 100, scope: 'my' },
-      })
-      const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
-      all.push(...list)
-      const meta = (res.data as { meta?: { total: number; per_page: number; current_page: number } }).meta
-      const total = meta?.total ?? all.length
-      if (list.length < 100 || all.length >= total) break
-      page += 1
-    }
-    return all.map(toOrderWithItems)
+    if (inflightOrderListPromise) return inflightOrderListPromise
+
+    inflightOrderListPromise = (async () => {
+      try {
+        const res = await api.get<{
+          success: boolean
+          message: string
+          data?: ApiOrder[]
+          meta?: { total: number; per_page: number; current_page: number }
+        }>('/ecommerce/orders')
+        const list =
+          unwrapData<ApiOrder[]>(
+            res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }
+          ) ?? res.data.data ?? []
+        return list.map(toOrderWithItems)
+      } finally {
+        inflightOrderListPromise = null
+      }
+    })()
+
+    return inflightOrderListPromise
   },
 
   async listPage(cursor: number | null, limit: number): Promise<{ items: OrderWithItems[]; total: number; nextCursor: number | null; prevCursor: number | null }> {
     if (!getAuthToken()) return { items: [], total: 0, nextCursor: null, prevCursor: null }
-    const params: Record<string, string> = { limit: String(limit), scope: 'my' }
+    const params: Record<string, string> = { limit: String(limit) }
     if (cursor !== null) params.page = String(Math.floor(cursor / limit) + 1)
     const res = await api.get<{ success: boolean; message: string; data?: ApiOrder[]; meta?: { total: number; per_page: number; current_page: number } }>('/ecommerce/orders', { params })
     const list = unwrapData<ApiOrder[]>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder[] }) ?? res.data.data ?? []
@@ -197,9 +207,7 @@ export const orderRepository = {
 
   async get(id: string): Promise<OrderWithItems | null> {
     if (!getAuthToken()) return null
-    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder }>('/ecommerce/orders/' + id, {
-      params: { scope: 'my' },
-    })
+    const res = await api.get<{ success: boolean; message: string; data?: ApiOrder }>('/ecommerce/orders/' + id)
     const order = unwrapData<ApiOrder>(res.data as unknown as { success: boolean; message: string; data?: ApiOrder }) ?? res.data.data
     return order ? toOrderWithItems(order) : null
   },

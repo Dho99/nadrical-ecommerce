@@ -110,17 +110,18 @@ api.interceptors.response.use(
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
         if (error.response?.status === 401) {
-            // Token rejected/expired: drop it so later calls don't reuse it.
-            setAuthToken(null);
-            // Mark UI logged out without a static import cycle
-            // (api <- auth store <- auth service <- api): lazy dynamic import.
-            void import("../../modules/auth/hooks/useAuth").then((m) => {
-                m.useAuthStore.setState({
-                    user: null,
-                    isAuthenticated: false,
-                    status: "unauthenticated",
+            const url = error.config?.url || "";
+            // Do not clear user auth session if 401 is triggered by an individual order access violation
+            if (!url.includes("/ecommerce/orders/")) {
+                setAuthToken(null);
+                void import("../../modules/auth/hooks/useAuth").then((m) => {
+                    m.useAuthStore.setState({
+                        user: null,
+                        isAuthenticated: false,
+                        status: "unauthenticated",
+                    });
                 });
-            });
+            }
         }
         return Promise.reject(error);
     },

@@ -286,7 +286,7 @@ export const productService = {
       return cachedProducts
     }
 
-    const params = buildParams(filters, filters.page ?? 1, filters.limit ?? 100)
+    const params = buildParams(filters, filters.page ?? 1, Math.min(filters.limit ?? 20, 20))
     const res = await api.get<StandardApiResponse<BackendProduct[]>>('/ecommerce/products', { params })
     const data = unwrapData<BackendProduct[]>(res.data) ?? res.data.data
     if (!Array.isArray(data) || data.length === 0) {

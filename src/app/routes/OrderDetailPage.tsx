@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Copy, PackageOpen, Repeat2, Star, X } from 'lucide-react'
+import { ChevronLeft, Copy, PackageOpen, Repeat2, ShieldAlert, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
 import { orderRepository } from '../../modules/checkout/services/order.repository'
@@ -41,7 +41,7 @@ export function OrderDetailPage() {
   const { add } = useCart()
   const navigate = useNavigate()
   const [order, setOrder] = useState<OrderWithItems | null>(null)
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'unauthorized'>('loading')
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [reviewingItem, setReviewingItem] = useState<{
@@ -76,7 +76,13 @@ export function OrderDetailPage() {
       } else {
         setStatus('error')
       }
-    } catch {
+    } catch (err: unknown) {
+      const httpStatus = (err as { response?: { status?: number } })?.response?.status
+      if (httpStatus === 401 || httpStatus === 403) {
+        setOrder(null)
+        setStatus('unauthorized')
+        return
+      }
       setStatus('error')
     }
   }, [email, id])
@@ -165,6 +171,21 @@ export function OrderDetailPage() {
         </div>
         <Skeleton className="h-72 w-full" />
       </div>
+    )
+  }
+
+  if (status === 'unauthorized') {
+    return (
+      <EmptyState
+        icon={<ShieldAlert className="size-10 text-destructive" />}
+        title="Unauthorized"
+        description="Anda tidak memiliki akses untuk melihat detail pesanan ini."
+        action={
+          <Button variant="outline" asChild>
+            <Link to="/profile/orders">Kembali ke Pesanan Saya</Link>
+          </Button>
+        }
+      />
     )
   }
 

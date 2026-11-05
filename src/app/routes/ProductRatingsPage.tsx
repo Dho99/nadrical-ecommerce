@@ -36,7 +36,7 @@ export function ProductRatingsPage() {
   const [rating, setRating] = useState<ReviewRating | 'all'>('all')
 
   const reviews = useReviews(id, {
-    limit: 200,
+    limit: 20,
     rating,
     sort: 'rating-desc',
     hintRating: product?.rating,
