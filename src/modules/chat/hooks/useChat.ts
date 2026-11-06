@@ -107,33 +107,20 @@ export function useChat(identity: ChatIdentity): UseChatResult {
       setConversation(syncedConv)
       setStatus('success')
 
-      // 3. Fetch latest page 1 (50 messages) using canonical UUID
-      const page = await chatService.fetchMessagesPage(syncedConv.id, 50)
-      if (page.messages.length > 0 || local.messages.length === 0) {
-        setMessages((prev) => {
-          const map = new Map<string, ChatMessage>()
-          page.messages.forEach((m) => map.set(m.id, m))
-          prev.forEach((m) => {
-            const alreadyInMap =
-              map.has(m.id) ||
-              (m.client_temp_id &&
-                Array.from(map.values()).some(
-                  (pm) =>
-                    pm.id === m.client_temp_id ||
-                    pm.client_temp_id === m.client_temp_id,
-                ))
-            if (!alreadyInMap) {
-              map.set(m.id, m)
-            }
-          })
-          return Array.from(map.values()).sort(
-            (a, b) =>
-              new Date(a.created_at || 0).getTime() -
-              new Date(b.created_at || 0).getTime(),
-          )
-        })
-        setHasMore(page.hasMore)
-        hasMoreRef.current = page.hasMore
+      // 3. Render latest messages from synced conversation
+      const cached = chatService.getLocalMessagesPage(syncedConv.id, 50)
+      if (cached.messages.length > 0) {
+        setMessages(cached.messages)
+        setHasMore(cached.hasMore)
+        hasMoreRef.current = cached.hasMore
+      } else {
+        // Fallback fetch only if initial sync did not return bundled messages
+        const page = await chatService.fetchMessagesPage(syncedConv.id, 50)
+        if (page.messages.length > 0) {
+          setMessages(page.messages)
+          setHasMore(page.hasMore)
+          hasMoreRef.current = page.hasMore
+        }
       }
       return syncedConv
     } catch {

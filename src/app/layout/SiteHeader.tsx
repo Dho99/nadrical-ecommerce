@@ -66,8 +66,6 @@ export function SiteHeader() {
   const { title: siteTitle } = useSiteTitle();
   const categories = useCategories();
 
-  const dark = resolvedTheme === "dark";
-
   const pathname = location.pathname;
   const searchParams = new URLSearchParams(location.search);
   // const onProducts = pathname === "/products" && !searchParams.get("category");
@@ -75,25 +73,8 @@ export function SiteHeader() {
     pathname === "/products" ? searchParams.get("category") : null;
   const onFAQ = pathname === "/faq";
 
-  const getItemClass = (active: boolean) =>
-    cn(
-      "whitespace-nowrap px-2.5 py-1 text-sm transition-colors font-medium",
-      active
-        ? "font-bold text-[#f34e7b]"
-        : dark
-          ? "text-white/90 hover:text-[#f34e7b]"
-          : "text-foreground hover:text-[#f34e7b]",
-    );
-
   const catalogDesktopLinks = (
     <>
-      {/* <Link
-        to="/products"
-        aria-current={onProducts ? "page" : undefined}
-        className={getItemClass(onProducts)}
-      >
-        All products
-      </Link> */}
       <CategoryCombobox
         categories={categories}
         value={activeCategory ?? "all"}

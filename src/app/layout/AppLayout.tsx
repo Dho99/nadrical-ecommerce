@@ -18,10 +18,10 @@ export function AppLayout() {
   }, [user?.id, user?.email, user?.full_name])
 
   useEffect(() => {
-    if (user?.email) {
+    if (user?.id && user?.email) {
       chatService.transferGuestHistory(identity)
     }
-  }, [user?.id, user?.email, identity])
+  }, [user?.id, user?.email])
 
   return (
     <div className="flex min-h-svh flex-col">

@@ -30,6 +30,10 @@ interface ChatApiResponse<T> {
   meta?: { has_more?: boolean }
 }
 
+const inFlightSyncs = new Map<string, Promise<ChatConversation>>()
+const recentSyncs = new Map<string, { conv: ChatConversation; timestamp: number }>()
+const SYNC_CACHE_TTL_MS = 15000
+
 function makeMessage(
   conversation_id: string,
   sender_role: ChatMessage['sender_role'],
@@ -92,57 +96,92 @@ export const chatService = {
   },
 
   async syncConversationRemote(identity: ChatIdentity, localConv: ChatConversation): Promise<ChatConversation> {
-    try {
-      const res = await api.post<ChatApiResponse<RemoteChatConversation>>('/ecommerce/chats', {
-        customer_user_id:
-          identity.customer_user_id && !identity.customer_user_id.startsWith('guest-')
-            ? identity.customer_user_id
-            : null,
-        customer_name: identity.customer_name || localConv.customer_name || 'Tamu',
-        customer_email: identity.customer_email || localConv.customer_email || '',
-        customer_phone: identity.customer_phone || localConv.customer_phone || '',
-      })
+    const cacheKey = [
+      identity.customer_user_id || '',
+      identity.customer_email || '',
+      localConv.id || '',
+    ].join(':')
 
-      const remoteConv = unwrapData<RemoteChatConversation>(
-        res.data as unknown as { success: boolean; message: string; data?: RemoteChatConversation },
-      ) ?? res.data.data
-      if (!remoteConv?.id) return localConv
-
-      const oldId = localConv.id
-      const remoteId = remoteConv.id
-
-      if (oldId !== remoteId) {
-        chatRepository.syncConversationId(oldId, remoteId)
-      }
-
-      // GET /chats/{id} is the canonical conversation detail endpoint.
-      const detail = await this.getConversation(remoteId)
-      const resolved = detail?.messages?.length ? detail : remoteConv
-
-      // Populate remote messages into local repository
-      if (Array.isArray(resolved.messages) && resolved.messages.length > 0) {
-        for (const rm of resolved.messages) {
-          chatRepository.insertMessage(remoteId, {
-            id: rm.id,
-            conversation_id: remoteId,
-            sender_role: rm.sender_role,
-            sender_user_id: rm.sender_user_id,
-            sender_name: rm.sender_name,
-            sender_avatar: rm.sender_avatar,
-            message: rm.message,
-            reply_to_id: rm.reply_to_id || null,
-            reply_to: rm.reply_to || null,
-            is_read: rm.is_read,
-            created_at: rm.created_at,
-          })
-        }
-      }
-
-      return chatRepository.get(remoteId) || { ...localConv, id: remoteId }
-    } catch (err) {
-      console.warn('[ChatService] Failed to sync conversation with backend DB:', err)
-      return localConv
+    const recent = recentSyncs.get(cacheKey)
+    if (recent && Date.now() - recent.timestamp < SYNC_CACHE_TTL_MS) {
+      return recent.conv
     }
+
+    const existingPromise = inFlightSyncs.get(cacheKey)
+    if (existingPromise) {
+      return existingPromise
+    }
+
+    const syncPromise = (async () => {
+      try {
+        const res = await api.post<ChatApiResponse<RemoteChatConversation>>('/ecommerce/chats', {
+          conversation_id:
+            localConv.id && !localConv.id.startsWith('guest-') ? localConv.id : undefined,
+          customer_user_id:
+            identity.customer_user_id && !identity.customer_user_id.startsWith('guest-')
+              ? identity.customer_user_id
+              : null,
+          customer_name: identity.customer_name || localConv.customer_name || 'Tamu',
+          customer_email: identity.customer_email || localConv.customer_email || '',
+          customer_phone: identity.customer_phone || localConv.customer_phone || '',
+        })
+
+        const remoteConv = unwrapData<RemoteChatConversation>(
+          res.data as unknown as { success: boolean; message: string; data?: RemoteChatConversation },
+        ) ?? res.data.data
+        if (!remoteConv?.id) return localConv
+
+        const oldId = localConv.id
+        const remoteId = remoteConv.id
+
+        if (oldId !== remoteId) {
+          chatRepository.syncConversationId(oldId, remoteId)
+        }
+
+        // Avoid redundant GET /chats/:id call if POST /chats response already bundled messages
+        const messages = Array.isArray(remoteConv.messages) && remoteConv.messages.length > 0
+          ? remoteConv.messages
+          : (await this.getConversation(remoteId))?.messages
+
+        // Populate remote messages into local repository
+        if (Array.isArray(messages) && messages.length > 0) {
+          for (const rm of messages) {
+            chatRepository.insertMessage(remoteId, {
+              id: rm.id,
+              conversation_id: remoteId,
+              sender_role: rm.sender_role,
+              sender_user_id: rm.sender_user_id,
+              sender_name: rm.sender_name,
+              sender_avatar: rm.sender_avatar,
+              message: rm.message,
+              reply_to_id: rm.reply_to_id || null,
+              reply_to: rm.reply_to || null,
+              is_read: rm.is_read,
+              created_at: rm.created_at,
+            })
+          }
+        }
+
+        const resultConv = chatRepository.get(remoteId) || { ...localConv, id: remoteId }
+        recentSyncs.set(cacheKey, { conv: resultConv, timestamp: Date.now() })
+        const canonicalKey = [
+          identity.customer_user_id || '',
+          identity.customer_email || '',
+          remoteId,
+        ].join(':')
+        recentSyncs.set(canonicalKey, { conv: resultConv, timestamp: Date.now() })
+
+        return resultConv
+      } catch (err) {
+        console.warn('[ChatService] Failed to sync conversation with backend DB:', err)
+        return localConv
+      } finally {
+        inFlightSyncs.delete(cacheKey)
+      }
+    })()
+
+    inFlightSyncs.set(cacheKey, syncPromise)
+    return syncPromise
   },
 
   async persistMessageRemote(
