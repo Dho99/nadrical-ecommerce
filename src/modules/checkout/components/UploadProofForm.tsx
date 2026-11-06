@@ -43,8 +43,6 @@ export function UploadProofForm({ confirmation, onUploaded }: UploadProofFormPro
   } = useForm<PaymentProofInput>({
     resolver: zodResolver(paymentProofSchema),
     defaultValues: {
-      sender_name: '',
-      sender_bank: '',
       amount_paid: confirmation.grand_total,
       note: '',
     },
@@ -88,10 +86,6 @@ export function UploadProofForm({ confirmation, onUploaded }: UploadProofFormPro
     confirmation.payment_method_name,
   ])
 
-  useEffect(() => {
-    if (accounts[0]?.bank) setValue('sender_bank', accounts[0].bank)
-  }, [accounts, setValue])
-
   useEffect(() => () => {
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current)
@@ -132,7 +126,16 @@ export function UploadProofForm({ confirmation, onUploaded }: UploadProofFormPro
       return
     }
     try {
-      await paymentProofService.upload(confirmation.order_id, confirmation.order_number, values)
+      const senderName =
+        confirmation.recipient_name?.trim() ||
+        confirmation.email.split('@')[0]?.trim() ||
+        'Customer'
+      const senderBank = confirmation.payment_bank_name || accounts[0]?.bank || 'Transfer Bank'
+      await paymentProofService.upload(confirmation.order_id, confirmation.order_number, {
+        ...values,
+        sender_name: senderName,
+        sender_bank: senderBank,
+      })
       toast.success('Bukti transfer berhasil diupload')
       onUploaded()
     } catch (err) {
@@ -193,33 +196,6 @@ export function UploadProofForm({ confirmation, onUploaded }: UploadProofFormPro
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-5 flex flex-col gap-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="sender-name" className="mb-1 block text-xs font-medium text-muted-foreground">
-              Nama pengirim
-            </label>
-            <Input
-              id="sender-name"
-              placeholder="Nama sesuai rekening"
-              maxLength={255}
-              {...register('sender_name')}
-            />
-            {errors.sender_name && <p className="mt-1.5 text-xs text-destructive">{errors.sender_name.message}</p>}
-          </div>
-          <div>
-            <label htmlFor="sender-bank" className="mb-1 block text-xs font-medium text-muted-foreground">
-              Bank pengirim
-            </label>
-            <Input
-              id="sender-bank"
-              placeholder="BCA / Mandiri / BRI"
-              maxLength={100}
-              {...register('sender_bank')}
-            />
-            {errors.sender_bank && <p className="mt-1.5 text-xs text-destructive">{errors.sender_bank.message}</p>}
-          </div>
-        </div>
-
         <div>
           <label htmlFor="amount-paid" className="mb-1 block text-xs font-medium text-muted-foreground">
             Nominal transfer
@@ -229,6 +205,9 @@ export function UploadProofForm({ confirmation, onUploaded }: UploadProofFormPro
             type="number"
             min={1}
             step="any"
+            readOnly
+            aria-readonly="true"
+            className="bg-muted/50"
             {...register('amount_paid', { valueAsNumber: true })}
           />
           {errors.amount_paid && <p className="mt-1.5 text-xs text-destructive">{errors.amount_paid.message}</p>}

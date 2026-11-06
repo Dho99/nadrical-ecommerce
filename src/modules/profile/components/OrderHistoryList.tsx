@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, PackageOpen, RefreshCw, Repeat2, Star, Truck, X } from 'lucide-react'
+import { ArrowRight, CheckCircle2, PackageOpen, RefreshCw, Repeat2, Star, Truck, X } from 'lucide-react'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { ReviewFormDialog, userReviewStorage } from '../../products'
 import type { ProductBrief } from '../../../shared/types/product.type'
@@ -19,16 +19,11 @@ import {
   isCancellable,
 } from '../../../shared/utils/order-status'
 import { OrderStatusBadge } from '../../../shared/components/OrderStatusBadge'
+import { ResponsiveConfirmDialog } from '../../../shared/components/ResponsiveConfirmDialog'
 import {
   Badge,
   Button,
   Card,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   EmptyState,
   Separator,
   Skeleton,
@@ -45,6 +40,8 @@ interface OrderHistoryListProps {
   onRetry: () => void
   onCancel: (orderId: string) => Promise<void> | void
   cancellingId: string | null
+  onConfirmReceipt: (orderId: string) => Promise<void> | void
+  confirmingId: string | null
 }
 
 type TabKey = 'all' | 'processing' | 'shipped' | 'completed' | 'cancelled'
@@ -129,10 +126,13 @@ export function OrderHistoryList({
   onRetry,
   onCancel,
   cancellingId,
+  onConfirmReceipt,
+  confirmingId,
 }: OrderHistoryListProps) {
   void cancellingId
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [cancelTarget, setCancelTarget] = useState<OrderWithItems | null>(null)
+  const [receiptTarget, setReceiptTarget] = useState<OrderWithItems | null>(null)
   const [reviewingItem, setReviewingItem] = useState<{
     product: { id: string; name: string; cover_image_url?: string }
     orderNumber: string
@@ -410,6 +410,17 @@ export function OrderHistoryList({
                           View details <ArrowRight className="size-3.5" />
                         </Link>
                       </Button>
+                      {oStatus === 'shipped' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          disabled={confirmingId === order.id}
+                          onClick={() => setReceiptTarget(order)}
+                        >
+                          <CheckCircle2 className="size-3" /> Konfirmasi diterima
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -452,41 +463,38 @@ export function OrderHistoryList({
         </ul>
       )}
 
-      <Dialog
-        open={cancelTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setCancelTarget(null)
+            <ResponsiveConfirmDialog
+        open={receiptTarget !== null}
+        onOpenChange={(open) => !open && setReceiptTarget(null)}
+        title="Konfirmasi pesanan diterima?"
+        description="Pastikan paket sudah diterima. Status pesanan akan berubah menjadi selesai."
+        cancelLabel="Belum diterima"
+        confirmLabel="Ya, sudah diterima"
+        onConfirm={() => {
+          if (!receiptTarget) return
+          const id = receiptTarget.id
+          setReceiptTarget(null)
+          void Promise.resolve(onConfirmReceipt(id))
+            .then(() => toast.success('Pesanan dikonfirmasi diterima'))
+            .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Gagal mengonfirmasi pesanan'))
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel this order?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. Your order will be cancelled immediately.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelTarget(null)}>
-              Keep order
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!cancelTarget) return
-                const id = cancelTarget.id
-                setCancelTarget(null)
-                try {
-                  await onCancel(id)
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : 'Gagal membatalkan pesanan')
-                }
-              }}
-            >
-              Yes, cancel order
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
+      <ResponsiveConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="Cancel this order?"
+        description="This action cannot be undone. Your order will be cancelled immediately."
+        cancelLabel="Keep order"
+        confirmLabel="Yes, cancel order"
+        destructive
+        onConfirm={() => {
+          if (!cancelTarget) return
+          const id = cancelTarget.id
+          setCancelTarget(null)
+          void Promise.resolve(onCancel(id))
+            .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Gagal membatalkan pesanan'))
+        }}
+      />
 
       {reviewingItem && (
         <ReviewFormDialog

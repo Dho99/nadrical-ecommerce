@@ -3,12 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Form,
   FormControl,
   FormField,
@@ -29,6 +23,7 @@ import {
 import { ADDRESS_LABELS, COUNTRY_OPTIONS, DEFAULT_COUNTRY } from '../constants/address.constants'
 import { addressSchema, type AddressSchema } from '../schemas/address.schema'
 import { PostalCodeField } from '../../checkout/components/PostalCodeField'
+import { ResponsiveFormDialog } from '../../../shared/components/ResponsiveFormDialog'
 
 interface AddressFormDialogProps {
   open: boolean
@@ -91,13 +86,13 @@ export function AddressFormDialog({
   })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Saved addresses are used to pre-fill checkout for this account.</DialogDescription>
-        </DialogHeader>
-
+    <ResponsiveFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description="Saved addresses are used to pre-fill checkout for this account."
+      desktopClassName="sm:max-w-2xl"
+    >
         <Form {...form}>
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <FormField
@@ -267,15 +262,14 @@ export function AddressFormDialog({
               )}
             />
 
-            <DialogFooter>
+            <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit">{submitLabel}</Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveFormDialog>
   )
 }

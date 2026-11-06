@@ -75,6 +75,10 @@ export function useCheckout(
   const fieldsForStep = (): Array<keyof CheckoutInput> => STEP_FIELDS[step]
 
   const next = async () => {
+    if (step === 1 && !shippingMethodData) {
+      setError('Metode pengiriman belum tersedia dari backend. Coba lagi.')
+      return
+    }
     const fields = fieldsForStep().map((f) => f as Path<CheckoutInput>)
     const valid = await form.trigger(fields)
     if (!valid) return

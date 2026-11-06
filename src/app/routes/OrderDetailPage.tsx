@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Copy, PackageOpen, Repeat2, ShieldAlert, Star, X } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, Copy, PackageOpen, Repeat2, ShieldAlert, Star, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import { profileService } from '../../modules/profile'
 import { orderRepository } from '../../modules/checkout/services/order.repository'
@@ -22,16 +22,7 @@ import { OrderStatusBadge } from '../../shared/components/OrderStatusBadge'
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../shared/components/ui'
 import { useCurrency, CURRENCIES, type CurrencyCode } from '../../modules/currency'
 import { cn } from '../../shared/utils/cn'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../shared/components/ui/alert-dialog'
+import { ResponsiveConfirmDialog } from '../../shared/components/ResponsiveConfirmDialog'
 import { formatPrice } from '../../shared/utils/format'
 import { normalizeOrderStatus } from '../../shared/utils/order-status'
 
@@ -44,6 +35,8 @@ export function OrderDetailPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'unauthorized'>('loading')
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false)
   const [reviewingItem, setReviewingItem] = useState<{
     product: { id: string; name: string; cover_image_url?: string }
     orderNumber: string
@@ -117,6 +110,7 @@ export function OrderDetailPage() {
   const canCancel =
     normStatus === 'pending_payment' || normStatus === 'paid' || normStatus === 'processing'
   const canReorder = normStatus === 'completed' || normStatus === 'shipped'
+  const canConfirmReceipt = normStatus === 'shipped'
   const canInvoice = ['paid', 'processing', 'shipped', 'completed'].includes(normStatus)
   // Refund belum punya endpoint backend; jangan tampilkan aksi palsu.
   const canRefund = false
@@ -134,6 +128,21 @@ export function OrderDetailPage() {
       void load()
     } finally {
       setCancelling(false)
+    }
+  }
+
+  const confirmReceipt = async () => {
+    if (!order) return
+    setConfirmingReceipt(true)
+    try {
+      const updated = await orderRepository.updateStatus(order.id, { status: 'completed' })
+      setOrder(updated ?? { ...order, status: 'completed', delivered_at: new Date().toISOString() })
+      toast.success('Pesanan dikonfirmasi diterima')
+      setReceiptOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal mengonfirmasi pesanan')
+    } finally {
+      setConfirmingReceipt(false)
     }
   }
 
@@ -375,6 +384,17 @@ export function OrderDetailPage() {
             <h3 className="font-display text-lg font-bold tracking-tight">Order actions</h3>
             <div className="mt-3 grid gap-2">
               {canInvoice && <InvoiceButton order={order} email={email ?? undefined} variant="outline" />}
+              {canConfirmReceipt && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={confirmingReceipt}
+                  onClick={() => setReceiptOpen(true)}
+                >
+                  <CheckCircle2 className="size-3.5" /> Konfirmasi diterima
+                </Button>
+              )}
               {canReorder && (
                 <Button type="button" variant="outline" size="sm" onClick={reorder}>
                   <Repeat2 className="size-3.5" /> Reorder
@@ -440,29 +460,30 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Order {order.order_number} will be cancelled immediately. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling}>Keep order</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={cancelling}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={(e) => {
-                e.preventDefault()
-                void cancelOrder()
-              }}
-            >
-              {cancelling ? 'Cancelling…' : 'Yes, cancel order'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <ResponsiveConfirmDialog
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+        title="Konfirmasi pesanan diterima?"
+        description={`Pastikan paket ${order.order_number} sudah diterima. Status akan berubah menjadi selesai.`}
+        cancelLabel="Belum diterima"
+        confirmLabel={confirmingReceipt ? 'Memproses...' : 'Ya, sudah diterima'}
+        confirmDisabled={confirmingReceipt}
+        cancelDisabled={confirmingReceipt}
+        onConfirm={() => void confirmReceipt()}
+      />
+
+      <ResponsiveConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancel this order?"
+        description={`Order ${order.order_number} will be cancelled immediately. This action cannot be undone.`}
+        cancelLabel="Keep order"
+        confirmLabel={cancelling ? 'Cancelling...' : 'Yes, cancel order'}
+        confirmDisabled={cancelling}
+        cancelDisabled={cancelling}
+        destructive
+        onConfirm={() => void cancelOrder()}
+      />
 
       {reviewingItem && (
         <ReviewFormDialog

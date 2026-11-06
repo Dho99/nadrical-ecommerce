@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Building2, LoaderCircle, ShieldCheck } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
+import { Button } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { formatPrice } from '../../../shared/utils/format'
 import { useCheckoutRuntime } from '../hooks/useCheckoutRuntime'
@@ -9,10 +10,10 @@ import { gatewayPaymentFee, isManualPaymentMethod } from '../utils/gateway'
 import type { CheckoutInput } from '../schemas/checkout.schema'
 
 export function PaymentAccordion() {
-  const { setValue } = useFormContext<CheckoutInput>()
+  const { setValue, formState: { errors } } = useFormContext<CheckoutInput>()
   const selected = useCheckoutRuntime((s) => s.paymentMethod)
   const setPaymentMethod = useCheckoutRuntime((s) => s.setPaymentMethod)
-  const { methods, loading, error } = usePaymentMethods()
+  const { methods, loading, error, refresh } = usePaymentMethods()
   const manualMethods = methods.filter(isManualPaymentMethod)
 
   useEffect(() => {
@@ -46,14 +47,24 @@ export function PaymentAccordion() {
 
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-          {error}
+          <p>{error}</p>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={refresh}>
+            Coba lagi
+          </Button>
         </div>
       )}
 
       {!loading && !error && manualMethods.length === 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
-          Belum ada metode transfer bank yang aktif. Hubungi admin toko.
+          <p>Belum ada metode transfer bank yang aktif.</p>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={refresh}>
+            Coba lagi
+          </Button>
         </div>
+      )}
+
+      {errors.payment_provider && (
+        <p className="text-xs text-destructive">{errors.payment_provider.message}</p>
       )}
 
       <div className="grid gap-2" role="radiogroup" aria-label="Rekening tujuan transfer">

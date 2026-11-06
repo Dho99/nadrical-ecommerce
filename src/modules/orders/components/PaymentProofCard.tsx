@@ -30,8 +30,6 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
   const [accountsLoading, setAccountsLoading] = useState(true)
   const [accountsError, setAccountsError] = useState<string | null>(null)
   const [showUploadForm, setShowUploadForm] = useState(!hasProof || isRejected)
-  const [senderName, setSenderName] = useState(payment?.sender_name || payment?.payer_name || order.recipient_name || '')
-  const [senderBank, setSenderBank] = useState(payment?.sender_bank || payment?.payer_bank || '')
   const [referenceNumber, setReferenceNumber] = useState(payment?.reference_number || '')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -90,14 +88,6 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!senderName.trim()) {
-      toast.error('Nama pemilik rekening pengirim wajib diisi')
-      return
-    }
-    if (!senderBank.trim()) {
-      toast.error('Nama bank pengirim wajib diisi')
-      return
-    }
     if (!selectedFile && !hasProof) {
       toast.error('Silakan pilih foto atau screenshot bukti transfer')
       return
@@ -106,8 +96,10 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
     setSubmitting(true)
     try {
       const formData = new FormData()
-      formData.append('sender_name', senderName.trim())
-      formData.append('sender_bank', senderBank.trim())
+      const senderName = order.recipient_name?.trim() || 'Customer'
+      const senderBank = accounts[0]?.bank || 'Transfer Bank'
+      formData.append('sender_name', senderName)
+      formData.append('sender_bank', senderBank)
       formData.append('amount_paid', String(order.grand_total ?? order.subtotal ?? 0))
       if (referenceNumber.trim()) {
         formData.append('reference_number', referenceNumber.trim())
@@ -203,7 +195,6 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
                   Bukti pembayaran telah berhasil diterima oleh admin. Tim kami akan memverifikasi dalam 1x24 jam.
                 </p>
                 <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
-                  <p>Pengirim: <strong>{payment?.sender_name || payment?.payer_name}</strong> ({payment?.sender_bank || payment?.payer_bank})</p>
                   {payment?.reference_number && <p>No. Referensi: <strong>{payment.reference_number}</strong></p>}
                 </div>
               </div>
@@ -317,39 +308,15 @@ export function PaymentProofCard({ order, onUpdated }: PaymentProofCardProps) {
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium text-foreground">Nama Pengirim (Sesuai Rekening) *</label>
-              <input
-                type="text"
-                required
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Contoh: Budi Santoso"
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-foreground">Bank Pengirim *</label>
-              <input
-                type="text"
-                required
-                value={senderBank}
-                onChange={(e) => setSenderBank(e.target.value)}
-                placeholder="Contoh: BCA / Mandiri / BRI"
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs font-medium text-foreground">Nomor Referensi Transfer (Opsional)</label>
-              <input
-                type="text"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="Contoh: TRX-9281729 atau kosongkan"
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+          <div>
+            <label className="text-xs font-medium text-foreground">Nomor Referensi Transfer (Opsional)</label>
+            <input
+              type="text"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              placeholder="Contoh: TRX-9281729 atau kosongkan"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary/30"
+            />
           </div>
 
           {/* File input */}

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   Bookmark,
+  CircleHelp,
   LogOut,
   Menu,
   Moon,
@@ -16,7 +17,7 @@ import { useTheme } from "next-themes";
 import { useCart } from "../../modules/cart/hooks/useCart";
 import { useAuth } from "../../modules/auth/hooks/useAuth";
 import { NotificationBell, useNotifications } from "../../modules/notifications";
-import { useLogo, useLogoConfig } from "../../modules/home/hooks/useBanner";
+import { useLogo, useLogoConfig, useSiteTitle } from "../../modules/home/hooks/useBanner";
 import { useWishlist } from "../../modules/wishlist";
 import {
   useCurrency,
@@ -24,15 +25,8 @@ import {
   type CurrencyCode,
 } from "../../modules/currency";
 import { useCategories } from "../../modules/products/hooks/useCategories";
+import { CategoryCombobox } from "../../modules/products";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   Badge,
   Button,
   Popover,
@@ -45,6 +39,7 @@ import {
   SheetTrigger,
 } from "../../shared/components/ui";
 import { SearchDialog } from "./SearchDialog";
+import { ResponsiveConfirmDialog } from "../../shared/components/ResponsiveConfirmDialog";
 import { cn } from "../../shared/utils/cn";
 
 function logoVars(mobile: number, desktop: number): CSSProperties {
@@ -68,13 +63,14 @@ export function SiteHeader() {
   const { code: currencyCode, set: setCurrency } = useCurrency();
   const { logo: dynamicLogoUrl } = useLogo();
   const { config: logoConfig } = useLogoConfig();
+  const { title: siteTitle } = useSiteTitle();
   const categories = useCategories();
 
   const dark = resolvedTheme === "dark";
 
   const pathname = location.pathname;
   const searchParams = new URLSearchParams(location.search);
-  const onProducts = pathname === "/products" && !searchParams.get("category");
+  // const onProducts = pathname === "/products" && !searchParams.get("category");
   const activeCategory =
     pathname === "/products" ? searchParams.get("category") : null;
   const onFAQ = pathname === "/faq";
@@ -91,34 +87,24 @@ export function SiteHeader() {
 
   const catalogDesktopLinks = (
     <>
-      <Link
+      {/* <Link
         to="/products"
         aria-current={onProducts ? "page" : undefined}
         className={getItemClass(onProducts)}
       >
         All products
-      </Link>
-      {categories.map((cat) => {
-        const isActive = activeCategory === cat.id;
-        return (
-          <Link
-            key={cat.id}
-            to={`/products?category=${cat.id}`}
-            aria-current={isActive ? "page" : undefined}
-            className={getItemClass(isActive)}
-          >
-            {cat.label}
-          </Link>
-        );
-      })}
-      <Separator orientation="vertical" className="h-6 mx-1" />
-      <Link
-        to="/faq"
-        aria-current={onFAQ ? "page" : undefined}
-        className={getItemClass(onFAQ)}
-      >
-        FAQ
-      </Link>
+      </Link> */}
+      <CategoryCombobox
+        categories={categories}
+        value={activeCategory ?? "all"}
+        onSelect={(categoryId) =>
+          navigate(categoryId === "all" ? "/products" : `/products?category=${categoryId}`)
+        }
+      />
+      <Separator orientation="vertical" className="h-6 mx-3" />
+       <Link to="/faq" aria-label="FAQ" aria-current={onFAQ ? "page" : undefined}>
+          <CircleHelp className="size-5" />
+        </Link>
     </>
   );
 
@@ -201,11 +187,14 @@ export function SiteHeader() {
                 />
               </>
             )}
+            <span className="hidden max-w-[180px] truncate font-display text-lg font-bold tracking-tight sm:inline">
+              {siteTitle || "Nadrical"}
+            </span>
           </Link>
 
           <nav
             aria-label="Catalog Desktop"
-            className="hidden items-center gap-1 overflow-x-auto lg:flex"
+            className="hidden items-center gap-1 overflow-x-auto lg:flex ms-auto"
           >
             {catalogDesktopLinks}
           </nav>
@@ -331,7 +320,7 @@ export function SiteHeader() {
               </SheetTrigger>
               <SheetContent side="right" className="flex flex-col w-[85vw] max-w-sm p-0">
                 <div className="p-5 border-b">
-                  <SheetTitle className="font-display text-xl font-bold tracking-tight">
+                  <SheetTitle className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">
                     {dynamicLogoUrl ? (
                       <img
                         src={dynamicLogoUrl}
@@ -355,6 +344,7 @@ export function SiteHeader() {
                         />
                       </>
                     )}
+                    <span className="min-w-0 truncate">{siteTitle || "Nadrical"}</span>
                   </SheetTitle>
                   <div className="mt-4">
                     <Button
@@ -429,7 +419,7 @@ export function SiteHeader() {
                     Categories
                   </p>
                    <nav className="flex flex-col gap-1" aria-label="Catalog mobile">
-                     <Link
+                     {/* <Link
                        to="/products"
                        onClick={() => setMenuOpen(false)}
                        className={cn(
@@ -440,25 +430,16 @@ export function SiteHeader() {
                        )}
                      >
                        <span>All Products</span>
-                     </Link>
-                     {categories.map((cat) => {
-                       const isActive = activeCategory === cat.id;
-                       return (
-                         <Link
-                           key={cat.id}
-                           to={`/products?category=${cat.id}`}
-                           onClick={() => setMenuOpen(false)}
-                           className={cn(
-                             "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                             isActive
-                               ? "bg-primary text-primary-foreground font-bold"
-                               : "hover:bg-accent text-foreground",
-                           )}
-                         >
-                           <span>{cat.label}</span>
-                         </Link>
-                       );
-                     })}
+                     </Link> */}
+                     <CategoryCombobox
+                       categories={categories}
+                       value={activeCategory ?? "all"}
+                       className="w-full"
+                       onSelect={(categoryId) => {
+                         setMenuOpen(false)
+                         navigate(categoryId === "all" ? "/products" : `/products?category=${categoryId}`)
+                       }}
+                     />
                       <Link
                         to="/faq"
                        onClick={() => setMenuOpen(false)}
@@ -535,20 +516,16 @@ export function SiteHeader() {
       </div>
 
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
-      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
-            <AlertDialogDescription>Anda akan keluar dan perlu login kembali untuk akses pesanan &amp; wishlist.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Keluar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ResponsiveConfirmDialog
+        open={logoutConfirmOpen}
+        onOpenChange={setLogoutConfirmOpen}
+        title="Keluar dari akun?"
+        description="Anda akan keluar dan perlu login kembali untuk akses pesanan & wishlist."
+        cancelLabel="Batal"
+        confirmLabel="Keluar"
+        destructive
+        onConfirm={confirmLogout}
+      />
     </header>
   );
 }

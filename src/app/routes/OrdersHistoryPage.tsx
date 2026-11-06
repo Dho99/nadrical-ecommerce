@@ -3,7 +3,7 @@ import { useAuth } from '../../modules/auth'
 
 export function OrdersHistoryPage() {
   const { user } = useAuth()
-  const { orders, status, error, refetch, cancel, cancellingId } = useOrderHistory(user?.email ?? null)
+  const { orders, status, error, refetch, cancel, cancellingId, confirmReceipt, confirmingId } = useOrderHistory(user?.email ?? null)
 
   return (
     <OrderHistoryList
@@ -13,6 +13,8 @@ export function OrdersHistoryPage() {
       onRetry={refetch}
       onCancel={cancel}
       cancellingId={cancellingId}
+      onConfirmReceipt={confirmReceipt}
+      confirmingId={confirmingId}
     />
   )
 }

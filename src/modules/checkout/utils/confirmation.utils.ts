@@ -7,6 +7,7 @@ interface StoredConfirmation {
   order_number: string
   placed_at: string
   email: string
+  recipient_name?: string
   eta_days: number
   shipping_etd?: string
   shipping_method_name?: string
@@ -28,6 +29,9 @@ function reviveConfirmation(v: OrderConfirmation | StoredConfirmation): OrderCon
       : undefined,
     order_number: v.order_number,
     email: v.email,
+    recipient_name: typeof (v as { recipient_name?: unknown }).recipient_name === 'string'
+      ? (v as { recipient_name: string }).recipient_name
+      : undefined,
     eta_days: v.eta_days,
     shipping_etd: typeof (v as { shipping_etd?: unknown }).shipping_etd === 'string'
       ? (v as { shipping_etd: string }).shipping_etd

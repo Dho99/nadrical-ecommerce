@@ -1,4 +1,5 @@
 export { ProductCard } from './components/ProductCard'
+export { CategoryCombobox } from './components/CategoryCombobox'
 export { ProductGrid } from './components/ProductGrid'
 export { ProductFilter } from './components/ProductFilter'
 export { ProductGallery } from './components/ProductGallery'

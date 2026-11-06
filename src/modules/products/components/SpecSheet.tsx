@@ -6,12 +6,6 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
   QtyStepper,
@@ -24,6 +18,7 @@ import {
 } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { CHAT_OPEN_EVENT, type ProductChatContext } from '../../../shared/constants/chat.constants'
+import { ResponsiveFormDialog } from '../../../shared/components/ResponsiveFormDialog'
 import { useCurrency } from '../../currency'
 import type { Product, ProductVariant } from '../types/product.type'
 
@@ -372,27 +367,26 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
         </Alert>
       )}
 
-      <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ask about {product.name}</DialogTitle>
-            <DialogDescription>Send a message and our team will reply via live chat.</DialogDescription>
-          </DialogHeader>
+      <ResponsiveFormDialog
+        open={messageOpen}
+        onOpenChange={setMessageOpen}
+        title={`Ask about ${product.name}`}
+        description="Send a message and our team will reply via live chat."
+      >
           <div className="grid gap-3">
             <Label htmlFor="msg">Message</Label>
             <Textarea id="msg" value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
             <Input placeholder="Your name (optional)" aria-label="Name" className="hidden" />
           </div>
-          <DialogFooter>
+          <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setMessageOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
               Send to chat
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+      </ResponsiveFormDialog>
     </div>
   )
 }

@@ -65,7 +65,10 @@ function statusColor(status: string): [number, number, number] {
 }
 
 function convertBase(value: number, code: CurrencyCode): number {
-  return value * CURRENCIES[code].rate
+  // Orders are stored in IDR. Some legacy/demo values are still USD-like
+  // (small numbers), so normalize those first.
+  const idr = Math.abs(value) < 5000 ? value * CURRENCIES.IDR.rate : value
+  return code === 'IDR' ? idr : idr / CURRENCIES.IDR.rate
 }
 
 function build(order: OrderWithItems, email?: string): InvoiceData {

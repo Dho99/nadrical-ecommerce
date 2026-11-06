@@ -2,18 +2,8 @@ import { useEffect, useState } from 'react'
 import { FormProvider } from 'react-hook-form'
 import { useBlocker, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, LoaderCircle } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  Separator,
-} from '../../../shared/components/ui'
+import { Button, Separator } from '../../../shared/components/ui'
+import { ResponsiveConfirmDialog } from '../../../shared/components/ResponsiveConfirmDialog'
 import { cn } from '../../../shared/utils/cn'
 import { CHECKOUT_STEPS, useCheckout, type CheckoutStepIndex } from '../hooks/useCheckout'
 import type { OrderConfirmation, OrderPayload } from '../types/checkout.type'
@@ -51,6 +41,7 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
         order_number: confirmation.order_number,
         placed_at: confirmation.placed_at instanceof Date ? confirmation.placed_at.toISOString() : String(confirmation.placed_at),
         email: confirmation.email,
+        recipient_name: confirmation.recipient_name,
         eta_days: confirmation.eta_days,
         shipping_etd: confirmation.shipping_etd,
         shipping_method_name: confirmation.shipping_method_name,
@@ -197,73 +188,49 @@ export function CheckoutForm({ payloadBase, initialValues, onOrderPlaced }: Chec
         </p>
       </div>
 
-      <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Keluar dari proses transaksi?</AlertDialogTitle>
-            <AlertDialogDescription>Apakah anda ingin keluar dari proses transaksi? Progress pengisian shipping akan hilang jika anda keluar.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingStep(null)}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLeaveConfirm}>Keluar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ResponsiveConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title="Keluar dari proses transaksi?"
+        description="Apakah anda ingin keluar dari proses transaksi? Progress pengisian shipping akan hilang jika anda keluar."
+        cancelLabel="Batal"
+        confirmLabel="Keluar"
+        onCancel={() => setPendingStep(null)}
+        onConfirm={handleLeaveConfirm}
+      />
 
-      <AlertDialog
+      <ResponsiveConfirmDialog
         open={isLeaveDialogOpen}
         onOpenChange={(open) => {
           setLeaveCheckoutOpen(open)
           if (!open && blocker.state === 'blocked') blocker.reset?.()
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apakah anda ingin mengakhiri proses checkout?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Proses checkout akan dihentikan dan data yang sudah diisi tidak akan disimpan. Yakin ingin keluar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                if (blocker.state === 'blocked') blocker.reset?.()
-              }}
-            >
-              Lanjutkan checkout
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (blocker.state === 'blocked') blocker.proceed?.()
-                setLeaveCheckoutOpen(false)
-                navigate('/products', { replace: true })
-              }}
-            >
-              Ya, Keluar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Apakah anda ingin mengakhiri proses checkout?"
+        description="Proses checkout akan dihentikan dan data yang sudah diisi tidak akan disimpan. Yakin ingin keluar?"
+        cancelLabel="Lanjutkan checkout"
+        confirmLabel="Ya, Keluar"
+        onCancel={() => {
+          if (blocker.state === 'blocked') blocker.reset?.()
+        }}
+        onConfirm={() => {
+          if (blocker.state === 'blocked') blocker.proceed?.()
+          setLeaveCheckoutOpen(false)
+          navigate('/products', { replace: true })
+        }}
+      />
 
-      <AlertDialog open={confirmPayOpen} onOpenChange={setConfirmPayOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi pembayaran?</AlertDialogTitle>
-            <AlertDialogDescription>Apakah anda yakin akan melanjutkan ke proses pembayaran? Pesanan akan dibuat dan tidak dapat dibatalkan dari form ini.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmPayOpen(false)
-                void handleSubmit()
-              }}
-            >
-              Ya, lanjutkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ResponsiveConfirmDialog
+        open={confirmPayOpen}
+        onOpenChange={setConfirmPayOpen}
+        title="Konfirmasi pembayaran?"
+        description="Apakah anda yakin akan melanjutkan ke proses pembayaran? Pesanan akan dibuat dan tidak dapat dibatalkan dari form ini."
+        cancelLabel="Batal"
+        confirmLabel="Ya, lanjutkan"
+        onConfirm={() => {
+          setConfirmPayOpen(false)
+          void handleSubmit()
+        }}
+      />
     </FormProvider>
   )
 }

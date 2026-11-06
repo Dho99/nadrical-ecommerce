@@ -14,7 +14,14 @@ export const useCurrencyStore = create<CurrencyStore>()(
       code: DEFAULT_CURRENCY,
       set: (code) => set({ code }),
     }),
-    { name: 'store-currency' },
+    {
+      name: 'store-currency',
+      version: 2,
+      migrate: (persisted) => {
+        const previous = persisted as { code?: CurrencyCode } | undefined
+        return { code: previous?.code === 'USD' ? 'IDR' : previous?.code === 'IDR' ? 'IDR' : DEFAULT_CURRENCY }
+      },
+    },
   ),
 )
 

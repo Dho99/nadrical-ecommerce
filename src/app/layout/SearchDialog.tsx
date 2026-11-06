@@ -1,17 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Flame, Search, Sparkles, X } from 'lucide-react'
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Skeleton,
-} from '../../shared/components/ui'
+import { Badge, Button, Input, Skeleton } from '../../shared/components/ui'
+import { ResponsiveDialog } from '../../shared/components/ResponsiveDialog'
 import { ProductImage } from '../../shared/components/ProductImage'
 import { useDebounce } from '../../shared/hooks/useDebounce'
 import { productService } from '../../modules/products/services/product.service'
@@ -124,16 +115,14 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] flex-col overflow-hidden p-0 sm:max-w-xl">
-        <DialogHeader className="border-b px-4 py-3 sm:px-5">
-          <DialogTitle className="font-display text-lg font-bold tracking-tight">
-            Search products
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Search the Nadrical catalog by name or SKU
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Search products"
+      description="Search the Nadrical catalog by name or SKU"
+      desktopClassName="flex max-h-[80vh] flex-col overflow-hidden p-0 sm:max-w-xl"
+      bodyClassName="p-0"
+    >
 
         <form onSubmit={submit} role="search" className="flex items-center gap-2 px-4 pb-3 sm:px-5">
           <div className="relative grow">
@@ -385,7 +374,6 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             <X className="size-3.5" /> Close
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialog>
   )
 }

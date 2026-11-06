@@ -18,16 +18,7 @@ import {
 } from '../../shared/components/ui'
 import { useAuth } from '../../modules/auth'
 import { profileSchema, type ProfileInput } from '../../modules/profile/schemas/profile.schema'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../shared/components/ui/alert-dialog'
+import { ResponsiveConfirmDialog } from '../../shared/components/ResponsiveConfirmDialog'
 
 export function EditProfilePage() {
   const { user, updateProfile, logout } = useAuth()
@@ -161,22 +152,16 @@ export function EditProfilePage() {
         </Button>
       </Card>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete account?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete your account, order history, and all saved data. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete my account
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ResponsiveConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete account?"
+        description="This will permanently delete your account, order history, and all saved data. This action cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Delete my account"
+        destructive
+        onConfirm={handleDeleteAccount}
+      />
     </div>
   )
 }

@@ -50,6 +50,7 @@ export const checkoutService = {
           order_number: orderNumber,
           placed_at: new Date(createdAt ?? now.toISOString()),
           email: payload.customer.email,
+          recipient_name: payload.customer.recipient_name,
           eta_days: etaDays,
           shipping_etd: payload.shipping_etd,
           shipping_method_name: payload.shipping_method_name,

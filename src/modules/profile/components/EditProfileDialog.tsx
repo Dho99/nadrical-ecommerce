@@ -5,12 +5,6 @@ import { LoaderCircle, Pencil, Upload, X } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Form,
   FormControl,
   FormField,
@@ -21,6 +15,7 @@ import {
 } from '../../../shared/components/ui'
 import { useAuth } from '../../auth'
 import { profileSchema, type ProfileInput } from '../schemas/profile.schema'
+import { ResponsiveFormDialog } from '../../../shared/components/ResponsiveFormDialog'
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -102,7 +97,7 @@ export function EditProfileDialog({ size = 'sm' }: { size?: 'sm' | 'xs' } = {}) 
       <Button variant="outline" size={size} onClick={() => setOpen(true)}>
         <Pencil /> Edit profile
       </Button>
-      <Dialog
+      <ResponsiveFormDialog
         open={open}
         onOpenChange={(next) => {
           setOpen(next)
@@ -117,13 +112,9 @@ export function EditProfileDialog({ size = 'sm' }: { size?: 'sm' | 'xs' } = {}) 
             setPreview(null)
           }
         }}
+        title="Edit profile"
+        description="Update your account details. Email cannot be changed."
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit profile</DialogTitle>
-            <DialogDescription>Update your account details. Email cannot be changed.</DialogDescription>
-          </DialogHeader>
-
           <Form {...form}>
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
               <div className="flex items-center gap-4">
@@ -228,7 +219,7 @@ export function EditProfileDialog({ size = 'sm' }: { size?: 'sm' | 'xs' } = {}) 
                 </p>
               )}
 
-              <DialogFooter>
+              <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
@@ -241,11 +232,10 @@ export function EditProfileDialog({ size = 'sm' }: { size?: 'sm' | 'xs' } = {}) 
                     'Save changes'
                   )}
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
     </>
   )
 }

@@ -5,16 +5,6 @@ import {
 } from '../constants/payment-proof.constants'
 
 export const paymentProofSchema = z.object({
-  sender_name: z
-    .string()
-    .trim()
-    .min(2, 'Nama pengirim minimal 2 karakter')
-    .max(255, 'Nama pengirim maksimal 255 karakter'),
-  sender_bank: z
-    .string()
-    .trim()
-    .min(2, 'Nama bank pengirim minimal 2 karakter')
-    .max(100, 'Nama bank pengirim maksimal 100 karakter'),
   amount_paid: z
     .number({ message: 'Nominal transfer wajib diisi' })
     .positive('Nominal transfer harus lebih dari 0'),

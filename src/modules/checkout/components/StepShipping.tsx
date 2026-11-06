@@ -1,30 +1,14 @@
 import { useEffect, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Box, LoaderCircle, Package, Rocket, Truck, Zap } from 'lucide-react'
-import { Card } from '../../../shared/components/ui'
+import { Button, Card } from '../../../shared/components/ui'
 import { cn } from '../../../shared/utils/cn'
 import { formatPrice } from '../../../shared/utils/format'
-import { SHIPPING_METHODS } from '../types/checkout.type'
 import type { GatewayShippingMethod } from '../services/order.repository'
 import { useShippingMethods } from '../hooks/useShippingMethods'
 import { useCheckoutRuntime } from '../hooks/useCheckoutRuntime'
 import { gatewayShippingCost } from '../utils/gateway'
 import type { CheckoutInput } from '../schemas/checkout.schema'
-
-const FALLBACK_METHODS: GatewayShippingMethod[] = SHIPPING_METHODS.map((method) => ({
-  uuid: method.id,
-  gateway_code: 'fallback',
-  courier_code: method.id,
-  courier_name: method.label,
-  service_code: method.id,
-  service_name: method.label,
-  full_name: method.label,
-  base_rate: method.price,
-  fee_type: 'FIXED',
-  additional_fee: 0,
-  etd: method.eta,
-  is_enabled: true,
-}))
 
 type ShippingIcon = typeof Truck
 
@@ -47,9 +31,9 @@ export function StepShipping() {
   const selectedData = useCheckoutRuntime((s) => s.shippingMethodData)
   const setShippingMethod = useCheckoutRuntime((s) => s.setShippingMethod)
   const { setValue, register } = useFormContext<CheckoutInput>()
-  const { methods, loading, error } = useShippingMethods()
+  const { methods, loading, error, refresh } = useShippingMethods()
 
-  const available = methods.length > 0 ? methods : FALLBACK_METHODS
+  const available = methods
   const activeId = selectedData?.uuid ?? selected
   const activeMethod = useMemo(
     () => available.find((method) => method.uuid === activeId) ?? available[0],
@@ -82,9 +66,20 @@ export function StepShipping() {
         </div>
       )}
       {error && (
-        <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
-          Gagal memuat tarif backend. Menampilkan tarif fallback. {error}
-        </p>
+        <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <p>Gagal memuat layanan pengiriman dari backend. {error}</p>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={refresh}>
+            Coba lagi
+          </Button>
+        </div>
+      )}
+      {!loading && !error && methods.length === 0 && (
+        <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+          Belum ada metode pengiriman aktif.
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={refresh}>
+            Coba lagi
+          </Button>
+        </div>
       )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">

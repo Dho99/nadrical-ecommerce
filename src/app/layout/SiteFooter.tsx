@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from 'react'
 import { useCategories } from '../../modules/products/hooks/useCategories'
 import { Input, Button } from '../../shared/components/ui'
 import { toast } from '../../shared/lib/alert'
-import { useLogo, useLogoConfig, useContactInfo, useSiteTagline } from '../../modules/home/hooks/useBanner'
+import { useLogo, useLogoConfig, useContactInfo, useSiteTagline, useSiteTitle } from '../../modules/home/hooks/useBanner'
 
 function logoVars(mobile: number, desktop: number): CSSProperties {
   return {
@@ -19,6 +19,7 @@ export function SiteFooter() {
   const { logo: dynamicLogo } = useLogo()
   const { config: logoConfig } = useLogoConfig()
   const { email: contactEmail, phone: contactPhone, address: contactAddress } = useContactInfo()
+  const { title: siteTitle } = useSiteTitle()
   const { tagline } = useSiteTagline()
   const categories = useCategories()
 
@@ -67,9 +68,11 @@ export function SiteFooter() {
               />
             </>
           )}
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            {tagline ||
-              'Nadrical — curated essentials across electronics, apparel, home & outdoors. Designed for everyday living, shipped within 48 hours.'}
+          <h2 className="mt-3 font-display text-lg font-bold tracking-tight">
+            {siteTitle || 'Nadrical'}
+          </h2>
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            {tagline || 'Curated essentials across electronics, apparel, home & outdoors. Designed for everyday living, shipped within 48 hours.'}
           </p>
         </div>
         <div>
@@ -77,15 +80,7 @@ export function SiteFooter() {
             Shop
           </p>
           <ul className="mt-3 space-y-1">
-            <li>
-              <Link
-                to="/products"
-                className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                All products
-              </Link>
-            </li>
-            {categories.map((cat) => (
+            {categories.slice(0, 4).map((cat) => (
               <li key={cat.id}>
                 <Link
                   to={`/products?category=${cat.id}`}
@@ -95,6 +90,16 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
+            {categories.length > 4 && (
+              <li>
+                <Link
+                  to="/products"
+                  className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  More products
+                </Link>
+              </li>
+            )}
             <li>
               <Link
                 to="/news"
@@ -197,12 +202,12 @@ export function SiteFooter() {
           </form>
         </div>
       </div>
-      <div className="border-t">
+      {/* <div className="border-t">
         <div className="mx-auto w-full max-w-7xl flex flex-wrap items-center justify-between gap-2 px-5 py-4 font-mono text-xs tracking-[0.12em] text-muted-foreground sm:px-8">
           <span>© 2026 Nadrical.</span>
           <span>NADRICAL — CURATED FOR EVERYDAY LIVING</span>
         </div>
-      </div>
+      </div> */}
     </footer>
   )
 }

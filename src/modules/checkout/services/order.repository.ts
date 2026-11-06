@@ -66,23 +66,23 @@ function toDbOrder(order: ApiOrder): DbOrder {
     updated_at: order.updated_at,
     payment: order.payment
       ? {
-          id: order.payment.uuid || order.payment.id || '',
-          order_id: order.uuid,
-          payment_method: order.payment.payment_method,
-          payment_channel: order.payment.payment_channel,
-          payer_name: order.payment.sender_name || order.payment.payer_name,
-          payer_bank: order.payment.sender_bank || order.payment.payer_bank,
-          sender_name: order.payment.sender_name || order.payment.payer_name,
-          sender_bank: order.payment.sender_bank || order.payment.payer_bank,
-          reference_number: order.payment.reference_number,
-          amount: Number(order.payment.amount ?? 0),
-          status: (order.payment.status as DbPayment['status']) || 'pending',
-          payment_proof_url: order.payment.payment_proof_url,
-          rejection_reason: order.payment.rejection_reason,
-          verified_at: order.payment.verified_at,
-          paid_at: order.payment.paid_at,
-          created_at: order.payment.created_at,
-        }
+        id: order.payment.uuid || order.payment.id || '',
+        order_id: order.uuid,
+        payment_method: order.payment.payment_method,
+        payment_channel: order.payment.payment_channel,
+        payer_name: order.payment.sender_name || order.payment.payer_name,
+        payer_bank: order.payment.sender_bank || order.payment.payer_bank,
+        sender_name: order.payment.sender_name || order.payment.payer_name,
+        sender_bank: order.payment.sender_bank || order.payment.payer_bank,
+        reference_number: order.payment.reference_number,
+        amount: Number(order.payment.amount ?? 0),
+        status: (order.payment.status as DbPayment['status']) || 'pending',
+        payment_proof_url: order.payment.payment_proof_url,
+        rejection_reason: order.payment.rejection_reason,
+        verified_at: order.payment.verified_at,
+        paid_at: order.payment.paid_at,
+        created_at: order.payment.created_at,
+      }
       : undefined,
   }
 }
@@ -231,7 +231,11 @@ export const orderRepository = {
   },
 
   async submitPaymentWithProof(id: string, form: FormData): Promise<void> {
-    await api.post(`/ecommerce/orders/${id}/payments`, form)
+    // Let Axios/browser set multipart boundary. The API instance defaults to
+    // application/json, which makes Gin bind multipart payload as JSON (422).
+    await api.post(`/ecommerce/orders/${id}/payments`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
 
   async updateShipping(id: string, tracking_number: string, courier?: string): Promise<OrderWithItems | null> {

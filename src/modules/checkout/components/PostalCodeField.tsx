@@ -28,7 +28,6 @@ export function PostalCodeField({
   className = 'sm:col-span-2',
   postalCodeName = 'postal_code',
   cityName = 'city',
-  addressName = 'address',
   districtName = 'district',
   provinceName = 'province',
   countryName = 'countryCode',
@@ -60,14 +59,7 @@ export function PostalCodeField({
     if (countryName) {
       form.setValue(countryName, 'ID', { shouldValidate: true, shouldDirty: true })
     }
-    if (addressName) {
-      const currentAddress = (form.getValues(addressName) || '') as string
-      const cleanAddress = currentAddress.replace(/^Kel\.\s*[^,]+,\s*(Kec\.\s*[^,]+,\s*)?/, '')
-      const prefix = `Kel. ${place.village}, Kec. ${place.district}${cleanAddress ? ', ' : ''}`
-      form.setValue(addressName, prefix + cleanAddress, { shouldValidate: true, shouldDirty: true })
-    }
-
-    const fieldsToTrigger = [postalCodeName, cityName, districtName, provinceName, countryName, addressName].filter(Boolean)
+    const fieldsToTrigger = [postalCodeName, cityName, districtName, provinceName, countryName].filter(Boolean)
     form.trigger(fieldsToTrigger)
     setQuery(place.postal_code)
   }
@@ -99,7 +91,9 @@ export function PostalCodeField({
                 return a.postal_code === b.postal_code && a.village === b.village
               }}
                onInputValueChange={(value: string) => {
-                 setQuery(value)
+                 const digits = value.replace(/\D/g, '').slice(0, 5)
+                 setQuery(digits)
+                 field.onChange(digits)
                }}
                onValueChange={(value: PostalPlace | null) => {
                  if (value) {
@@ -134,7 +128,9 @@ export function PostalCodeField({
               </ComboboxContent>
             </Combobox>
             <FormMessage />
-            <p className="text-xs text-muted-foreground">Select a suggestion to auto-fill city, district, province & address.</p>
+            <p className="text-xs text-muted-foreground">
+              Ketik kode pos manual, atau pilih saran untuk mengisi kota, kecamatan, dan provinsi otomatis.
+            </p>
           </FormItem>
         )
       }}

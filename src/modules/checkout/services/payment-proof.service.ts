@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../../shared/lib/api'
 import { orderRepository } from './order.repository'
 
 export interface UploadedPaymentProof {
@@ -31,7 +32,11 @@ export const paymentProofService = {
     form.append('payment_proof', input.proof)
     if (input.note?.trim()) form.append('reference_number', input.note.trim())
 
-    await orderRepository.submitPaymentWithProof(orderId, form)
+    try {
+      await orderRepository.submitPaymentWithProof(orderId, form)
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Gagal mengirim bukti pembayaran'), { cause: error })
+    }
 
     return {
       order_number: orderNumber,

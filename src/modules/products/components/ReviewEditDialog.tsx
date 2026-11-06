@@ -3,15 +3,10 @@ import { Star } from 'lucide-react'
 import { toast } from '../../../shared/lib/alert'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Label,
   Textarea,
 } from '../../../shared/components/ui'
+import { ResponsiveFormDialog } from '../../../shared/components/ResponsiveFormDialog'
 import { cn } from '../../../shared/utils/cn'
 import type { Review, ReviewRating } from '../types/review.type'
 import { reviewService } from '../services/review.service'
@@ -62,12 +57,13 @@ export function ReviewEditDialog({ open, onOpenChange, productId, review, onUpda
   const activeRating = hover ?? rating
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl font-bold tracking-tight">Edit Ulasan</DialogTitle>
-          <DialogDescription>Perbarui rating atau komentar ulasan Anda.</DialogDescription>
-        </DialogHeader>
+    <ResponsiveFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit Ulasan"
+      description="Perbarui rating atau komentar ulasan Anda."
+      desktopClassName="sm:max-w-md"
+    >
 
         <div className="space-y-4 py-2">
           <div className="flex flex-col items-center gap-2 rounded-lg border bg-card p-4">
@@ -107,15 +103,14 @@ export function ReviewEditDialog({ open, onOpenChange, productId, review, onUpda
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Batal
           </Button>
           <Button onClick={() => void submit()} disabled={submitting}>
             {submitting ? 'Menyimpan…' : 'Simpan'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </ResponsiveFormDialog>
   )
 }

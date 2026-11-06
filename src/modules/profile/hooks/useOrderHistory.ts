@@ -10,6 +10,7 @@ export function useOrderHistory(email: string | null) {
   const [loaded, setLoaded] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const status: AsyncStatus = error ? 'error' : loaded ? 'success' : 'loading'
 
@@ -66,5 +67,18 @@ export function useOrderHistory(email: string | null) {
     [email, refetch],
   )
 
-  return { orders, status, error, refetch, cancel, cancellingId }
+  const confirmReceipt = useCallback(
+    async (orderId: string): Promise<void> => {
+      setConfirmingId(orderId)
+      try {
+        await profileService.confirmReceipt(orderId)
+        refetch()
+      } finally {
+        setConfirmingId(null)
+      }
+    },
+    [refetch],
+  )
+
+  return { orders, status, error, refetch, cancel, cancellingId, confirmReceipt, confirmingId }
 }

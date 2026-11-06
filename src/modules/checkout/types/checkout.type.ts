@@ -66,6 +66,7 @@ export interface OrderConfirmation {
   order_number: string
   placed_at: Date
   email: string
+  recipient_name?: string
   eta_days: number
   shipping_etd?: string
   shipping_method_name?: string
@@ -85,9 +86,9 @@ export const SHIPPING_METHODS: Array<{
   eta: string
   etaDays: number
 }> = [
-  { id: 'standard', label: 'Standard', price: 8, eta: '3–5 working days', etaDays: 4 },
-  { id: 'express', label: 'Express', price: 16, eta: 'Next working day', etaDays: 1 },
-  { id: 'jne', label: 'JNE REG', price: 1.2, eta: '2–3 days', etaDays: 3 },
-  { id: 'jnt', label: 'J&T Express', price: 1.5, eta: '1–2 days', etaDays: 2 },
-  { id: 'sicepat', label: 'SiCepat', price: 1.8, eta: '1 day', etaDays: 1 },
+  { id: 'standard', label: 'Standard', price: 15000, eta: '3–5 working days', etaDays: 4 },
+  { id: 'express', label: 'Express', price: 25000, eta: 'Next working day', etaDays: 1 },
+  { id: 'jne', label: 'JNE REG', price: 10000, eta: '2–3 days', etaDays: 3 },
+  { id: 'jnt', label: 'J&T Express', price: 10000, eta: '1–2 days', etaDays: 2 },
+  { id: 'sicepat', label: 'SiCepat', price: 9500, eta: '1 day', etaDays: 1 },
 ]

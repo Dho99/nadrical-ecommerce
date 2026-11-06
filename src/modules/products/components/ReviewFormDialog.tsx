@@ -3,15 +3,10 @@ import { Star } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Label,
   Textarea,
 } from '../../../shared/components/ui'
+import { ResponsiveFormDialog } from '../../../shared/components/ResponsiveFormDialog'
 import { ProductImage } from '../../../shared/components/ProductImage'
 import { reviewService } from '../services/review.service'
 import { userReviewStorage, type UserReview } from '../services/userReview.storage'
@@ -122,14 +117,13 @@ export function ReviewFormDialog({
   const activeRating = hoverRating ?? rating
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl font-bold tracking-tight">Beri Ulasan Produk</DialogTitle>
-          <DialogDescription>
-            Berikan penilaian dan ulasan jujur untuk membantu pembeli lain.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Beri Ulasan Produk"
+      description="Berikan penilaian dan ulasan jujur untuk membantu pembeli lain."
+      desktopClassName="sm:max-w-md"
+    >
 
         <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
           <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted">
@@ -196,15 +190,14 @@ export function ReviewFormDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Batal
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={submitting || !comment.trim()}>
             {submitting ? 'Mengirim…' : 'Kirim Ulasan'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </ResponsiveFormDialog>
   )
 }

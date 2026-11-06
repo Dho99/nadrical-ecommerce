@@ -4,16 +4,8 @@ import { toast } from '@/shared/lib/alert'
 import { AddressCard, AddressFormDialog, useAddressBook } from '../../modules/address'
 import type { UserAddress, AddressSchema } from '../../modules/address'
 import { useAuth } from '../../modules/auth'
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  EmptyState,
-} from '../../shared/components/ui'
+import { Button, EmptyState } from '../../shared/components/ui'
+import { ResponsiveConfirmDialog } from '../../shared/components/ResponsiveConfirmDialog'
 
 export function AddressBookPage() {
   const { user } = useAuth()
@@ -115,35 +107,22 @@ export function AddressBookPage() {
         submitLabel="Save changes"
         onSubmit={handleUpdate}
       />
-
-      <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete address?</DialogTitle>
-            <DialogDescription>
-              {deleting?.label} — {deleting?.address_line_1}, {deleting?.city}. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleting(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                if (deleting) {
-                  removeAddress(deleting.id)
-                  toast.success('Address deleted')
-                }
-                setDeleting(null)
-              }}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ResponsiveConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title="Delete address?"
+        description={`${deleting?.label ?? ''} - ${deleting?.address_line_1 ?? ''}, ${deleting?.city ?? ''}. This cannot be undone.`}
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deleting) {
+            removeAddress(deleting.id)
+            toast.success('Address deleted')
+          }
+          setDeleting(null)
+        }}
+      />
     </div>
   )
 }

@@ -3,22 +3,8 @@ import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom'
 import { Bookmark, LogOut, MapPin, ShieldCheck, ShoppingBag, User } from 'lucide-react'
 import { useAuth } from '../../modules/auth/hooks/useAuth'
 import { initialsOf } from '../../modules/profile/utils/profile.utils'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Badge,
-  Card,
-  Separator,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '../../shared/components/ui'
+import { Badge, Card, Separator, Tabs, TabsList, TabsTrigger } from '../../shared/components/ui'
+import { ResponsiveConfirmDialog } from '../../shared/components/ResponsiveConfirmDialog'
 import { cn } from '../../shared/utils/cn'
 
 export function ProfileLayout() {
@@ -165,20 +151,16 @@ export function ProfileLayout() {
           <Outlet />
         </main>
       </div>
-      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
-            <AlertDialogDescription>Anda akan keluar dan perlu login kembali untuk akses pesanan &amp; wishlist.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Keluar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ResponsiveConfirmDialog
+        open={logoutConfirmOpen}
+        onOpenChange={setLogoutConfirmOpen}
+        title="Keluar dari akun?"
+        description="Anda akan keluar dan perlu login kembali untuk akses pesanan & wishlist."
+        cancelLabel="Batal"
+        confirmLabel="Keluar"
+        destructive
+        onConfirm={confirmLogout}
+      />
     </div>
   )
 }

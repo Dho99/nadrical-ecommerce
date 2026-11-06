@@ -36,4 +36,8 @@ export const profileService = {
     void email
     await orderRepository.cancelOrder(email, orderId)
   },
+
+  async confirmReceipt(orderId: string): Promise<void> {
+    await orderRepository.updateStatus(orderId, { status: 'completed' })
+  },
 }
