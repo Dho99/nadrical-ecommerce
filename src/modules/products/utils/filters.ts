@@ -10,6 +10,7 @@ export function parseProductFilters(params: URLSearchParams): ProductFilters {
     min_price: (params.get('minPrice') ?? undefined) as unknown as number | undefined,
     max_price: (params.get('maxPrice') ?? undefined) as unknown as number | undefined,
     specs: (params.get('specs') ?? undefined) as unknown as string | undefined,
+    options: (params.get('options') ?? undefined) as unknown as string | undefined,
     discount_only: (params.get('discount') ?? params.get('discount_only') ?? undefined) as 'true' | 'false' | undefined,
   }
   const parsed = productFiltersSchema.safeParse(raw)
@@ -29,6 +30,8 @@ export function toProductParams(filters: ProductFilters): URLSearchParams {
   if (filters.max_price !== undefined) params.set('maxPrice', String(filters.max_price))
   if (filters.specs && Object.keys(filters.specs).length > 0)
     params.set('specs', JSON.stringify(filters.specs))
+  if (filters.options && Object.keys(filters.options).length > 0)
+    params.set('options', JSON.stringify(filters.options))
   if (filters.discount_only) params.set('discount', 'true')
   return params
 }

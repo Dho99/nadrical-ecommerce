@@ -27,6 +27,18 @@ export const productFiltersSchema = z.object({
       }
     })
     .optional(),
+  options: z
+    .string()
+    .transform((v) => {
+      try {
+        const parsed = JSON.parse(v) as Record<string, string[]>
+        if (parsed && typeof parsed === 'object') return parsed
+        return undefined
+      } catch {
+        return undefined
+      }
+    })
+    .optional(),
   discount_only: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')

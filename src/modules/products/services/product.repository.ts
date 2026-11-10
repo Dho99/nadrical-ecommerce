@@ -62,6 +62,7 @@ function seed(): ProductDb {
           product_id: p.id,
           variant_sku: v.id,
           variant_name: v.variant_name,
+          options: v.options,
           price_delta: v.price_delta,
           stock: v.stock,
           is_active: true,

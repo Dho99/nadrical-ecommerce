@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Check, MessageCircle, ShoppingCart } from 'lucide-react'
 import { toast } from '@/shared/lib/alert'
 import {
@@ -29,90 +29,125 @@ interface SpecSheetProps {
 }
 
 export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
-  const variants = product.variants ?? []
-  const isMultiVariant = variants.length > 0 && variants[0].variant_name.includes(' / ')
+  const variants = useMemo(() => product.variants ?? [], [product.variants])
   const { format, code } = useCurrency()
 
-  const [selectedSingle, setSelectedSingle] = useState<ProductVariant | null>(
-    () => (isMultiVariant ? null : variants.find((v) => v.stock > 0) ?? variants[0] ?? null),
-  )
-
-  const dim1Values = isMultiVariant
-    ? Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[0])))
-    : []
-  const dim2Values = isMultiVariant
-    ? Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[1])))
-    : []
-
-  function getLabel(value: string, index: number): string {
-    const lower = value.toLowerCase()
-    if (
-      ['xs', 's', 'm', 'l', 'xl', 'xxl', 'eu', 'size', '36', '38', '40', '42', '44', '46'].some((k) =>
-        lower.includes(k),
-      )
-    ) {
-      return 'Size'
+  // 1. Structured Dimensions Resolution (from product.variant_options or auto-derived)
+  const optionDimensions = useMemo(() => {
+    if (product.variant_options && product.variant_options.length > 0) {
+      return product.variant_options.map((group) => ({
+        name: group.name,
+        values: group.values
+          .map((v) =>
+            typeof v === 'string'
+              ? v.trim()
+              : ((v as any)?.value || (v as any)?.label || (v as any)?.name || '').trim(),
+          )
+          .filter(Boolean),
+      }))
     }
-    if (
-      [
-        'merah',
-        'hijau',
-        'hitam',
-        'putih',
-        'blue',
-        'black',
-        'red',
-        'green',
-        'white',
-        'grey',
-        'yellow',
-        'color',
-      ].some((k) => lower.includes(k))
-    ) {
-      return 'Color'
+
+    // Fallback: check if variants have options JSON
+    const map = new Map<string, Set<string>>()
+    for (const v of variants) {
+      if (v.options && Object.keys(v.options).length > 0) {
+        for (const [k, val] of Object.entries(v.options)) {
+          if (!map.has(k)) map.set(k, new Set())
+          map.get(k)?.add(val)
+        }
+      }
     }
-    return index === 0 ? 'Size' : 'Color'
+    if (map.size > 0) {
+      return Array.from(map.entries()).map(([name, set]) => ({
+        name,
+        values: Array.from(set),
+      }))
+    }
+
+    // Fallback: legacy slash-delimited names e.g. "Hitam / M"
+    if (variants.length > 0 && variants[0].variant_name.includes(' / ')) {
+      const parts = variants[0].variant_name.split(' / ')
+      if (parts.length === 2) {
+        return [
+          { name: 'Varian 1', values: Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[0]))) },
+          { name: 'Varian 2', values: Array.from(new Set(variants.map((v) => v.variant_name.split(' / ')[1]))) },
+        ]
+      }
+    }
+
+    return []
+  }, [product.variant_options, variants])
+
+  const isMultiDimension = optionDimensions.length > 0
+
+  // 2. Initial state setup
+  const [selectedSingle, setSelectedSingle] = useState<ProductVariant | null>(() => {
+    if (isMultiDimension) return null
+    return variants.find((v) => v.stock > 0) ?? variants[0] ?? null
+  })
+
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    if (!isMultiDimension) return {}
+
+    // Find first variant in stock, or fallback to first variant
+    const defaultVar = variants.find((v) => v.stock > 0) ?? variants[0] ?? null
+    if (defaultVar?.options && Object.keys(defaultVar.options).length > 0) {
+      return defaultVar.options
+    }
+
+    // Build default from first values
+    const initial: Record<string, string> = {}
+    for (const dim of optionDimensions) {
+      if (dim.values[0]) {
+        initial[dim.name] = dim.values[0]
+      }
+    }
+    return initial
+  })
+
+  // 3. Resolve active selected variant
+  const selected = useMemo(() => {
+    if (!isMultiDimension) return selectedSingle
+
+    return (
+      variants.find((v) => {
+        if (v.options && Object.keys(v.options).length > 0) {
+          return Object.entries(selectedOptions).every(([k, val]) => v.options?.[k] === val)
+        }
+        // Fallback matching by compound name
+        const expectedName = Object.values(selectedOptions).join(' / ')
+        return v.variant_name === expectedName
+      }) ?? null
+    )
+  }, [isMultiDimension, variants, selectedOptions, selectedSingle])
+
+  // 4. Check if an option in a dimension is disabled (out of stock)
+  const isOptionDisabled = (dimName: string, val: string) => {
+    const candidateOptions = { ...selectedOptions, [dimName]: val }
+    const match = variants.find((v) => {
+      if (v.options && Object.keys(v.options).length > 0) {
+        return Object.entries(candidateOptions).every(([k, vVal]) => v.options?.[k] === vVal)
+      }
+      const expectedName = Object.values(candidateOptions).join(' / ')
+      return v.variant_name === expectedName
+    })
+    return !match || match.stock === 0
   }
-
-  const dim1Label = dim1Values[0] ? getLabel(dim1Values[0], 0) : 'Size'
-  const dim2Label = dim2Values[0] ? getLabel(dim2Values[0], 1) : 'Color'
-
-  const defaultVariant = isMultiVariant
-    ? variants.find((v) => v.stock > 0) ?? variants[0] ?? null
-    : null
-  const defaultDim1 = defaultVariant ? defaultVariant.variant_name.split(' / ')[0] : dim1Values[0] || ''
-  const defaultDim2 = defaultVariant ? defaultVariant.variant_name.split(' / ')[1] : dim2Values[0] || ''
-
-  const [selectedDim1, setSelectedDim1] = useState(defaultDim1)
-  const [selectedDim2, setSelectedDim2] = useState(defaultDim2)
-
-  const selected = isMultiVariant
-    ? variants.find((v) => v.variant_name === `${selectedDim1} / ${selectedDim2}`) ?? null
-    : selectedSingle
 
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
   const [messageOpen, setMessageOpen] = useState(false)
   const [messageText, setMessageText] = useState(`Hi, I'm interested in ${product.name}. Is it available?`)
 
-  const price = product.base_price + (selected?.price_delta ?? 0)
-  const stock = selected ? selected.stock : (variants.length > 0 ? 0 : product.stock)
+  const effectiveVariantPrice = selected?.effective_price ?? (product.base_price + (selected?.price_delta ?? 0))
+  const price = effectiveVariantPrice
+  const stock = selected ? selected.stock : variants.length > 0 ? 0 : product.stock
   const isPreorder = Boolean(product.is_preorder)
   const soldOut = stock === 0 && !isPreorder
 
   const handleSelectSingle = (variant: ProductVariant) => {
     setSelectedSingle(variant)
     setQty(1)
-  }
-
-  const isDim1Disabled = (val: string) => {
-    const match = variants.find((v) => v.variant_name === `${val} / ${selectedDim2}`)
-    return !match || match.stock === 0
-  }
-
-  const isDim2Disabled = (val: string) => {
-    const match = variants.find((v) => v.variant_name === `${selectedDim1} / ${val}`)
-    return !match || match.stock === 0
   }
 
   const handleAdd = () => {
@@ -153,96 +188,68 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
   return (
     <div className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5">
-      <Table>
-        <TableBody>
-          {product.specs.map((spec) => (
-            <TableRow key={spec.spec_name}>
-              <TableCell className="w-1/3 py-2 font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-                {spec.spec_name}
-              </TableCell>
-              <TableCell className="py-2 text-sm font-medium">{spec.spec_value}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <Separator className="my-4" />
+      {product.specs && product.specs.length > 0 && (
+        <>
+          <Table>
+            <TableBody>
+              {product.specs.map((spec) => (
+                <TableRow key={spec.spec_name}>
+                  <TableCell className="w-1/3 py-2 font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                    {spec.spec_name}
+                  </TableCell>
+                  <TableCell className="py-2 text-sm font-medium">{spec.spec_value}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Separator className="my-4" />
+        </>
+      )}
 
       {variants.length > 0 && (
         <div className="mb-5">
-          {isMultiVariant ? (
+          {isMultiDimension ? (
             <div className="flex flex-col gap-4">
-              <div>
-                <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                  {dim1Label}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={`Product ${dim1Label}`}>
-                  {dim1Values.map((val) => {
-                    const isSelected = selectedDim1 === val
-                    const disabled = isDim1Disabled(val)
-                    return (
-                      <button
-                        key={val}
-                        type="button"
-                        role="radio"
-                        aria-checked={isSelected}
-                        disabled={disabled}
-                        onClick={() => {
-                          setSelectedDim1(val)
-                          setQty(1)
-                        }}
-                        className={cn(
-                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                          isSelected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-background hover:border-foreground/50',
-                          disabled && 'cursor-not-allowed opacity-50 line-through',
-                        )}
-                      >
-                        {val}
-                      </button>
-                    )
-                  })}
+              {optionDimensions.map((dim) => (
+                <div key={dim.name}>
+                  <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                    Pilih {dim.name}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={`Pilih ${dim.name}`}>
+                    {dim.values.map((val) => {
+                      const isSelected = selectedOptions[dim.name] === val
+                      const disabled = isOptionDisabled(dim.name, val)
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          disabled={disabled}
+                          onClick={() => {
+                            setSelectedOptions((prev) => ({ ...prev, [dim.name]: val }))
+                            setQty(1)
+                          }}
+                          className={cn(
+                            'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
+                            isSelected
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-background hover:border-foreground/50',
+                            disabled && 'cursor-not-allowed opacity-50 line-through',
+                          )}
+                        >
+                          {val}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                  {dim2Label}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={`Product ${dim2Label}`}>
-                  {dim2Values.map((val) => {
-                    const isSelected = selectedDim2 === val
-                    const disabled = isDim2Disabled(val)
-                    return (
-                      <button
-                        key={val}
-                        type="button"
-                        role="radio"
-                        aria-checked={isSelected}
-                        disabled={disabled}
-                        onClick={() => {
-                          setSelectedDim2(val)
-                          setQty(1)
-                        }}
-                        className={cn(
-                          'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                          isSelected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-background hover:border-foreground/50',
-                          disabled && 'cursor-not-allowed opacity-50 line-through',
-                        )}
-                      >
-                        {val}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+              ))}
             </div>
           ) : (
             <div>
               <p className="font-mono text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                Variants
+                Pilih Varian
               </p>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Product variants">
                 {variants.map((variant) => {
@@ -257,7 +264,7 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
                       disabled={variantSoldOut}
                       onClick={() => handleSelectSingle(variant)}
                       className={cn(
-                        'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                        'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
                         isSelected
                           ? 'border-primary bg-primary text-primary-foreground'
                           : 'border-border bg-background hover:border-foreground/50',
@@ -373,19 +380,19 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
         title={`Ask about ${product.name}`}
         description="Send a message and our team will reply via live chat."
       >
-          <div className="grid gap-3">
-            <Label htmlFor="msg">Message</Label>
-            <Textarea id="msg" value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
-            <Input placeholder="Your name (optional)" aria-label="Name" className="hidden" />
-          </div>
-          <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setMessageOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
-              Send to chat
-            </Button>
-          </div>
+        <div className="grid gap-3">
+          <Label htmlFor="msg">Message</Label>
+          <Textarea id="msg" value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4} />
+          <Input placeholder="Your name (optional)" aria-label="Name" className="hidden" />
+        </div>
+        <div className="mt-2 flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => setMessageOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
+            Send to chat
+          </Button>
+        </div>
       </ResponsiveFormDialog>
     </div>
   )

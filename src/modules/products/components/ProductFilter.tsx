@@ -33,25 +33,16 @@ function getFilteredSpecOptions(products: Product[]) {
   const map = new Map<string, Set<string>>()
   for (const p of products) {
     for (const s of p.specs) {
-      const key = s.spec_name
-      if (['Sizes', 'Size', 'Material', 'Color', 'Capacity'].includes(key)) {
-        const vals = s.spec_value.split(/[,–—]/).map((v) => v.trim()).slice(0, 4)
-        if (!map.has(key)) map.set(key, new Set())
-        for (const v of vals) {
-          if (v.length > 1 && v.length < 20) map.get(key)?.add(v)
-        }
-      }
-    }
-    if (p.variants) {
-      const key = 'Color'
+      const key = s.spec_name?.trim()
+      if (!key) continue
+      const vals = s.spec_value.split(/[,–—]/).map((v) => v.trim()).filter(Boolean).slice(0, 8)
       if (!map.has(key)) map.set(key, new Set())
-      for (const v of p.variants) {
-        const c = v.variant_name.split('/').pop()?.trim()
-        if (c) map.get(key)?.add(c)
+      for (const v of vals) {
+        if (v.length > 0 && v.length < 50) map.get(key)?.add(v)
       }
     }
   }
-  return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set).slice(0, 6) }))
+  return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set).slice(0, 8) }))
 }
 
 export function ProductFilter({ filters, onChange, total, products, filterOptions, filtersLoading }: ProductFilterProps) {
@@ -62,10 +53,11 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
   const clientSpecOptions = useMemo(() => getFilteredSpecOptions(products), [products])
   const specOptions = useMemo(() => {
     if (filterOptions?.specifications?.length) {
-      return filterOptions.specifications.map((s) => ({ key: s.name, values: s.values.map((v) => v.value).slice(0, 6) }))
+      return filterOptions.specifications.map((s) => ({ key: s.name, values: s.values.map((v) => v.value).slice(0, 8) }))
     }
     return clientSpecOptions
   }, [filterOptions, clientSpecOptions])
+  const variantGroups = filterOptions?.variant_groups ?? []
   const variantOptions = filterOptions?.variants ?? []
   const ratingOptions = filterOptions?.ratings ?? []
   const categoriesFromApi = filterOptions?.categories
@@ -98,7 +90,8 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
     filters.discount_only ||
     filters.min_price !== undefined ||
     filters.max_price !== undefined ||
-    (filters.specs && Object.keys(filters.specs).length > 0)
+    (filters.specs && Object.keys(filters.specs).length > 0) ||
+    (filters.options && Object.keys(filters.options).length > 0)
 
   const toggleSpec = (key: string, value: string) => {
     const current = filters.specs?.[key] ?? []
@@ -107,6 +100,15 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
     if (next.length === 0) delete nextSpecs[key]
     else nextSpecs[key] = next
     onChange({ specs: Object.keys(nextSpecs).length > 0 ? nextSpecs : undefined })
+  }
+
+  const toggleOption = (groupName: string, value: string) => {
+    const current = filters.options?.[groupName] ?? []
+    const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
+    const nextOptions = { ...(filters.options ?? {}) }
+    if (next.length === 0) delete nextOptions[groupName]
+    else nextOptions[groupName] = next
+    onChange({ options: Object.keys(nextOptions).length > 0 ? nextOptions : undefined })
   }
 
   return (
@@ -186,6 +188,8 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
                     min_price: undefined,
                     max_price: undefined,
                     specs: undefined,
+                    options: undefined,
+                    variants: undefined,
                     discount_only: undefined,
                   })
                 }
@@ -244,7 +248,7 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
 
           <Tabs
             value={activeCategory}
-            onValueChange={(v) => onChange({ category_id: v === 'all' ? undefined : (v as ProductFilters['category_id']) })}
+            onValueChange={(v) => onChange({ category_id: v === 'all' ? undefined : (v as ProductFilters['category_id']), specs: undefined, options: undefined, variants: undefined })}
           >
             <TabsList className="flex w-fit max-w-full flex-wrap justify-center overflow-x-auto overflow-y-hidden scrollbar-none">
               <TabsTrigger value="all" className="min-h-10">
@@ -279,7 +283,42 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
             </div>
           ) : null}
 
-          {variantOptions.length > 0 && (
+          {/* Structured Multi-Dimensional Variant Groups Filter */}
+          {variantGroups.length > 0 && (
+            <div className="border-t pt-4">
+              <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Pilihan Varian</p>
+              <div className="flex flex-col gap-3">
+                {variantGroups.map((g) => (
+                  <div key={g.name} className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground/80">{g.name}:</span>
+                    {g.options.map((opt) => {
+                      const checked = filters.options?.[g.name]?.includes(opt.value) ?? false
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => toggleOption(g.name, opt.value)}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                            checked
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+                          )}
+                        >
+                          <span>{opt.value}</span>
+                          <span className={cn('text-[10px]', checked ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+                            ({opt.count})
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {variantGroups.length === 0 && variantOptions.length > 0 && (
             <div className="border-t pt-4">
               <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Variants</p>
               <div className="flex flex-wrap gap-2">

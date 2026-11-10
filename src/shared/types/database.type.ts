@@ -172,6 +172,7 @@ export interface DbProductVariant {
     product_id: string;
     variant_sku?: string;
     variant_name: string;
+    options?: Record<string, string>;
     price_delta?: number;
     override_price?: number;
     stock?: number;

@@ -1,11 +1,18 @@
 import type { Product } from '../types/product.type'
 import { unsplashUrl as img } from '../../../shared/utils/unsplash'
 
-const v = (id: string, name: string, delta: number, stock: number) => ({
+const v = (
+  id: string,
+  name: string,
+  delta: number,
+  stock: number,
+  options?: Record<string, string>,
+) => ({
   id,
   variant_name: name,
   price_delta: delta,
   stock,
+  options,
 })
 
 const elecColors = ['Hitam', 'Putih', 'Silver', 'Navy', 'Merah']
@@ -22,6 +29,8 @@ function gen(
   baseDelta = 0,
   deltaStep = 0,
   baseStock = 10,
+  dim1Name = 'Ukuran',
+  dim2Name = 'Warna',
 ) {
   return dim1.flatMap((d1, i) =>
     dim2.map((d2, j) =>
@@ -30,6 +39,7 @@ function gen(
         `${d1} / ${d2}`,
         baseDelta + i * deltaStep,
         Math.max(0, baseStock - i * 2 + j),
+        { [dim1Name]: d1, [dim2Name]: d2 },
       ),
     ),
   )

@@ -53,12 +53,20 @@ interface BackendProduct {
     spec_value?: string
     value?: string
   }>
+  variant_options?: Array<{
+    name: string
+    values: Array<{ value: string; swatch_color?: string; image_url?: string } | string>
+  }>
   variants?: Array<{
     uuid?: string
     id?: string
     variant_name?: string
+    variant_sku?: string
     name?: string
+    options?: Record<string, string>
     price_delta?: number
+    override_price?: number
+    effective_price?: number
     stock?: number
   }>
 }
@@ -77,13 +85,8 @@ interface StandardApiResponse<T> {
 
 function toProductCategoryId(slug: string): string {
   const s = (slug || '').toLowerCase().replace(/\s+/g, '-')
-  if (s === 'home' || s === 'home-living') return 'home-living'
-  if (['electronics', 'apparel', 'accessories', 'outdoors'].includes(s)) return s
-  if (s.includes('appar') || s.includes('cloth') || s.includes('wear') || s.includes('fashion')) return 'apparel'
-  if (s.includes('home') || s.includes('furn') || s.includes('liv') || s.includes('kitchen')) return 'home-living'
-  if (s.includes('access') || s.includes('merchandise') || s.includes('leather') || s.includes('bag') || s.includes('mat')) return 'accessories'
-  if (s.includes('outdoor') || s.includes('camp') || s.includes('trail') || s.includes('sport')) return 'outdoors'
-  return 'electronics'
+  if (!s) return 'electronics'
+  return s
 }
 
 function mapBackendProduct(bp: BackendProduct): Product {
@@ -105,8 +108,22 @@ function mapBackendProduct(bp: BackendProduct): Product {
       variants.push({
         id: v.uuid || v.id || '',
         variant_name: v.variant_name || v.name || '',
+        variant_sku: v.variant_sku || undefined,
+        options: v.options || undefined,
         price_delta: Number(v.price_delta || 0),
+        override_price: v.override_price !== undefined ? Number(v.override_price) : undefined,
+        effective_price: v.effective_price !== undefined ? Number(v.effective_price) : undefined,
         stock: Number(v.stock || 0),
+      })
+    })
+  }
+
+  const variantOptions: Product['variant_options'] = []
+  if (Array.isArray(bp.variant_options)) {
+    bp.variant_options.forEach((o) => {
+      variantOptions.push({
+        name: o.name,
+        values: o.values,
       })
     })
   }
@@ -153,6 +170,7 @@ function mapBackendProduct(bp: BackendProduct): Product {
     preorder_deposit: bp.preorder_deposit !== undefined ? Number(bp.preorder_deposit) : undefined,
     summary: bp.summary || bp.description?.slice(0, 120) || '',
     specs,
+    variant_options: variantOptions.length > 0 ? variantOptions : undefined,
     variants: variants.length > 0 ? variants : undefined,
     rating: bp.average_rating !== undefined ? Number(bp.average_rating) : 0,
     review_count: bp.rating_count !== undefined ? Number(bp.rating_count) : 0,
@@ -176,6 +194,7 @@ export interface ProductFilterOptions {
   price_range: { min_price: number; max_price: number; currency: string }
   ratings: { rating: number; label: string; count: number }[]
   specifications: { name: string; values: { value: string; count: number }[] }[]
+  variant_groups?: { name: string; options: { value: string; count: number }[] }[]
   variants: { name: string; count: number }[]
   summary: { total_products: number; in_stock_count: number; on_sale_count: number; featured_count: number }
   sort_options: { label: string; value: string }[]
@@ -197,6 +216,19 @@ function buildParams(filters: ProductFilters, page?: number, limit?: number): Re
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.category_id)
     if (isUuid) params.category_uuid = filters.category_id
     else params.category = filters.category_id
+  }
+  if (filters.specs && Object.keys(filters.specs).length > 0) {
+    params.specs = JSON.stringify(filters.specs)
+  }
+  if (filters.options && Object.keys(filters.options).length > 0) {
+    const optParts = Object.entries(filters.options)
+      .filter(([_, vals]) => vals && vals.length > 0)
+      .map(([k, vals]) => `${k}:${vals.join(',')}`)
+      .join(';')
+    if (optParts) params.options = optParts
+  }
+  if (filters.variants && filters.variants.length > 0) {
+    params.variants = filters.variants.join(',')
   }
   return params
 }

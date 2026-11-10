@@ -9,11 +9,29 @@ export interface ProductSpec {
   spec_value: string
 }
 
+export interface VariantOptionValue {
+  value: string
+  label?: string
+  swatch_color?: string
+  image_url?: string
+}
+
+export interface VariantOptionGroup {
+  name: string
+  values: (string | VariantOptionValue)[]
+}
+
 export interface ProductVariant {
   id: string
   variant_name: string
+  variant_sku?: string
+  options?: Record<string, string>
   price_delta: number
+  override_price?: number
+  effective_price?: number
   stock: number
+  image_url?: string
+  is_active?: boolean
 }
 
 export interface Product {
@@ -37,6 +55,7 @@ export interface Product {
   preorder_deposit?: number
   summary: string
   specs: ProductSpec[]
+  variant_options?: VariantOptionGroup[]
   variants?: ProductVariant[]
   rating: number
   review_count: number
@@ -52,6 +71,8 @@ export interface ProductFilters {
   min_price?: number
   max_price?: number
   specs?: Record<string, string[]>
+  options?: Record<string, string[]>
+  variants?: string[]
   discount_only?: boolean
   limit?: number
   page?: number
