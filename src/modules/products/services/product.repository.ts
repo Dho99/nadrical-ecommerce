@@ -117,7 +117,11 @@ export const productRepository = {
     return db.products.map((p) => {
       const pSpecs = db.specs
         .filter((s) => s.product_id === p.id)
-        .map((s) => ({ spec_name: s.spec_name, spec_value: s.spec_value }))
+        .map((s) => ({
+          spec_name: s.spec_name,
+          spec_value: s.spec_value,
+          spec_values: s.spec_value ? [s.spec_value] : [],
+        }))
       const pVariants = db.variants
         .filter((v) => v.product_id === p.id)
         .map((v) => ({

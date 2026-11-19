@@ -44,8 +44,9 @@ interface BackendProduct {
   specifications?: Array<{
     name?: string
     spec_name?: string
-    values?: Array<{ value: string }>
+    values?: Array<{ value?: string; name?: string } | string>
     spec_value?: string
+    value?: string
   }>
   specs?: Array<{
     spec_name?: string
@@ -68,6 +69,7 @@ interface BackendProduct {
     override_price?: number
     effective_price?: number
     stock?: number
+    is_active?: boolean
   }>
 }
 
@@ -91,31 +93,50 @@ function toProductCategoryId(slug: string): string {
 
 function mapBackendProduct(bp: BackendProduct): Product {
   const specs: ProductSpec[] = []
-  if (Array.isArray(bp.specifications)) {
+  const appendSpec = (rawName: string | undefined, rawValues: string[]) => {
+    const name = (rawName || '').trim()
+    const deduped: string[] = []
+    for (const v of rawValues) {
+      const trimmed = v.trim()
+      if (trimmed && !deduped.includes(trimmed)) deduped.push(trimmed)
+    }
+    if (name && deduped.length > 0) {
+      specs.push({ spec_name: name, spec_value: deduped.join(', '), spec_values: deduped })
+    }
+  }
+
+  if (Array.isArray(bp.specifications) && bp.specifications.length > 0) {
     bp.specifications.forEach((s) => {
-      const val = s.values && s.values.length > 0 ? s.values[0].value : s.spec_value || ''
-      specs.push({ spec_name: s.name || s.spec_name || '', spec_value: val })
+      const values = Array.isArray(s.values)
+        ? s.values.map((v) => (typeof v === 'string' ? v : v?.value || v?.name || ''))
+        : []
+      const fallback = s.spec_value || s.value || ''
+      appendSpec(s.name || s.spec_name, values.length > 0 ? values : fallback ? [fallback] : [])
     })
-  } else if (Array.isArray(bp.specs)) {
+  } else if (Array.isArray(bp.specs) && bp.specs.length > 0) {
     bp.specs.forEach((s) => {
-      specs.push({ spec_name: s.spec_name || s.name || '', spec_value: s.spec_value || s.value || '' })
+      const val = s.spec_value || s.value || ''
+      appendSpec(s.spec_name || s.name, val ? [val] : [])
     })
   }
 
   const variants: ProductVariant[] = []
   if (Array.isArray(bp.variants)) {
-    bp.variants.forEach((v) => {
-      variants.push({
-        id: v.uuid || v.id || '',
-        variant_name: v.variant_name || v.name || '',
-        variant_sku: v.variant_sku || undefined,
-        options: v.options || undefined,
-        price_delta: Number(v.price_delta || 0),
-        override_price: v.override_price !== undefined ? Number(v.override_price) : undefined,
-        effective_price: v.effective_price !== undefined ? Number(v.effective_price) : undefined,
-        stock: Number(v.stock || 0),
+    bp.variants
+      .filter((v) => v.is_active !== false)
+      .forEach((v) => {
+        variants.push({
+          id: v.uuid || v.id || '',
+          variant_name: v.variant_name || v.name || '',
+          variant_sku: v.variant_sku || undefined,
+          options: v.options || undefined,
+          price_delta: Number(v.price_delta || 0),
+          override_price: v.override_price !== undefined ? Number(v.override_price) : undefined,
+          effective_price: v.effective_price !== undefined ? Number(v.effective_price) : undefined,
+          stock: Number(v.stock || 0),
+          is_active: v.is_active,
+        })
       })
-    })
   }
 
   const variantOptions: Product['variant_options'] = []
@@ -146,7 +167,6 @@ function mapBackendProduct(bp: BackendProduct): Product {
       const calculated = Math.round(((origPrice - curPrice) / origPrice) * 100)
       return calculated > 0 ? calculated : undefined
     }
-    if (bp.sku?.includes('SALE')) return 10
     return undefined
   })()
 

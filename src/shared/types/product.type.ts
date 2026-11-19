@@ -7,6 +7,7 @@ export type ProductSort = 'featured' | 'featured-only' | 'price-asc' | 'price-de
 export interface ProductSpec {
   spec_name: string
   spec_value: string
+  spec_values?: string[]
 }
 
 export interface VariantOptionValue {
