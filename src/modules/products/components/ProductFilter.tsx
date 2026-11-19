@@ -35,14 +35,19 @@ function getFilteredSpecOptions(products: Product[]) {
     for (const s of p.specs) {
       const key = s.spec_name?.trim()
       if (!key) continue
-      const vals = s.spec_value.split(/[,–—]/).map((v) => v.trim()).filter(Boolean).slice(0, 8)
+      const vals = s.spec_values?.length
+        ? s.spec_values
+        : s.spec_value?.trim()
+          ? [s.spec_value.trim()]
+          : []
       if (!map.has(key)) map.set(key, new Set())
       for (const v of vals) {
-        if (v.length > 0 && v.length < 50) map.get(key)?.add(v)
+        const clean = v.trim()
+        if (clean.length > 0 && clean.length < 80) map.get(key)?.add(clean)
       }
     }
   }
-  return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set).slice(0, 8) }))
+  return Array.from(map.entries()).map(([key, set]) => ({ key, values: Array.from(set) }))
 }
 
 export function ProductFilter({ filters, onChange, total, products, filterOptions, filtersLoading }: ProductFilterProps) {
@@ -53,7 +58,7 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
   const clientSpecOptions = useMemo(() => getFilteredSpecOptions(products), [products])
   const specOptions = useMemo(() => {
     if (filterOptions?.specifications?.length) {
-      return filterOptions.specifications.map((s) => ({ key: s.name, values: s.values.map((v) => v.value).slice(0, 8) }))
+      return filterOptions.specifications.map((s) => ({ key: s.name, values: s.values.map((v) => v.value) }))
     }
     return clientSpecOptions
   }, [filterOptions, clientSpecOptions])
@@ -364,7 +369,7 @@ export function ProductFilter({ filters, onChange, total, products, filterOption
               </span>
             </button>
             {specsOpen && (
-              <div id="specs-filter-content" className="mt-3 flex flex-wrap gap-4" role="region" aria-label="Specs filter">
+              <div id="specs-filter-content" className="mt-3 flex max-h-60 flex-wrap gap-4 overflow-y-auto pr-1" role="region" aria-label="Specs filter">
                 {specOptions.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No spec filters for current results.</p>
                 ) : (

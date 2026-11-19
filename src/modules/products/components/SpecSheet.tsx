@@ -220,18 +220,20 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
 
   return (
     <div className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5">
-      {product.specs && product.specs.length > 0 && (
+      {product.specs && product.specs.some((s) => s.spec_name && s.spec_value) && (
         <>
           <Table>
             <TableBody>
-              {product.specs.map((spec) => (
-                <TableRow key={spec.spec_name}>
-                  <TableCell className="w-1/3 py-2 font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-                    {spec.spec_name}
-                  </TableCell>
-                  <TableCell className="py-2 text-sm font-medium">{spec.spec_value}</TableCell>
-                </TableRow>
-              ))}
+              {product.specs
+                .filter((spec) => spec.spec_name && spec.spec_value)
+                .map((spec, idx) => (
+                  <TableRow key={`${spec.spec_name}-${idx}`}>
+                    <TableCell className="w-1/3 py-2 font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                      {spec.spec_name}
+                    </TableCell>
+                    <TableCell className="py-2 text-sm font-medium">{spec.spec_value}</TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
           <Separator className="my-4" />
