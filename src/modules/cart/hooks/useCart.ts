@@ -53,9 +53,7 @@ export const useCartStore = create<CartStore>()(
         if (clamped <= 0) return
 
         const variantDelta = (product as ProductBrief).variant_price_delta ?? 0
-        const baseWithVariant = product.base_price + variantDelta
-        const discount = product.discount_percent ?? 0
-        const discountedPrice = discount > 0 ? baseWithVariant * (1 - discount / 100) : baseWithVariant
+        const finalUnitPrice = Math.max(0, product.base_price + variantDelta)
 
         const prev = get().items
         const optimistic: CartItem[] = (() => {
@@ -73,7 +71,7 @@ export const useCartStore = create<CartStore>()(
               product_id: product.id,
               sku: product.sku,
               product_name: product.name,
-              unit_price: discountedPrice,
+              unit_price: finalUnitPrice,
               quantity: clamped,
               stock: product.variant_stock ?? product.stock,
               cover_image_url: product.cover_image_url,

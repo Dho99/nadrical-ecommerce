@@ -40,9 +40,8 @@ function mapCartItem(raw: BackendCartItem): CartItem {
     product_id: raw.product_uuid,
     sku: p?.sku || raw.product_uuid,
     product_name: p?.name || raw.product_uuid,
-    // BE menyimpan harga produk dasar di snapshot; price_delta varian baru
-    // ditambahkan saat order dibuat. Tampilkan harga efektif yang sama.
-    unit_price: Number(raw.unit_price_snapshot ?? 0) + Number(v?.price_delta ?? 0),
+    // BE menyimpan harga efektif (termasuk override_price/price_delta varian) di unit_price_snapshot
+    unit_price: Number(raw.unit_price_snapshot ?? 0),
     quantity: Number(raw.quantity ?? 1),
     stock: Number(v?.stock ?? p?.stock ?? 99),
     cover_image_url: p?.image || (p as unknown as { cover_image_url?: string })?.cover_image_url || '',

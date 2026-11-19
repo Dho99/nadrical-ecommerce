@@ -312,7 +312,13 @@ export const productService = {
   async getProducts(filters: ProductFilters = {}): Promise<Product[]> {
     const now = Date.now()
     const hasServerFilter = Boolean(
-      filters.query || filters.category_id || filters.min_price !== undefined || filters.max_price !== undefined,
+      filters.query ||
+        filters.category_id ||
+        filters.min_price !== undefined ||
+        filters.max_price !== undefined ||
+        (filters.options && Object.keys(filters.options).length > 0) ||
+        (filters.specs && Object.keys(filters.specs).length > 0) ||
+        (filters.variants && filters.variants.length > 0),
     )
     if (!hasServerFilter && cachedProducts && now - cacheTimestamp < CACHE_TTL_MS) {
       return cachedProducts

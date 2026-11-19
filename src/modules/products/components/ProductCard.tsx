@@ -120,15 +120,13 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         <div className="mt-auto flex items-baseline gap-2 pt-1">
           <p className="font-display text-base font-bold tracking-tight">
-            {product.discount_percent
-              ? format(product.base_price * (1 - product.discount_percent / 100))
-              : format(product.base_price)}
+            {format(product.base_price)}
           </p>
-          {product.discount_percent && (
+          {product.discount_percent && product.original_price && product.original_price > product.base_price ? (
             <p className="text-xs text-muted-foreground line-through">
-              {format(product.base_price)}
+              {format(product.original_price)}
             </p>
-          )}
+          ) : null}
         </div>
       </CardContent>
     </Card>

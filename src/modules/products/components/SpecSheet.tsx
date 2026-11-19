@@ -121,17 +121,47 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
     )
   }, [isMultiDimension, variants, selectedOptions, selectedSingle])
 
-  // 4. Check if an option in a dimension is disabled (out of stock)
+  // 4. Check if an option in a dimension is disabled (out of stock everywhere)
   const isOptionDisabled = (dimName: string, val: string) => {
+    return !variants.some((v) => {
+      if (v.stock <= 0) return false
+      if (v.options && Object.keys(v.options).length > 0) {
+        return v.options[dimName] === val
+      }
+      return v.variant_name.includes(val)
+    })
+  }
+
+  const handleSelectDimension = (dimName: string, val: string) => {
     const candidateOptions = { ...selectedOptions, [dimName]: val }
-    const match = variants.find((v) => {
+    const exactMatch = variants.find((v) => {
       if (v.options && Object.keys(v.options).length > 0) {
         return Object.entries(candidateOptions).every(([k, vVal]) => v.options?.[k] === vVal)
       }
-      const expectedName = Object.values(candidateOptions).join(' / ')
-      return v.variant_name === expectedName
+      return v.variant_name === Object.values(candidateOptions).join(' / ')
     })
-    return !match || match.stock === 0
+
+    if (exactMatch && exactMatch.stock > 0) {
+      setSelectedOptions(candidateOptions)
+      setQty((q) => (exactMatch.stock > 0 && q > exactMatch.stock ? exactMatch.stock : q))
+      return
+    }
+
+    // If current combo is out of stock, find another variant with this option that is in stock
+    const alternative = variants.find((v) => {
+      if (v.stock <= 0) return false
+      if (v.options && Object.keys(v.options).length > 0) {
+        return v.options[dimName] === val
+      }
+      return v.variant_name.includes(val)
+    })
+
+    if (alternative?.options) {
+      setSelectedOptions(alternative.options)
+      setQty((q) => (alternative.stock > 0 && q > alternative.stock ? alternative.stock : q))
+    } else {
+      setSelectedOptions(candidateOptions)
+    }
   }
 
   const [qty, setQty] = useState(1)
@@ -140,14 +170,16 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
   const [messageText, setMessageText] = useState(`Hi, I'm interested in ${product.name}. Is it available?`)
 
   const effectiveVariantPrice = selected?.effective_price ?? (product.base_price + (selected?.price_delta ?? 0))
-  const price = effectiveVariantPrice
+  const finalPrice = effectiveVariantPrice
+  const originalPriceForVariant = (product.original_price ?? product.base_price) + (selected?.price_delta ?? 0)
+  const price = finalPrice
   const stock = selected ? selected.stock : variants.length > 0 ? 0 : product.stock
   const isPreorder = Boolean(product.is_preorder)
   const soldOut = stock === 0 && !isPreorder
 
   const handleSelectSingle = (variant: ProductVariant) => {
     setSelectedSingle(variant)
-    setQty(1)
+    setQty((q) => (variant.stock > 0 && q > variant.stock ? variant.stock : q))
   }
 
   const handleAdd = () => {
@@ -226,10 +258,7 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
                           role="radio"
                           aria-checked={isSelected}
                           disabled={disabled}
-                          onClick={() => {
-                            setSelectedOptions((prev) => ({ ...prev, [dim.name]: val }))
-                            setQty(1)
-                          }}
+                          onClick={() => handleSelectDimension(dim.name, val)}
                           className={cn(
                             'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
                             isSelected
@@ -282,27 +311,36 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
       )}
 
       <div className="flex items-center gap-5">
-        <QtyStepper
-          value={qty}
-          max={isPreorder ? 99 : Math.max(stock, 1)}
-          onChange={setQty}
-          label={`quantity of ${product.name}`}
-        />
+        <div>
+          <QtyStepper
+            value={qty}
+            max={isPreorder ? 99 : Math.max(stock, 1)}
+            onChange={setQty}
+            label={`quantity of ${product.name}`}
+          />
+          {variants.length > 0 && (
+            <p className="mt-1 text-[11px] font-mono text-muted-foreground">
+              {soldOut
+                ? 'Stok varian ini habis'
+                : `Tersedia: ${stock} unit`}
+            </p>
+          )}
+        </div>
         <div className="flex flex-1 flex-col items-end gap-0.5">
           <div className="flex items-baseline gap-2">
-            {product.discount_percent ? (
+            {product.discount_percent && product.original_price && originalPriceForVariant > finalPrice ? (
               <>
                 <p className="font-display text-2xl font-bold tracking-tight">
-                  {format(price * (1 - product.discount_percent / 100))}
+                  {format(finalPrice)}
                 </p>
-                <p className="text-sm text-muted-foreground line-through">{format(price)}</p>
+                <p className="text-sm text-muted-foreground line-through">{format(originalPriceForVariant)}</p>
                 <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
                   -{product.discount_percent}%
                 </span>
               </>
             ) : (
               <p className="font-display text-2xl font-bold tracking-tight">
-                {format(price)}
+                {format(finalPrice)}
                 {selected && selected.price_delta > 0 && (
                   <span className="ml-2 align-middle font-mono text-xs font-medium text-muted-foreground">
                     +{format(selected.price_delta)}
@@ -311,9 +349,9 @@ export function SpecSheet({ product, onAdd, onBuyNow }: SpecSheetProps) {
               </p>
             )}
           </div>
-          {product.discount_percent ? (
+          {product.discount_percent && product.original_price && originalPriceForVariant > finalPrice ? (
             <p className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              You save {format(price * (product.discount_percent / 100))} ({product.discount_percent}% off)
+              Hemat {format(originalPriceForVariant - finalPrice)} ({product.discount_percent}% off)
             </p>
           ) : null}
         </div>
